@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title translate="no">shOsu!</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <h1 translate="no">shOsu!</h1>
+
+  <input class="shadow" type="text" id="songName" placeholder="Enter song title or artist" />
+  <div class="buttons">
+  <button id="searchButton" class="search-btn" aria-label="Search"></button>
+  <button id="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
+  <button id="micButton">🎙️</button>
+  <button id="clearButton" class="suggestion-btn">🗑</button>
+  
+</div>
+<div id="result"></div>
+
+
+  <div id="filters" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin: 20px 0;">
+    <label for="mode">Mode :</label>
+    <select id="mode">
+  <option value="all">All modes</option>
+  <option translate="no" value="osu">Standard</option>
+  <option translate="no" value="taiko">Taiko</option>
+  <option translate="no" value="fruits">fruits</option>
+  <option translate="no" value="mania">Mania</option>
+  <!-- etc -->
+</select> 
+
+<select id="status">
+  <option value="all">All statuses</option>
+  <option translate="no" value="ranked">Ranked</option>
+  <option translate="no" value="approved">Approved</option>
+  <option translate="no" value="qualified">Qualified</option>
+  <option translate="no" value="loved">Loved</option>
+  <option translate="no" value="pending">Pending</option>
+  <option translate="no" value="graveyard">Graveyard</option>
+  <option translate="no" value="wip">WIP</option>
+  <option translate="no" value="deleted">Deleted</option>
+  <option translate="no" value="favourite">Favourite</option>
+  <option translate="no" value="unranked">Unranked</option>
+  <!-- etc -->
+</select>
+
+  </div>
+
+
+  <div id="results"></div>
+
+  <h1 id="version-info" translate="no">Info version: test 1.4</h1>
+
+  <script src="script.js"></script>
+</body>
+</html>
+

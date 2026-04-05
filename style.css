@@ -1,0 +1,353 @@
+/* Style global */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #121212;
+  color: white;
+  text-align: center;
+  padding: 50px 20px;
+  transition: background-color 0.5s, color 0.5s;
+}
+
+/* Mode clair */
+body.light-mode {
+  background-color: #f5f5f5;
+  color: #121212;
+}
+
+/* Header */
+header {
+  background-color: #222;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+header img {
+  height: 50px;
+}
+
+header h1 {
+  margin-left: 15px;
+  font-size: 24px;
+  color: inherit;
+}
+
+.suggestion-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;   /* permet aux boutons de passer à la ligne si trop longs */
+  gap: 10px;
+}
+
+.suggestion-btn {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s, transform 0.2s;
+  min-width: 80px;
+  max-width: 200px;
+  flex: 1 1 auto;   /* largeur flexible */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-btn:hover {
+  background-color: #555;
+  transform: scale(1.05);
+}
+
+body.light-mode .suggestion-btn {
+  background-color: #ddd;
+  color: #121212;
+}
+
+body.light-mode .suggestion-btn:hover {
+  background-color: #ccc;
+}
+
+
+
+.suggestion-btn:hover {
+  background-color: #555;
+  transform: scale(1.05);
+}
+
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+/* Bouton Dark Mode */
+#theme-toggle {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+#theme-toggle:hover {
+  transform: scale(1.1);
+}
+
+/* Input texte */
+input[type="text"],
+.filters select {
+  padding: 12px;
+  width: 250px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  outline: none;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+input[type="text"]:focus,
+.filters select:focus {
+  border-color: #00aaff;
+}
+
+/* Mode clair input et select */
+body.light-mode input[type="text"],
+body.light-mode .filters select {
+  background-color: #fff;
+  color: #121212;
+  border-color: #ccc;
+}
+
+/* Bouton de recherche avec logo */
+.search-btn-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 50%;
+  margin-top: 20px;
+}
+
+.search-btn-wrapper img {
+  width: 70px;
+  height: 70px;
+  transition: transform 0.2s ease;
+}
+
+.search-btn-wrapper img:hover {
+  transform: scale(1.1);
+}
+
+/* Résultats */
+#results {
+  text-align: center;
+  margin-top: 20px;
+}
+
+#results > div {
+  /* Style général pour chaque résultat */
+  margin-bottom: 10px;
+  background: rgba(255 255 255 / 0.1);
+  padding: 10px;
+  border-radius: 6px;
+
+}
+
+/* Ripple animation */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  animation: ripple-effect 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple-effect {
+  from {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.spinner {
+  margin: 20px auto;
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 170, 255, 0.3);
+  border-top-color: #00aaff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Loader */
+.loader {
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top: 4px solid #00aaff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 0.8s linear infinite;
+  margin: 30px auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Filtres */
+#filters {
+  margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 25px;
+  background-color: #444;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.filter-btn:hover {
+  background-color: #666;
+}
+
+.filter-btn.active {
+  background-color: #ff4e8a;
+}
+
+.filters label {
+  color: inherit;
+  transition: color 0.3s;
+}
+
+/* Boutons divers */
+.buttons {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+  margin-left: 10px;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  background-color: transparent;
+  color: inherit;
+  font-size: 24px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+button:hover {
+  transform: scale(1.1);
+}
+
+body.light-mode button {
+  background-color: #eee;
+  color: #121212;
+}
+body.light-mode button:hover {
+  background-color: #ddd;
+}
+
+#version-info {
+  position: fixed;
+  bottom: 10px;   /* distance du bas */
+  left: 10px;     /* distance de la gauche */
+  margin: 0;
+  font-size: 14px;
+  color: #888;    /* gris clair, tu peux ajuster */
+  z-index: 1000;  /* pour être sûr que ce soit au-dessus */
+}
+
+
+button.search-btn {
+  background: white url('shosu.png') no-repeat center center;
+  background-size: 30px 30px;
+}
+
+span {
+  font-weight: bold;
+  margin-left: 6px;
+}
+
+/* Star Rating */
+.star-rating {
+  font-weight: bold;
+  font-size: 1.1em;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+/* Pagination */
+.pagination button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  background-color: #00aaff;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pagination button:hover {
+  background-color: #0088cc;
+}
+
+/* Centrer les boutons de pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.star-rating {
+  font-weight: bold;
+  font-size: 1.2em;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.shadow:hover {
+  transition: 0.3s;
+  box-shadow: 0 10px 20px rgba(124, 77, 255, 0.3);
+}
+
+/* Palette osu! officielle approximative */
+.star-rating[data-difficulty="0"] { color: #4FC0FF; }
+.star-rating[data-difficulty="2"] { color: #4FFFD5; }
+.star-rating[data-difficulty="2.7"] { color: #7CFF4F; }
+.star-rating[data-difficulty="4"] { color: #F6F05C; }
+.star-rating[data-difficulty="5.3"] { color: #FF8068; }
+.star-rating[data-difficulty="6.5"] { color: #FF3C71; }
+.star-rating[data-difficulty="8"] { color: #6563DE; }
