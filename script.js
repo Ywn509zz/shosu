@@ -135,7 +135,7 @@ async function searchBeatmap() {
   resultsDiv.innerHTML = `<div class="spinner"></div>`;
 
   try {
-    const response = await fetch(`https://shosu-backend.onrender.com/search?q=${encodeURIComponent(query)}`);
+    const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
     const data = await response.json();
 
     if (!data.beatmapsets || data.beatmapsets.length === 0) {
