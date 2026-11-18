@@ -14,8 +14,8 @@ async function exchangeCode(code, req) {
   const { clientId, clientSecret } = oauthConfig();
   const response = await fetch("https://osu.ppy.sh/oauth/token", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
       client_id: clientId,
       client_secret: clientSecret,
       code,
