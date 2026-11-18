@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       `${SESSION_COOKIE}=${encodeURIComponent(session)}; ${cookieOptions(604800)}`,
       clearCookie(STATE_COOKIE),
     ]);
-    return res.redirect(302, "/");
+    return res.redirect(302, "/?login=success");
   } catch (error) {
     console.error("osu! login callback error:", error?.message || "Unknown error");
     res.setHeader("Set-Cookie", clearCookie(STATE_COOKIE));

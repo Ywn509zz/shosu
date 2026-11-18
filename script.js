@@ -7,6 +7,23 @@ const themeBtn = document.getElementById("theme-toggle");
 const clearButton = document.getElementById("clearButton");
 const account = document.getElementById("account");
 
+function showLoginSuccess() {
+  if (new URLSearchParams(window.location.search).get("login") !== "success") return;
+
+  const notice = document.createElement("div");
+  notice.className = "login-notice";
+  notice.setAttribute("role", "status");
+  notice.innerHTML = "<strong>Vous êtes connecté à osu!</strong><span>Redirection vers shOsu!...</span>";
+  document.body.appendChild(notice);
+
+  const cleanUrl = new URL(window.location.href);
+  cleanUrl.searchParams.delete("login");
+  window.history.replaceState({}, "", cleanUrl);
+  window.setTimeout(() => notice.remove(), 4000);
+}
+
+showLoginSuccess();
+
 async function loadAccount() {
   if (!account) return;
   try {
