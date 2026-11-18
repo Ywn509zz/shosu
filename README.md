@@ -12,6 +12,21 @@ Les fonctions `api/search.js` et `api/preview.js` utilisent les variables
 uniquement côté serveur. Le token OAuth est conservé en mémoire par instance
 Vercel pendant sa durée de validité.
 
+## Connexion avec osu!
+
+Créer une application OAuth dans les réglages osu! et configurer son URL de
+callback sur `https://<domaine>/api/auth/callback`. Ajouter les variables
+suivantes dans Vercel, sans les committer :
+
+- `OSU_CLIENT_ID` et `OSU_CLIENT_SECRET` : identifiants de l'application osu!.
+- `OSU_REDIRECT_URI` : URL exacte de callback enregistrée dans osu!.
+- `SESSION_SECRET` : une valeur aléatoire d'au moins 32 caractères.
+
+La connexion utilise le scope `identify`, ne demande pas le mot de passe osu!,
+et conserve la session dans un cookie HttpOnly chiffré. Le plan initial est
+`free`; il pourra être remplacé par une vérification d'abonnement côté serveur
+plus tard.
+
 ## Vérification sur Preview
 
 1. Pousser la branche `migration-vercel` vers le dépôt distant et ouvrir une

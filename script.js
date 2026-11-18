@@ -5,6 +5,32 @@ const micButton = document.getElementById("micButton");
 const searchButton = document.getElementById("searchButton");
 const themeBtn = document.getElementById("theme-toggle");
 const clearButton = document.getElementById("clearButton");
+const account = document.getElementById("account");
+
+async function loadAccount() {
+  if (!account) return;
+  try {
+    const response = await fetch("/api/auth/me", { headers: { Accept: "application/json" } });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!data.authenticated) return;
+
+    const user = document.createElement("span");
+    user.textContent = `Connecté : ${data.user.username} (${data.plan})`;
+    const logout = document.createElement("button");
+    logout.type = "button";
+    logout.textContent = "Se déconnecter";
+    logout.addEventListener("click", async () => {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (response.ok) window.location.reload();
+    });
+    account.replaceChildren(user, logout);
+  } catch (error) {
+    console.error("Erreur de chargement du compte :", error);
+  }
+}
+
+loadAccount();
 
 // === Pagination ===
 let allResults = [];
@@ -34,7 +60,9 @@ function stopAllAudios() {
     audio.pause();
     audio.currentTime = 0;
   });
-  document.querySelectorAll(".play-btn").forEach(btn => btn.textContent = "▶️ Play");
+  document.querySelectorAll(".play-btn").forEach(btn => {
+    btn.innerHTML = "▶ <span>Écouter</span>";
+  });
 }
 
 // === Affichage page ===
@@ -53,26 +81,33 @@ function displayPage(page) {
     // Nouveau : URL audio directe depuis osu
     const previewUrl = mapset.preview_url || "";
 
-    const div = document.createElement("div");
-    div.style.cssText = "display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 10px; margin-bottom: 10px; border-radius: 6px;";
+    const div = document.createElement("article");
+    div.className = "beatmap-card";
 
     div.innerHTML = `
-      <img src="${coverUrl}" alt="Cover" style="width: 120px; height: 68px; border-radius: 4px; object-fit: cover; margin-right: 10px;">
-      <div style="flex: 1;">
-        <h3 style="margin:0;">${mapset.title} - ${mapset.artist}</h3>
-        <p style="margin: 4px 0 2px;">Creator: ${mapset.creator}</p>
-        <p style="margin: 2px 0;">Status: ${mapset.status}</p>
-        <p style="margin: 2px 0;">Modes: ${modesInSet.join(", ")}</p>
-        ${mapset.beatmaps && mapset.beatmaps.length > 0 ? `<p class="star-rating">⭐ ${mapset.beatmaps[0].difficulty_rating.toFixed(2)}★</p>` : ""}
-        <a href="https://osu.ppy.sh/beatmapsets/${mapset.id}" target="_blank" rel="noopener noreferrer" style="color:#00aaff;">View Beatmap</a>
+      <div class="card-cover-wrap">
+        <img class="card-cover" src="${coverUrl}" alt="Cover de ${mapset.title}" loading="lazy">
+        <span class="status-badge">${mapset.status}</span>
       </div>
-      ${previewUrl ? `<button class="play-btn" style="margin-left: 10px; padding: 8px 12px; cursor: pointer;">▶️ Play</button><audio src="https://b.ppy.sh/preview/${previewUrl.split('/').pop()}" preload="none"></audio>` : ""}
+      <div class="card-content">
+        <div class="card-heading">
+          <div>
+            <p class="card-kicker">${modesInSet.join(" · ")}</p>
+            <h3>${mapset.title}</h3>
+            <p class="card-artist">${mapset.artist} <span>·</span> ${mapset.creator}</p>
+          </div>
+          ${mapset.beatmaps && mapset.beatmaps.length > 0 ? `<p class="star-rating">⭐ ${mapset.beatmaps[0].difficulty_rating.toFixed(2)}★</p>` : ""}
+        </div>
+        <div class="card-footer">
+          <a href="https://osu.ppy.sh/beatmapsets/${mapset.id}" target="_blank" rel="noopener noreferrer">Voir le beatmap <span aria-hidden="true">↗</span></a>
+          ${previewUrl ? `<button class="play-btn" type="button">▶ <span>Écouter</span></button><audio src="https://b.ppy.sh/preview/${previewUrl.split('/').pop()}" preload="none"></audio>` : ""}
+        </div>
+      </div>
     `;
 
     if (mapset.beatmaps && mapset.beatmaps.length > 0) {
       const starP = div.querySelector(".star-rating");
-      const rating = mapset.beatmaps[0].difficulty_rating;
-      starP.style.color = getStarColor(rating);
+      starP.style.color = getStarColor(mapset.beatmaps[0].difficulty_rating);
     }
 
     resultsDiv.appendChild(div);
@@ -85,14 +120,16 @@ function displayPage(page) {
         if (audio.paused) {
           stopAllAudios();
           audio.play();
-          playBtn.textContent = "⏸️ Pause";
+          playBtn.innerHTML = "⏸ <span>Pause</span>";
         } else {
           audio.pause();
-          playBtn.textContent = "▶️ Play";
+          playBtn.innerHTML = "▶ <span>Écouter</span>";
         }
       });
 
-      audio.addEventListener('ended', () => playBtn.textContent = "▶️ Play");
+      audio.addEventListener("ended", () => {
+        playBtn.innerHTML = "▶ <span>Écouter</span>";
+      });
     }
   });
 
