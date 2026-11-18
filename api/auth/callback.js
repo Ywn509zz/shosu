@@ -79,6 +79,9 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("osu! login callback error:", error?.message || "Unknown error");
     res.setHeader("Set-Cookie", clearCookie(STATE_COOKIE));
-    return res.status(502).json({ error: "Unable to complete osu! login" });
+    return res.status(502).json({
+      error: "Unable to complete osu! login",
+      detail: error?.message || "Unknown callback error",
+    });
   }
 }
