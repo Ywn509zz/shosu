@@ -20,7 +20,7 @@ export default function handler(req, res) {
       client_id: clientId,
       redirect_uri: redirectUri(req),
       response_type: "code",
-      scope: "identify",
+      scope: "public identify",
       state,
     });
 
