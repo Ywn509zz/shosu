@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title translate="no">shOsu!</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div class="page-shell">
+        <header class="site-header">
+            <a class="brand" href="/" aria-label="Retour à l'accueil">
+                <span class="brand-mark">s</span>
+                <span translate="no">shOsu!</span>
+            </a>
+            <div id="account" class="account" aria-live="polite">
+                <a class="account-btn" href="/api/auth/login">Se connecter avec osu!</a>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero">
+                <p class="eyebrow">BEATMAP DISCOVERY</p>
+                <h1>La prochaine musique à jouer est ici.</h1>
+                <p class="hero-copy">Recherche, écoute et trouve rapidement ton prochain beatmap favori.</p>
+
+                <div class="search-panel">
+                    <div class="search-field">
+                        <span class="search-icon" aria-hidden="true">⌕</span>
+                        <input class="shadow" type="text" id="songName" placeholder="Rechercher un titre, un artiste..." />
+                    </div>
+                    <div class="buttons">
+                        <button id="searchButton" class="search-btn" aria-label="Rechercher"></button>
+                        <button id="theme-toggle" aria-label="Changer le thème">🌙</button>
+                        <button id="micButton" aria-label="Recherche vocale">🎙️</button>
+                        <button id="clearButton" class="suggestion-btn" aria-label="Effacer la recherche">🗑</button>
+                    </div>
+                </div>
+            </section>
+
+            <div id="filters" class="filters">
+                <div class="filter-label">
+                    <span class="filter-icon">⚙</span>
+                    <span>Affiner les résultats</span>
+                </div>
+                <label for="mode">Mode :</label>
+                <select id="mode">
+  <option value="all">All modes</option>
+  <option translate="no" value="osu">Standard</option>
+  <option translate="no" value="taiko">Taiko</option>
+  <option translate="no" value="fruits">fruits</option>
+  <option translate="no" value="mania">Mania</option>
+  <!-- etc -->
+                </select>
+
+                <label for="status">Statut :</label>
+                <select id="status">
+  <option value="all">All statuses</option>
+  <option translate="no" value="ranked">Ranked</option>
+  <option translate="no" value="approved">Approved</option>
+  <option translate="no" value="qualified">Qualified</option>
+  <option translate="no" value="loved">Loved</option>
+  <option translate="no" value="pending">Pending</option>
+  <option translate="no" value="graveyard">Graveyard</option>
+  <option translate="no" value="wip">WIP</option>
+  <option translate="no" value="deleted">Deleted</option>
+  <option translate="no" value="favourite">Favourite</option>
+  <option translate="no" value="unranked">Unranked</option>
+  <!-- etc -->
+                </select>
+            </div>
+
+            <div id="result"></div>
+            <div id="results" class="results-grid"></div>
+        </main>
+
+        <footer id="version-info" translate="no">shOsu! · bêta 1.4</footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
