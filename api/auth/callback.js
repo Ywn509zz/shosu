@@ -3,7 +3,6 @@ import {
   STATE_COOKIE,
   clearCookie,
   cookieOptions,
-  decryptSession,
   encryptSession,
   getCookie,
   oauthConfig,
@@ -24,7 +23,12 @@ async function exchangeCode(code, req) {
       redirect_uri: redirectUri(req),
     }),
   });
-  if (!response.ok) throw new Error(`osu! token exchange HTTP ${response.status}`);
+  if (!response.ok) {
+    const details = await response.json().catch(() => null);
+    throw new Error(
+      `osu! token exchange HTTP ${response.status}: ${details?.error || "unknown error"}`,
+    );
+  }
   return response.json();
 }
 

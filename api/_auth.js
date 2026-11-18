@@ -94,8 +94,8 @@ export function redirectUri(req) {
 }
 
 export function oauthConfig() {
-  const clientId = process.env.OSU_CLIENT_ID || process.env.CLIENT_ID;
-  const clientSecret = process.env.OSU_CLIENT_SECRET || process.env.CLIENT_SECRET;
+  const clientId = process.env.CLIENT_ID || process.env.OSU_CLIENT_ID;
+  const clientSecret = process.env.CLIENT_SECRET || process.env.OSU_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     throw new Error("Missing osu! OAuth credentials");
   }

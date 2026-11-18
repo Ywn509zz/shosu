@@ -18,7 +18,8 @@ Créer une application OAuth dans les réglages osu! et configurer son URL de
 callback sur `https://<domaine>/api/auth/callback`. Ajouter les variables
 suivantes dans Vercel, sans les committer :
 
-- `OSU_CLIENT_ID` et `OSU_CLIENT_SECRET` : identifiants de l'application osu!.
+- `CLIENT_ID` et `CLIENT_SECRET` : identifiants de l'application osu!.
+- `OSU_CLIENT_ID` et `OSU_CLIENT_SECRET` : noms alternatifs, utilisés uniquement si les variables précédentes ne sont pas définies.
 - `OSU_REDIRECT_URI` : URL exacte de callback enregistrée dans osu!.
 - `SESSION_SECRET` : une valeur aléatoire d'au moins 32 caractères.
 
