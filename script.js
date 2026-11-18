@@ -32,16 +32,54 @@ async function loadAccount() {
     const data = await response.json();
     if (!data.authenticated) return;
 
-    const user = document.createElement("span");
-    user.textContent = `Connecté : ${data.user.username} (${data.plan})`;
-    const logout = document.createElement("button");
-    logout.type = "button";
-    logout.textContent = "Se déconnecter";
-    logout.addEventListener("click", async () => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "account-menu";
+
+    const user = document.createElement("button");
+    user.type = "button";
+    user.className = "account-trigger";
+    user.setAttribute("aria-haspopup", "menu");
+    user.setAttribute("aria-expanded", "false");
+    user.innerHTML = `<span class="account-avatar">${data.user.username.slice(0, 1).toUpperCase()}</span><span>${data.user.username}</span><span class="account-chevron">⌄</span>`;
+
+    const menu = document.createElement("div");
+    menu.className = "account-dropdown";
+    menu.setAttribute("role", "menu");
+    menu.hidden = true;
+
+    const logoutLocal = document.createElement("button");
+    logoutLocal.type = "button";
+    logoutLocal.setAttribute("role", "menuitem");
+    logoutLocal.innerHTML = "<span>Déconnexion</span><small>Quitter shOsu!</small>";
+
+    const switchAccount = document.createElement("button");
+    switchAccount.type = "button";
+    switchAccount.setAttribute("role", "menuitem");
+    switchAccount.innerHTML = "<span>Changer de compte osu!</span><small>Utiliser un autre profil</small>";
+
+    async function logoutAndRedirect(forceSwitch) {
       const response = await fetch("/api/auth/logout", { method: "POST" });
-      if (response.ok) window.location.reload();
+      if (!response.ok) return;
+      window.location.assign(forceSwitch ? "/api/auth/login?switch=1" : "/");
+    }
+
+    logoutLocal.addEventListener("click", () => logoutAndRedirect(false));
+    switchAccount.addEventListener("click", () => logoutAndRedirect(true));
+    user.addEventListener("click", () => {
+      menu.hidden = !menu.hidden;
+      user.setAttribute("aria-expanded", String(!menu.hidden));
     });
-    account.replaceChildren(user, logout);
+
+    menu.append(logoutLocal, switchAccount);
+    wrapper.append(user, menu);
+    account.replaceChildren(wrapper);
+
+    document.addEventListener("click", (event) => {
+      if (!wrapper.contains(event.target)) {
+        menu.hidden = true;
+        user.setAttribute("aria-expanded", "false");
+      }
+    });
   } catch (error) {
     console.error("Erreur de chargement du compte :", error);
   }

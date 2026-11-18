@@ -14,6 +14,7 @@ export default function handler(req, res) {
 
   try {
     const { clientId } = oauthConfig();
+    const switchAccount = req.query.switch === "1";
     const state = randomBytes(32).toString("base64url");
     const authorizeUrl = new URL("https://osu.ppy.sh/oauth/authorize");
     authorizeUrl.search = new URLSearchParams({
@@ -23,6 +24,7 @@ export default function handler(req, res) {
       scope: "public identify",
       state,
     });
+    if (switchAccount) authorizeUrl.searchParams.set("prompt", "login");
 
     res.setHeader(
       "Set-Cookie",
