@@ -1,0 +1,12 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dépendances et builds
+node_modules/
+build/
+.react-router/
+.vercel/
+
+.DS_Store

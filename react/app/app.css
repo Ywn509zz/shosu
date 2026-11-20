@@ -1,0 +1,33 @@
+/*
+ * Styles HeroUI v3 SANS le « preflight » de Tailwind.
+ *
+ * `@import "@heroui/styles"` charge tout Tailwind, y compris son reset CSS
+ * (line-height 1.5, titres sans graisse, marges à zéro…). La feuille
+ * d'origine (legacy.css) a été écrite pour les valeurs par défaut du
+ * navigateur : on reprend donc le contenu de `@heroui/styles/dist/index.css`
+ * en écartant ce reset, ainsi que les composants non utilisés.
+ */
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+
+@import "@heroui/styles/base" layer(base);
+/* Uniquement les composants utilisés (Button, Input) : les autres feuilles de
+   HeroUI définissent des classes homonymes de celles de legacy.css
+   (.search-field, .spinner, .pagination…). */
+@import "@heroui/styles/components/button.css" layer(components);
+@import "@heroui/styles/components/input.css" layer(components);
+@import "@heroui/styles/themes/default" layer(theme);
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";
+
+/* Votre feuille de style d'origine, reprise telle quelle (voir legacy.css). */
+@import "./legacy.css";
+
+/* Compléments minimaux pour les composants HeroUI et la version React. */
+@import "./overrides.css";
+
+/* Page « Conseiller IA » (nouvelle, dans le même langage visuel). */
+@import "./advisor.css";

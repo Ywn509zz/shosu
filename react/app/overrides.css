@@ -1,0 +1,56 @@
+/*
+ * Compléments à legacy.css (la feuille d'origine, non modifiée).
+ *
+ * 1. Neutralise les styles par défaut des composants HeroUI que
+ *    legacy.css ne redéfinit pas, pour conserver exactement le rendu d'origine.
+ * 2. Reproduit le comportement du script d'origine qui posait
+ *    `position: relative; overflow: hidden` sur les boutons d'action.
+ */
+
+/* HeroUI donne un padding de 16px aux boutons ; on revient à celui du
+   navigateur, utilisé par l'original (les boutons à texte le redéfinissent
+   tous dans legacy.css). */
+button {
+  padding: 1px 6px;
+}
+
+/* Effet ripple : uniquement sur les 4 boutons d'action, comme avant. */
+.buttons button {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Le champ HeroUI ajoute une ombre et un anneau de focus ; le panneau de
+   recherche d'origine n'en avait pas. */
+.search-field input[type="text"] {
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* Repère de focus clavier conservé, à l'échelle du panneau (même couleur que
+   les bordures au survol du design d'origine). */
+.search-panel:focus-within {
+  border-color: rgba(195, 173, 255, 0.6);
+}
+
+/* HeroUI retire l'anneau de focus natif des boutons : on garde un repère
+   visible pour la navigation au clavier (n'apparaît jamais à la souris). */
+a:focus-visible,
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/* Texte réservé aux lecteurs d'écran. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
