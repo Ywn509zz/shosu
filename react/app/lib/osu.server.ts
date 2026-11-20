@@ -88,6 +88,8 @@ function toBeatmapset(raw: RawBeatmapset): Beatmapset {
     status: raw.status,
     modes,
     stars: maps && maps.length > 0 ? maps[0].difficulty_rating : null,
+    minStars: maps && maps.length > 0 ? Math.min(...maps.map((m) => m.difficulty_rating)) : null,
+    maxStars: maps && maps.length > 0 ? Math.max(...maps.map((m) => m.difficulty_rating)) : null,
     previewFile: raw.preview_url ? (raw.preview_url.split("/").pop() ?? null) : null,
   };
 }
@@ -130,5 +132,126 @@ export async function searchBeatmapsets(params: {
   return {
     beatmapsets: (data.beatmapsets ?? []).map(toBeatmapset),
     cursor: data.cursor_string ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Profil d'un joueur (données publiques) — utilisé par le conseiller IA.
+// ---------------------------------------------------------------------------
+
+async function osuGet<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+  const url = new URL(`${osuBase()}/api/v2${path}`);
+  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${await accessToken()}`, Accept: "application/json" },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status === 401) cachedToken = null;
+  if (!response.ok) {
+    throw new OsuError(`osu! API ${path} HTTP ${response.status}`, response.status === 404 ? 404 : 502);
+  }
+  return (await response.json()) as T;
+}
+
+export type PlayerProfile = {
+  mode: string;
+  pp: number | null;
+  globalRank: number | null;
+  accuracy: number | null;
+  playCount: number | null;
+  /** Meilleurs scores, réduits à ce qui sert à recommander (aucune donnée d'identité). */
+  topPlays: {
+    stars: number;
+    bpm: number | null;
+    lengthSeconds: number | null;
+    ar: number | null;
+    od: number | null;
+    cs: number | null;
+    mods: string[];
+    pp: number | null;
+    accuracy: number | null;
+    title: string;
+    artist: string;
+  }[];
+  /** Statistiques calculées ici, pas par le modèle. */
+  derived: {
+    averageStars: number | null;
+    maxStars: number | null;
+    medianBpm: number | null;
+    modUsage: Record<string, number>;
+  };
+};
+
+type RawStats = {
+  statistics?: {
+    pp?: number;
+    global_rank?: number | null;
+    hit_accuracy?: number;
+    play_count?: number;
+  };
+};
+
+type RawScore = {
+  pp?: number | null;
+  accuracy?: number;
+  mods?: (string | { acronym: string })[];
+  beatmap?: {
+    difficulty_rating: number;
+    bpm?: number;
+    total_length?: number;
+    ar?: number;
+    accuracy?: number;
+    cs?: number;
+  };
+  beatmapset?: { title?: string; artist?: string };
+};
+
+const round = (value: number | null | undefined, digits = 2) =>
+  typeof value === "number" && Number.isFinite(value)
+    ? Math.round(value * 10 ** digits) / 10 ** digits
+    : null;
+
+export async function getPlayerProfile(osuId: number, mode: string): Promise<PlayerProfile> {
+  const id = String(osuId);
+  const [stats, scores] = await Promise.all([
+    osuGet<RawStats>(`/users/${id}/${mode}`, { key: "id" }),
+    osuGet<RawScore[]>(`/users/${id}/scores/best`, { mode, limit: "25" }),
+  ]);
+
+  const topPlays = scores
+    .filter((score) => score.beatmap)
+    .map((score) => ({
+      stars: round(score.beatmap!.difficulty_rating) ?? 0,
+      bpm: round(score.beatmap!.bpm, 0),
+      lengthSeconds: round(score.beatmap!.total_length, 0),
+      ar: round(score.beatmap!.ar, 1),
+      od: round(score.beatmap!.accuracy, 1),
+      cs: round(score.beatmap!.cs, 1),
+      mods: (score.mods ?? []).map((m) => (typeof m === "string" ? m : m.acronym)),
+      pp: round(score.pp, 0),
+      accuracy: score.accuracy !== undefined ? round(score.accuracy * 100, 1) : null,
+      title: (score.beatmapset?.title ?? "").slice(0, 80),
+      artist: (score.beatmapset?.artist ?? "").slice(0, 60),
+    }));
+
+  const stars = topPlays.map((p) => p.stars);
+  const bpms = topPlays.map((p) => p.bpm).filter((b): b is number => b !== null).sort((a, b) => a - b);
+  const modUsage: Record<string, number> = {};
+  for (const play of topPlays) for (const mod of play.mods) modUsage[mod] = (modUsage[mod] ?? 0) + 1;
+
+  return {
+    mode,
+    pp: round(stats.statistics?.pp, 0),
+    globalRank: stats.statistics?.global_rank ?? null,
+    accuracy: round(stats.statistics?.hit_accuracy, 1),
+    playCount: stats.statistics?.play_count ?? null,
+    topPlays,
+    derived: {
+      averageStars: stars.length ? round(stars.reduce((a, b) => a + b, 0) / stars.length) : null,
+      maxStars: stars.length ? Math.max(...stars) : null,
+      medianBpm: bpms.length ? bpms[Math.floor(bpms.length / 2)] : null,
+      modUsage,
+    },
   };
 }

@@ -1,0 +1,170 @@
+/*
+ * Page « Conseiller IA » — réutilise les variables et le langage visuel de
+ * legacy.css (panneaux, bordures, accent) sans modifier cette feuille.
+ */
+.advisor-panel {
+  display: grid;
+  gap: 12px;
+  max-width: 720px;
+  margin: 0 auto 30px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  text-align: left;
+}
+.advisor-login {
+  justify-items: center;
+  text-align: center;
+}
+.advisor-login p {
+  margin: 0;
+  color: var(--muted);
+}
+.advisor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.advisor-row select {
+  min-width: 142px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 30px 9px 11px;
+  outline: 0;
+  color: var(--text);
+  background: var(--panel-solid);
+  font: inherit;
+  font-size: 0.82rem;
+}
+.advisor-row select:focus {
+  border-color: var(--accent);
+}
+.advisor-label {
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.advisor-label span {
+  color: var(--muted);
+  font-weight: 400;
+}
+.advisor-panel textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: 0;
+  color: var(--text);
+  background: var(--panel-solid);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.advisor-panel textarea::placeholder {
+  color: #7d86a0;
+}
+.advisor-panel textarea:focus {
+  border-color: var(--accent);
+}
+.advisor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.advisor-actions small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+/* .account-btn (legacy.css) donne le style « pilule » ; le bouton global fixe 42×42. */
+button.advisor-submit {
+  width: auto;
+  height: auto;
+  padding: 11px 20px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border-color: rgba(195, 173, 255, 0.45);
+  background: rgba(156, 124, 255, 0.2);
+}
+button.advisor-submit:hover {
+  background: rgba(156, 124, 255, 0.32);
+}
+button.advisor-submit[data-pending] {
+  opacity: 0.7;
+  cursor: progress;
+}
+.advisor-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+.advisor-error {
+  margin: 0;
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 128, 104, 0.45);
+  border-radius: 12px;
+  color: #ffb4a6;
+  background: rgba(255, 128, 104, 0.08);
+  font-size: 0.85rem;
+}
+
+.advisor-result {
+  display: grid;
+  gap: 26px;
+}
+.advisor-summary {
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  text-align: left;
+}
+.advisor-summary .eyebrow {
+  margin-bottom: 8px;
+}
+.advisor-summary p {
+  margin: 0 0 10px;
+  line-height: 1.55;
+}
+.advisor-range {
+  color: var(--cyan);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.advisor-summary ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+.advisor-group h2 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  text-align: left;
+}
+.advisor-group > p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: left;
+}
+.advisor-foot {
+  margin: 0;
+  color: #6f7894;
+  font-size: 0.72rem;
+  text-align: center;
+}
+body.light-mode .advisor-panel {
+  background: rgba(255, 255, 255, 0.6);
+}
+body.light-mode .advisor-error {
+  color: #b33a22;
+}

@@ -41,6 +41,8 @@ Mêmes noms que la version HTML/JS : **rien à renommer dans Vercel**.
 | `SESSION_SECRET`               |     oui     | Au moins 32 caractères (`BETTER_AUTH_SECRET` en alternative)             |
 | `BETTER_AUTH_URL`              |     non     | URL publique ; par défaut, l'origine de `OSU_REDIRECT_URI`               |
 | `AUTH_SESSION_VERSION`         |     non     | Incrémenter pour invalider **toutes** les sessions                       |
+| `GEMINI_API_KEY`               |     non     | Clé Gemini pour le conseiller IA (sans elle, la page l'indique)          |
+| `GEMINI_MODEL`                 |     non     | Modèle principal (défaut `gemini-3.1-flash-lite`, repli automatique)     |
 
 ## Fidélité au design
 
@@ -84,6 +86,39 @@ incrémentez `AUTH_SESSION_VERSION` pour tout invalider. osu! ne fournit pas d'e
 technique `<id>@users.osu.invalid` est généré. Pour des comptes persistants (abonnements, favoris…),
 ajoutez une option `database` à `betterAuth()` dans [`app/lib/auth.server.ts`](app/lib/auth.server.ts).
 
+## Conseiller de beatmaps (Gemini)
+
+Page `/advisor` (lien « ✨ Conseiller IA » dans le header), réservée aux joueurs connectés.
+
+**Fonctionnement.**
+1. Le serveur lit le profil **public** du joueur chez osu! (pp, rang, précision, 25 meilleurs scores :
+   étoiles, BPM, AR/OD/CS, mods) et calcule lui-même les moyennes.
+2. Il envoie ce profil — sans pseudo ni identifiant — et les préférences saisies (400 caractères max)
+   à Gemini, qui répond dans un **JSON contraint par un schéma** : résumé, fourchette d'étoiles,
+   conseils et 3-4 recherches de mots-clés.
+3. Le serveur valide cette réponse, lance les recherches chez osu! et ne garde que de **vraies beatmaps**
+   dans la fourchette d'étoiles, avec aperçu audio. Gemini n'invente donc aucune beatmap.
+
+**Sécurité de la clé et de l'endpoint** (`POST /api/advisor`).
+- La clé reste côté serveur (variable d'environnement) et part dans l'en-tête `x-goog-api-key`, jamais
+  dans une URL. Elle n'est ni dans le bundle navigateur ni dans les journaux.
+- Réservé aux utilisateurs connectés, avec contrôle d'origine (anti-CSRF) et entrées validées
+  (JSON borné, mode et longueur du texte).
+- Limites : 5 demandes / 10 min par utilisateur, 60 / heure au total. L'état est en mémoire, donc propre à
+  chaque instance serverless ; pour une garantie stricte, utilisez un stockage partagé (Vercel KV, Upstash).
+- Les données d'osu! et les préférences sont traitées comme des **données** (consigne anti-injection) ;
+  la sortie du modèle est nettoyée, bornée, et n'est jamais interprétée comme du HTML.
+- Si le modèle principal est saturé (429/5xx), les modèles de repli sont essayés automatiquement.
+
+**Confidentialité.** Les statistiques publiques et le texte saisi sont transmis à l'API Gemini de Google
+(c'est indiqué sous le formulaire). shOsu! ne les enregistre pas. Consultez les conditions de Google pour
+l'offre de votre clé (les offres gratuites peuvent autoriser l'amélioration des modèles).
+
+**Mise en place.** Créez une clé sur <https://aistudio.google.com/apikey>, ajoutez-la dans `.env` en local et
+dans les variables d'environnement de Vercel (Production et Preview). Idéalement, limitez-la côté Google
+(quota, restriction d'API). Un appel prend quelques secondes : si la fonction expire sur votre plan Vercel,
+augmentez la durée maximale des fonctions dans les réglages du projet.
+
 ## Ce qui change par rapport à la version HTML/JS
 
 - **Pagination** : « Next → » charge la page suivante de résultats chez osu! quand il y en a une
@@ -118,12 +153,15 @@ react/
 │   ├── app.css                                 Imports (HeroUI sans reset Tailwind)
 │   ├── legacy.css                              Votre style.css d'origine
 │   ├── overrides.css                           Compléments minimaux
+│   ├── advisor.css                             Styles de la page Conseiller
 │   ├── routes/
 │   │   ├── layout.tsx                          Header (compte), footer, bandeau de connexion
 │   │   ├── home.tsx                            Hero, recherche, filtres, résultats
+│   │   ├── advisor.tsx                         Page « Conseiller IA »
+│   │   ├── api.advisor.ts                      POST /api/advisor (auth, limites, validation)
 │   │   ├── api.search.ts                       GET /api/search
 │   │   └── api.auth.*.ts                       login, callback, check, endpoints Better Auth
 │   ├── components/                             Account, BeatmapCard, ThemeToggle, LoginNotice
-│   └── lib/                                    auth, session, client osu!, hooks (audio, voix, ripple)
+│   └── lib/                                    auth, session, client osu!, Gemini, conseiller, hooks
 └── public/shosu.png                            Logo (version allégée, même image)
 ```

@@ -1,5 +1,6 @@
 import { Button } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 
 import { authClient } from "~/lib/auth-client";
 import type { SessionUser } from "~/lib/session.server";
@@ -8,6 +9,9 @@ import type { SessionUser } from "~/lib/session.server";
 export function Account({ user }: { user: SessionUser | null }) {
   return (
     <div id="account" className="account" aria-live="polite">
+      <Link className="account-btn" to="/advisor">
+        ✨ Conseiller IA
+      </Link>
       {user ? (
         <AccountMenu user={user} />
       ) : (

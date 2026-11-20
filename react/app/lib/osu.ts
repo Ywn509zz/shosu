@@ -13,6 +13,9 @@ export type Beatmapset = {
   modes: string[];
   /** Difficulté (étoiles) de la première difficulté du set. */
   stars: number | null;
+  /** Étoiles de la difficulté la plus facile / la plus difficile du set. */
+  minStars: number | null;
+  maxStars: number | null;
   /** Nom du fichier d'aperçu audio (ex. « 123.mp3 »), ou null. */
   previewFile: string | null;
 };
