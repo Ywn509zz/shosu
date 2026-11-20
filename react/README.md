@@ -12,7 +12,7 @@ d'origine est reprise telle quelle et le balisage est le même.
 
 ## Démarrage
 
-Prérequis : Node.js ≥ 20.
+Prérequis : Node.js 24 (celui de Vercel ; `engines` est épinglé sur 24.x).
 
 ```bash
 cd react

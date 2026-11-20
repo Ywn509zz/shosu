@@ -10,7 +10,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "engines": {
-    "node": ">=20"
+    "node": "24.x"
   },
   "dependencies": {
     "@heroui/react": "^3.2.7",
