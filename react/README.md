@@ -41,6 +41,7 @@ Mêmes noms que la version HTML/JS : **rien à renommer dans Vercel**.
 | `SESSION_SECRET`               |     oui     | Au moins 32 caractères (`BETTER_AUTH_SECRET` en alternative)             |
 | `BETTER_AUTH_URL`              |     non     | URL publique ; par défaut, l'origine de `OSU_REDIRECT_URI`               |
 | `AUTH_SESSION_VERSION`         |     non     | Incrémenter pour invalider **toutes** les sessions                       |
+| `DIAGNOSTICS_TOKEN`            |     non     | Active `/api/auth/check` (16 caractères min.) ; sinon l'endpoint répond 404 |
 | `GEMINI_API_KEY`               |     non     | Clé Gemini pour le conseiller IA (sans elle, la page l'indique)          |
 | `GEMINI_MODEL`                 |     non     | Modèle principal (défaut `gemini-3.1-flash-lite`, repli automatique)     |
 
@@ -68,7 +69,7 @@ Better Auth remplace le module maison (`api/_auth.js`). Mêmes URLs et mêmes fo
 | Connexion                   | `GET /api/auth/login`                 |
 | Changer de compte           | `GET /api/auth/login?switch=1`        |
 | Callback OAuth              | `GET /api/auth/callback`              |
-| Diagnostic de configuration | `GET /api/auth/check`                 |
+| Diagnostic de configuration | `GET /api/auth/check` (protégé, voir ci-dessous) |
 | Déconnexion                 | `POST /api/auth/sign-out` (Better Auth) |
 
 - OAuth 2.0 avec **PKCE** et paramètre `state`, scope `identify` uniquement (l'ancienne version demandait
@@ -78,6 +79,8 @@ Better Auth remplace le module maison (`api/_auth.js`). Mêmes URLs et mêmes fo
 - Le plan `free` est conservé dans la session côté serveur, prêt pour une future gestion d'abonnement.
 - L'URL de callback déjà enregistrée dans osu! continue de fonctionner : `/api/auth/callback` relaie
   vers Better Auth ([`api.auth.callback.ts`](app/routes/api.auth.callback.ts)).
+- `/api/auth/check` n'est plus public : chaque appel utilise le secret osu!. Il répond 404 tant que
+  `DIAGNOSTICS_TOKEN` n'est pas défini, puis exige `Authorization: Bearer <DIAGNOSTICS_TOKEN>`.
 - L'état de connexion est lu **côté serveur** dans le `loader` du layout : plus de requête
   `/api/auth/me` au chargement, donc plus de clignotement du bouton « Se connecter ».
 

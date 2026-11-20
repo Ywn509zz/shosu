@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import { data } from "react-router";
 
 import { osuBase, osuCredentials } from "~/lib/osu.server";
@@ -6,11 +8,28 @@ import type { Route } from "./+types/api.auth.check";
 
 /**
  * Diagnostic de la configuration OAuth (équivalent de api/auth/check.js).
- * Ne divulgue aucun secret : tente un échange de code factice et renvoie la
- * réponse d'osu! pour savoir si l'application et l'URL de callback sont valides.
+ * Tente un échange de code factice avec le secret de l'application et renvoie
+ * la réponse d'osu! pour savoir si l'application et l'URL de callback sont valides.
+ *
+ * Contrairement à l'ancienne version, il n'est PAS public : chaque appel utilise
+ * le secret osu!, donc un appel anonyme répété pourrait faire bloquer l'application.
+ * Il n'existe que si DIAGNOSTICS_TOKEN (16 caractères min.) est défini, et exige
+ * `Authorization: Bearer <DIAGNOSTICS_TOKEN>` ; sinon 404, comme s'il n'existait pas.
  */
+function isAuthorized(request: Request): boolean {
+  const expected = process.env.DIAGNOSTICS_TOKEN;
+  if (!expected || expected.length < 16) return false;
+
+  const given = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
   const headers = { "Cache-Control": "no-store" };
+  if (!isAuthorized(request)) throw data(null, { status: 404 });
+
   try {
     const { clientId, clientSecret } = osuCredentials();
     const redirect =
@@ -43,13 +62,8 @@ export async function loader({ request }: Route.LoaderArgs) {
       },
       { headers },
     );
-  } catch (error) {
-    return data(
-      {
-        error: "Unable to test osu! OAuth configuration",
-        detail: error instanceof Error ? error.message : null,
-      },
-      { status: 500, headers },
-    );
+  } catch {
+    // Pas de détail interne dans la réponse.
+    return data({ error: "Unable to test osu! OAuth configuration" }, { status: 500, headers });
   }
 }
