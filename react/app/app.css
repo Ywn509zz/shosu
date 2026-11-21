@@ -29,5 +29,5 @@
 /* Compléments minimaux pour les composants HeroUI et la version React. */
 @import "./overrides.css";
 
-/* Page « Conseiller IA » (nouvelle, dans le même langage visuel). */
-@import "./advisor.css";
+/* Assistant IA : panneau latéral dans le même langage visuel. */
+@import "./assistant.css";

@@ -1,0 +1,355 @@
+/*
+ * Assistant IA (panneau latéral) — réutilise les variables et le langage
+ * visuel de legacy.css (panneaux, bordures, accent) sans modifier cette feuille.
+ */
+
+/* ===== Bouton du header ===== */
+/* legacy.css donne déjà le style « pilule » aux boutons de .account ; le bouton global fixe 42×42. */
+button.assistant-toggle {
+  width: auto;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.assistant-toggle img {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+button.assistant-toggle[aria-expanded="true"] {
+  border-color: rgba(195, 173, 255, 0.6);
+  background: rgba(156, 124, 255, 0.2);
+}
+
+/* ===== Panneau ===== */
+.assistant-panel {
+  position: fixed;
+  z-index: 3500;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 100vw);
+  border-left: 1px solid var(--line);
+  background: var(--panel-solid);
+  box-shadow: -24px 0 70px rgba(0, 0, 0, 0.35);
+  text-align: left;
+  transform: translateX(104%);
+  visibility: hidden;
+  transition:
+    transform 0.3s ease,
+    visibility 0s linear 0.3s;
+}
+.assistant-panel[data-open="true"] {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.3s ease;
+}
+
+.assistant-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.assistant-avatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 8px 22px rgba(121, 93, 255, 0.35);
+}
+.assistant-title {
+  min-width: 0;
+  margin-right: auto;
+}
+.assistant-title strong {
+  display: block;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+.assistant-title span {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Conversation ===== */
+.assistant-log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 16px 16px 8px;
+}
+.assistant-welcome {
+  margin: 4px 0 2px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.assistant-welcome strong {
+  color: var(--text);
+}
+
+.assistant-msg {
+  max-width: 92%;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.assistant-msg.is-user {
+  align-self: flex-end;
+  border-radius: 16px 16px 4px 16px;
+  background: rgba(156, 124, 255, 0.22);
+}
+.assistant-msg.is-assistant {
+  align-self: flex-start;
+  border-radius: 16px 16px 16px 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.assistant-msg.is-error {
+  border-color: rgba(255, 128, 104, 0.45);
+  color: #ffb4a6;
+  background: rgba(255, 128, 104, 0.08);
+}
+.assistant-block {
+  display: grid;
+  gap: 8px;
+  align-self: stretch;
+}
+
+/* Cartes compactes sous la réponse */
+.assistant-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.assistant-card img {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: #20263a;
+  object-fit: cover;
+}
+.assistant-card-body {
+  min-width: 0;
+}
+.assistant-card-body a {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.assistant-card-body a:hover {
+  color: var(--accent-strong);
+}
+.assistant-card-body p {
+  overflow: hidden;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.assistant-card-body small {
+  color: var(--cyan);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+button.assistant-play {
+  width: 34px;
+  height: 34px;
+  border-color: var(--line);
+  border-radius: 50%;
+  font-size: 0.8rem;
+}
+.assistant-open-link {
+  align-self: flex-start;
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.assistant-open-link:hover {
+  color: #fff;
+}
+
+/* Indicateur « en train d'écrire » */
+.assistant-typing {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 5px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px 16px 16px 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.assistant-typing i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  animation: assistant-dot 1.2s ease-in-out infinite;
+}
+.assistant-typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.assistant-typing i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes assistant-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+/* ===== Suggestions, saisie ===== */
+.assistant-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 10px;
+}
+button.assistant-chip {
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
+  border-color: var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.76rem;
+  text-align: left;
+}
+.assistant-form {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--line);
+}
+.assistant-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.assistant-form textarea {
+  flex: 1;
+  min-height: 44px;
+  max-height: 140px;
+  resize: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 13px;
+  outline: 0;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.assistant-form textarea::placeholder {
+  color: #7d86a0;
+}
+.assistant-form textarea:focus {
+  border-color: var(--accent);
+}
+button.assistant-send {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-color: rgba(195, 173, 255, 0.45);
+  color: #fff;
+  background: var(--accent);
+  font-size: 1.1rem;
+}
+button.assistant-send:hover {
+  color: #fff;
+  background: var(--accent-strong);
+}
+button.assistant-send[data-disabled],
+button.assistant-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.assistant-note {
+  margin: 0;
+  color: #6f7894;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+.assistant-login {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 16px;
+}
+.assistant-login p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+/* ===== Thème clair, mouvement réduit, mobile ===== */
+body.light-mode .assistant-panel {
+  box-shadow: -24px 0 70px rgba(37, 43, 74, 0.18);
+}
+body.light-mode .assistant-msg.is-assistant,
+body.light-mode .assistant-typing {
+  background: rgba(37, 43, 74, 0.05);
+}
+body.light-mode .assistant-msg.is-error {
+  color: #b33a22;
+}
+body.light-mode .assistant-open-link:hover {
+  color: var(--text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-panel,
+  .assistant-panel[data-open="true"] {
+    transition: none;
+  }
+  .assistant-typing i {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+@media (max-width: 650px) {
+  button.assistant-toggle span {
+    display: none;
+  }
+  button.assistant-toggle {
+    padding: 4px;
+  }
+}

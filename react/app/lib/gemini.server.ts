@@ -1,11 +1,12 @@
 /**
- * Client Gemini minimal (API REST, sans dépendance).
+ * Client Gemini minimal (API REST, sans dépendance), avec appel d'outils.
  *
  * - La clé reste côté serveur et part dans l'en-tête `x-goog-api-key`
  *   (jamais dans l'URL, donc jamais dans un journal d'accès).
- * - Sortie JSON contrainte par un schéma (`responseSchema`).
  * - Si le modèle principal est saturé ou indisponible (429/5xx/404), on essaie
- *   automatiquement les modèles de repli.
+ *   automatiquement les modèles de repli. Une fois un modèle choisi pour une
+ *   conversation, on le garde : les « thought signatures » des modèles Gemini 3
+ *   sont propres à un modèle.
  * - On ne journalise ni la clé, ni le prompt, ni la réponse : seulement un code.
  */
 
@@ -33,19 +34,40 @@ export type GeminiSchema = {
   items?: GeminiSchema;
   required?: string[];
   description?: string;
+  enum?: string[];
 };
 
-export async function generateJson(params: {
+export type GeminiFunctionDeclaration = {
+  name: string;
+  description: string;
+  parameters: GeminiSchema;
+};
+
+/** Une « part » d'un message Gemini. Les champs inconnus (signatures) sont conservés tels quels. */
+export type GeminiPart = {
+  text?: string;
+  thought?: boolean;
+  functionCall?: { name: string; args?: Record<string, unknown> };
+  functionResponse?: { name: string; response: Record<string, unknown> };
+  [key: string]: unknown;
+};
+
+export type GeminiContent = { role: "user" | "model"; parts: GeminiPart[] };
+
+export async function generateContent(params: {
   system: string;
-  prompt: string;
-  schema: GeminiSchema;
+  contents: GeminiContent[];
+  tools?: GeminiFunctionDeclaration[];
+  /** Si fourni : ce modèle uniquement, sans repli. */
+  model?: string;
   temperature?: number;
-}): Promise<{ data: unknown; model: string }> {
+  maxOutputTokens?: number;
+}): Promise<{ content: GeminiContent; model: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new GeminiError("not_configured", "GEMINI_API_KEY is not set");
 
   const primary = process.env.GEMINI_MODEL || DEFAULT_MODEL;
-  const models = [primary, ...FALLBACK_MODELS.filter((m) => m !== primary)];
+  const models = params.model ? [params.model] : [primary, ...FALLBACK_MODELS.filter((m) => m !== primary)];
 
   let lastStatus = 0;
   for (const model of models) {
@@ -56,12 +78,16 @@ export async function generateJson(params: {
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: params.system }] },
-          contents: [{ role: "user", parts: [{ text: params.prompt }] }],
+          contents: params.contents,
+          ...(params.tools?.length
+            ? {
+                tools: [{ functionDeclarations: params.tools }],
+                toolConfig: { functionCallingConfig: { mode: "AUTO" } },
+              }
+            : {}),
           generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: params.schema,
-            temperature: params.temperature ?? 0.5,
-            maxOutputTokens: 2048,
+            temperature: params.temperature ?? 0.6,
+            maxOutputTokens: params.maxOutputTokens ?? 1500,
           },
         }),
         signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
@@ -81,17 +107,12 @@ export async function generateJson(params: {
     if (!response.ok) continue; // 404 / 429 / 5xx : modèle suivant
 
     const body = (await response.json().catch(() => null)) as {
-      candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
+      candidates?: { content?: GeminiContent; finishReason?: string }[];
     } | null;
     const candidate = body?.candidates?.[0];
-    const text = candidate?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
-    if (!text || candidate?.finishReason === "SAFETY") continue;
+    if (!candidate?.content?.parts?.length || candidate.finishReason === "SAFETY") continue;
 
-    try {
-      return { data: JSON.parse(text), model };
-    } catch {
-      continue; // JSON tronqué : on retente avec le modèle suivant
-    }
+    return { content: { role: "model", parts: candidate.content.parts }, model };
   }
 
   throw new GeminiError("unavailable", `Gemini unavailable (last status ${lastStatus || "timeout"})`);

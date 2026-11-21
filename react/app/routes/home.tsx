@@ -1,10 +1,13 @@
 import { Button, Input } from "@heroui/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 
 import { BeatmapCard } from "~/components/beatmap-card";
 import { ThemeToggle } from "~/components/theme-toggle";
 import {
+  MODE_IDS,
   MODE_OPTIONS,
+  STATUS_IDS,
   STATUS_OPTIONS,
   type Beatmapset,
   type SearchResponse,
@@ -58,8 +61,10 @@ export default function Home() {
     return (await response.json()) as SearchResponse;
   }
 
-  async function searchBeatmap(override?: string) {
-    const q = (override ?? query).trim();
+  async function searchBeatmap(override?: { q?: string; mode?: string; status?: string }) {
+    const q = (override?.q ?? query).trim();
+    const searchMode = override?.mode ?? mode;
+    const searchStatus = override?.status ?? status;
     if (!q) {
       alert("Please enter a song name or artist.");
       return;
@@ -70,16 +75,16 @@ export default function Home() {
     setPhase("loading");
 
     try {
-      const data = await fetchPage(q, mode, status, null);
+      const data = await fetchPage(q, searchMode, searchStatus, null);
       if (id !== requestRef.current) return; // une recherche plus récente a pris le relais
 
-      const filtered = data.beatmapsets.filter((m) => matchesFilters(m, mode, status));
+      const filtered = data.beatmapsets.filter((m) => matchesFilters(m, searchMode, searchStatus));
       if (filtered.length === 0 && !data.cursor) {
         setPhase("empty");
         return;
       }
 
-      searchedRef.current = { q, mode, status };
+      searchedRef.current = { q, mode: searchMode, status: searchStatus };
       setAllResults(filtered);
       setCursor(data.cursor);
       setPage(1);
@@ -132,8 +137,26 @@ export default function Home() {
 
   const voice = useSpeechRecognition((text) => {
     setQuery(text);
-    void searchBeatmap(text);
+    void searchBeatmap({ q: text });
   });
+
+  // Lien profond : /?q=…&mode=…&status=… lance la recherche (utilisé par l'assistant).
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.toString();
+  useEffect(() => {
+    const q = searchParams.get("q")?.trim().slice(0, 200);
+    if (!q) return;
+    const m = searchParams.get("mode") ?? "all";
+    const s = searchParams.get("status") ?? "all";
+    const linkedMode = MODE_IDS.includes(m) ? m : "all";
+    const linkedStatus = STATUS_IDS.includes(s) ? s : "all";
+    setQuery(q);
+    setMode(linkedMode);
+    setStatus(linkedStatus);
+    void searchBeatmap({ q, mode: linkedMode, status: linkedStatus });
+    // On ne relance que lorsque les paramètres de l'URL changent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlSearch]);
 
   const totalPages = Math.ceil(allResults.length / RESULTS_PER_PAGE);
   const pageResults = allResults.slice((page - 1) * RESULTS_PER_PAGE, page * RESULTS_PER_PAGE);
