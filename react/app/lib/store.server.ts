@@ -42,8 +42,10 @@ const hashes = new Map<string, Map<string, string>>();
 export async function incrementWindow(
   key: string,
   windowSeconds: number,
+  /** Faux : compteur propre à l'instance (aucune commande Redis consommée). */
+  shared = true,
 ): Promise<{ count: number; ttlSeconds: number }> {
-  if (isPersistent()) {
+  if (shared && isPersistent()) {
     try {
       const [count, ttl] = (await redisPipeline([["INCR", key], ["TTL", key]])) as [number, number];
       let ttlSeconds = ttl;

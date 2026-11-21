@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 1.8), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 1.9), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -13,7 +13,7 @@ d'origine est reprise telle quelle et le balisage est le même.
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 1.8 » ↔ `1.8.0`).
+temps que `version` dans `package.json` (« bêta 1.9 » ↔ `1.9.0`).
 
 ## Démarrage
 
@@ -151,16 +151,20 @@ pages) fonctionne déjà. Stripe héberge la page de paiement : le site ne voit 
 ## Stockage et limite de débit partagée (Upstash)
 
 Les listes et les limites de débit passent par [`app/lib/store.server.ts`](app/lib/store.server.ts) :
-- **Avec Upstash Redis** (variables ci-dessus) : les listes survivent aux redéploiements, et les limites (`/api/assistant`, `/api/lists`,
-  `/api/search`) sont **partagées entre toutes les instances**.
+- **Avec Upstash Redis** (variables ci-dessus) : les listes survivent aux redéploiements, et les limites (`/api/assistant`, `/api/listen`, `/api/lists`)
+  sont **partagées entre toutes les instances**. La recherche (très fréquente, déjà servie par le cache CDN) garde un compteur par instance :
+  elle ne consomme aucune commande Redis.
 - **Sans base** : tout fonctionne, mais en mémoire (listes perdues au redéploiement, limites « par instance »). La page *Mes listes*
   l'indique.
 - **Base en panne** : les limites retombent sur la mémoire (le site continue), les listes répondent « indisponible » plutôt que de perdre des données.
 
 **Mise en place.** Dans Vercel : *Storage* (ou *Marketplace*) → **Upstash Redis** → créer une base gratuite et la relier au projet : les
 variables `KV_REST_API_URL` / `KV_REST_API_TOKEN` sont ajoutées toutes seules (acceptées telles quelles). Puis redéployer.
+**Coût : 0 €.** Le plan gratuit d'Upstash donne 256 Mo et 500 000 commandes par mois (vérifié sur upstash.com/pricing/redis ;
+n'ajoutez **pas** de moyen de paiement, sinon le compte passe en payant). Une écriture de liste coûte 3 commandes, un message Stack 4 :
+la recherche a donc été exclue du compteur partagé pour garder le quota.
 Limites appliquées : 20 messages Stack / 10 min par joueur, 200 / h au total, 120 modifications de listes / 10 min par joueur,
-90 recherches / min par adresse IP.
+90 recherches / min par adresse IP (par instance).
 
 ## Stack, l'assistant IA (Gemini)
 

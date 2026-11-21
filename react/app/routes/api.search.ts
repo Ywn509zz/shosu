@@ -34,7 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     return data({ error: "Query must be 1-200 characters" }, { status: 400, headers });
   }
 
-  const hit = await rateLimit(`search:${clientIp(request)}`, IP_LIMIT.limit, IP_LIMIT.windowMs);
+  const hit = await rateLimit(`search:${clientIp(request)}`, IP_LIMIT.limit, IP_LIMIT.windowMs, false);
   if (!hit.ok) {
     return data(
       { error: "Too many searches" },
