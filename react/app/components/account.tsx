@@ -1,17 +1,32 @@
 import { Button } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
 
+import { ASSISTANT_LOGO, ASSISTANT_NAME } from "~/lib/assistant";
 import { authClient } from "~/lib/auth-client";
 import type { SessionUser } from "~/lib/session.server";
 
 /** Zone de compte du header : lien de connexion, ou menu une fois connecté. */
-export function Account({ user }: { user: SessionUser | null }) {
+export function Account({
+  user,
+  assistantOpen,
+  onToggleAssistant,
+}: {
+  user: SessionUser | null;
+  assistantOpen: boolean;
+  onToggleAssistant: () => void;
+}) {
   return (
-    <div id="account" className="account" aria-live="polite">
-      <Link className="account-btn" to="/advisor">
-        ✨ Conseiller IA
-      </Link>
+    <div id="account" className="account">
+      <Button
+        id="assistant-toggle"
+        className="assistant-toggle"
+        aria-expanded={assistantOpen}
+        aria-controls="assistant-panel"
+        onPress={onToggleAssistant}
+      >
+        <img src={ASSISTANT_LOGO} alt="" width={26} height={26} />
+        <span translate="no">{ASSISTANT_NAME}</span>
+      </Button>
       {user ? (
         <AccountMenu user={user} />
       ) : (

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link, Outlet } from "react-router";
 
 import { Account } from "~/components/account";
+import { Assistant } from "~/components/assistant";
 import { LoginNotice } from "~/components/login-notice";
 import { getUser } from "~/lib/session.server";
 
@@ -11,6 +13,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function Layout({ loaderData }: Route.ComponentProps) {
+  const [assistantOpen, setAssistantOpen] = useState(false);
+
   return (
     <div className="page-shell">
       <header className="site-header">
@@ -18,7 +22,11 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
           <span className="brand-mark">s</span>
           <span translate="no">shOsu!</span>
         </Link>
-        <Account user={loaderData.user} />
+        <Account
+          user={loaderData.user}
+          assistantOpen={assistantOpen}
+          onToggleAssistant={() => setAssistantOpen((open) => !open)}
+        />
       </header>
 
       <main>
@@ -30,6 +38,11 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
       </footer>
 
       <LoginNotice />
+      <Assistant
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        signedIn={loaderData.user !== null}
+      />
     </div>
   );
 }

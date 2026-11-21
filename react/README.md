@@ -42,7 +42,7 @@ Mêmes noms que la version HTML/JS : **rien à renommer dans Vercel**.
 | `BETTER_AUTH_URL`              |     non     | URL publique ; par défaut, l'origine de `OSU_REDIRECT_URI`               |
 | `AUTH_SESSION_VERSION`         |     non     | Incrémenter pour invalider **toutes** les sessions                       |
 | `DIAGNOSTICS_TOKEN`            |     non     | Active `/api/auth/check` (16 caractères min.) ; sinon l'endpoint répond 404 |
-| `GEMINI_API_KEY`               |     non     | Clé Gemini pour le conseiller IA (sans elle, la page l'indique)          |
+| `GEMINI_API_KEY`               |     non     | Clé Gemini pour Stack (sans elle, le panneau indique que Stack n'est pas configuré) |
 | `GEMINI_MODEL`                 |     non     | Modèle principal (défaut `gemini-3.1-flash-lite`, repli automatique)     |
 
 ## Fidélité au design
@@ -89,38 +89,45 @@ incrémentez `AUTH_SESSION_VERSION` pour tout invalider. osu! ne fournit pas d'e
 technique `<id>@users.osu.invalid` est généré. Pour des comptes persistants (abonnements, favoris…),
 ajoutez une option `database` à `betterAuth()` dans [`app/lib/auth.server.ts`](app/lib/auth.server.ts).
 
-## Conseiller de beatmaps (Gemini)
+## Stack, l'assistant IA (Gemini)
 
-Page `/advisor` (lien « ✨ Conseiller IA » dans le header), réservée aux joueurs connectés.
+Le bouton **Stack** du header ouvre un panneau latéral de discussion. Il comprend ce qu'on lui demande,
+**lance lui-même les recherches** et peut lire ton profil osu! pour proposer des maps à ton niveau.
+Le nom et le logo se changent dans [`app/lib/assistant.ts`](app/lib/assistant.ts) (`ASSISTANT_NAME`,
+`ASSISTANT_LOGO`, image dans `public/`).
 
-**Fonctionnement.**
-1. Le serveur lit le profil **public** du joueur chez osu! (pp, rang, précision, 25 meilleurs scores :
-   étoiles, BPM, AR/OD/CS, mods) et calcule lui-même les moyennes.
-2. Il envoie ce profil — sans pseudo ni identifiant — et les préférences saisies (400 caractères max)
-   à Gemini, qui répond dans un **JSON contraint par un schéma** : résumé, fourchette d'étoiles,
-   conseils et 3-4 recherches de mots-clés.
-3. Le serveur valide cette réponse, lance les recherches chez osu! et ne garde que de **vraies beatmaps**
-   dans la fourchette d'étoiles, avec aperçu audio. Gemini n'invente donc aucune beatmap.
+**Ce qu'il sait faire.** Deux outils, exécutés par le serveur (Gemini ne touche à rien directement) :
+- `search_beatmaps` : cherche de vraies beatmaps chez osu! (mots-clés, mode, statut, fourchette d'étoiles).
+  Les résultats s'affichent en cartes sous sa réponse, avec aperçu audio et un lien « Voir dans la recherche »
+  qui ouvre la page principale déjà remplie (`/?q=…&mode=…&status=…`).
+- `get_player_profile` : profil **public** du joueur connecté (pp, rang, précision, 25 meilleurs scores),
+  envoyé sans pseudo ni identifiant.
 
-**Sécurité de la clé et de l'endpoint** (`POST /api/advisor`).
+Il ne cite que des beatmaps renvoyées par la recherche : il n'en invente pas. La conversation est
+gardée dans l'onglet (sessionStorage) et disparaît à sa fermeture ; rien n'est enregistré côté serveur.
+
+**Sécurité de la clé et de l'endpoint** (`POST /api/assistant`).
 - La clé reste côté serveur (variable d'environnement) et part dans l'en-tête `x-goog-api-key`, jamais
   dans une URL. Elle n'est ni dans le bundle navigateur ni dans les journaux.
-- Réservé aux utilisateurs connectés, avec contrôle d'origine (anti-CSRF) et entrées validées
-  (JSON borné, mode et longueur du texte).
-- Limites : 5 demandes / 10 min par utilisateur, 60 / heure au total. L'état est en mémoire, donc propre à
-  chaque instance serverless ; pour une garantie stricte, utilisez un stockage partagé (Vercel KV, Upstash).
-- Les données d'osu! et les préférences sont traitées comme des **données** (consigne anti-injection) ;
-  la sortie du modèle est nettoyée, bornée, et n'est jamais interprétée comme du HTML.
+- Réservé aux utilisateurs connectés, avec contrôle d'origine (anti-CSRF) et corps limité à 16 Ko.
+- L'historique envoyé par le navigateur n'est pas cru : seuls des textes « user » / « assistant » bornés
+  sont acceptés (aucun faux message système ni faux appel d'outil), et le dernier message doit être celui de l'utilisateur.
+- Limites : 20 messages / 10 min par utilisateur, 200 / heure au total, 4 allers-retours avec le modèle et
+  5 appels d'outils maximum par message. L'état est en mémoire, donc propre à chaque instance serverless ;
+  pour une garantie stricte, utilisez un stockage partagé (Vercel KV, Upstash).
+- Les titres de beatmaps, les résultats d'outils et les messages sont traités comme des **données**
+  (consigne anti-injection, testée). Les outils sont en lecture seule : même détourné, l'assistant ne peut
+  que lancer des recherches. Sa réponse est nettoyée, bornée et affichée comme du texte, jamais comme du HTML ;
+  les liens sont construits par le site, jamais par le modèle.
 - Si le modèle principal est saturé (429/5xx), les modèles de repli sont essayés automatiquement.
 
-**Confidentialité.** Les statistiques publiques et le texte saisi sont transmis à l'API Gemini de Google
-(c'est indiqué sous le formulaire). shOsu! ne les enregistre pas. Consultez les conditions de Google pour
-l'offre de votre clé (les offres gratuites peuvent autoriser l'amélioration des modèles).
+**Confidentialité.** Les messages et les statistiques publiques utiles à la demande sont transmis à l'API
+Gemini de Google (c'est indiqué sous la zone de saisie). Consultez les conditions de Google pour l'offre de
+votre clé (les offres gratuites peuvent autoriser l'amélioration des modèles).
 
 **Mise en place.** Créez une clé sur <https://aistudio.google.com/apikey>, ajoutez-la dans `.env` en local et
 dans les variables d'environnement de Vercel (Production et Preview). Idéalement, limitez-la côté Google
-(quota, restriction d'API). Un appel prend quelques secondes : si la fonction expire sur votre plan Vercel,
-augmentez la durée maximale des fonctions dans les réglages du projet.
+(quota, restriction d'API). Une réponse prend quelques secondes.
 
 ## Ce qui change par rapport à la version HTML/JS
 
@@ -156,15 +163,14 @@ react/
 │   ├── app.css                                 Imports (HeroUI sans reset Tailwind)
 │   ├── legacy.css                              Votre style.css d'origine
 │   ├── overrides.css                           Compléments minimaux
-│   ├── advisor.css                             Styles de la page Conseiller
+│   ├── assistant.css                           Styles du panneau Stack
 │   ├── routes/
 │   │   ├── layout.tsx                          Header (compte), footer, bandeau de connexion
 │   │   ├── home.tsx                            Hero, recherche, filtres, résultats
-│   │   ├── advisor.tsx                         Page « Conseiller IA »
-│   │   ├── api.advisor.ts                      POST /api/advisor (auth, limites, validation)
+│   │   ├── api.assistant.ts                    POST /api/assistant (auth, limites, validation)
 │   │   ├── api.search.ts                       GET /api/search
 │   │   └── api.auth.*.ts                       login, callback, check, endpoints Better Auth
-│   ├── components/                             Account, BeatmapCard, ThemeToggle, LoginNotice
-│   └── lib/                                    auth, session, client osu!, Gemini, conseiller, hooks
-└── public/shosu.png                            Logo (version allégée, même image)
+│   ├── components/                             Account, Assistant (Stack), BeatmapCard, ThemeToggle, LoginNotice
+│   └── lib/                                    auth, session, client osu!, Gemini, assistant, hooks
+└── public/                                     shosu.png (logo), stack.jpeg (logo de l'assistant)
 ```
