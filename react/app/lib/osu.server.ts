@@ -102,11 +102,16 @@ function toBeatmapset(raw: RawBeatmapset): Beatmapset {
   };
 }
 
+/** Tris acceptés par la recherche osu! (liste blanche : jamais une valeur libre vers l'API). */
+export const SEARCH_SORTS = ["plays_desc", "ranked_desc", "favourites_desc", "updated_desc", "rating_desc"] as const;
+export type SearchSort = (typeof SEARCH_SORTS)[number];
+
 async function searchBeatmapsetsUncached(params: {
   q: string;
   mode?: string;
   status?: string;
   cursor?: string | null;
+  sort?: SearchSort;
 }): Promise<SearchResponse> {
   const url = new URL(`${osuBase()}/api/v2/beatmapsets/search`);
   url.searchParams.set("q", params.q);
@@ -119,6 +124,7 @@ async function searchBeatmapsetsUncached(params: {
   if (params.status && API_STATUS.has(params.status)) {
     url.searchParams.set("s", params.status);
   }
+  if (params.sort && (SEARCH_SORTS as readonly string[]).includes(params.sort)) url.searchParams.set("sort", params.sort);
   if (params.cursor) url.searchParams.set("cursor_string", params.cursor);
 
   const response = await fetch(url, {
@@ -149,8 +155,9 @@ export function searchBeatmapsets(params: {
   mode?: string;
   status?: string;
   cursor?: string | null;
+  sort?: SearchSort;
 }): Promise<SearchResponse> {
-  const key = `search:${params.q.toLowerCase()}|${params.mode ?? ""}|${params.status ?? ""}|${params.cursor ?? ""}`;
+  const key = `search:${params.q.toLowerCase()}|${params.mode ?? ""}|${params.status ?? ""}|${params.cursor ?? ""}|${params.sort ?? ""}`;
   return cached(key, 60_000, () => searchBeatmapsetsUncached(params));
 }
 

@@ -1,8 +1,10 @@
 import { Button, Input } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useRouteLoaderData, useSearchParams } from "react-router";
 
 import { BeatmapCard } from "~/components/beatmap-card";
+import { Discovery } from "~/components/discovery";
+import { ListenPanel, type AudioClip } from "~/components/listen-panel";
 import { ThemeToggle } from "~/components/theme-toggle";
 import {
   MODE_IDS,
@@ -10,14 +12,27 @@ import {
   STATUS_IDS,
   STATUS_OPTIONS,
   type Beatmapset,
+  type DiscoveryLens,
   type SearchResponse,
 } from "~/lib/osu";
+import { getDiscovery } from "~/lib/discover.server";
+import { errorMessage, readEvents } from "~/lib/stream-client";
 import { useRipple } from "~/lib/use-ripple";
 import { useSpeechRecognition } from "~/lib/use-speech-recognition";
 
+import type { loader as layoutLoader } from "./layout";
 import type { Route } from "./+types/home";
 
 export const meta: Route.MetaFunction = () => [{ title: "shOsu!" }];
+
+/** Suggestions sous la recherche. En cas d'échec, la page s'affiche sans elles : la recherche n'en dépend pas. */
+export async function loader() {
+  try {
+    return { lenses: await getDiscovery() };
+  } catch {
+    return { lenses: [] as DiscoveryLens[] };
+  }
+}
 
 const RESULTS_PER_PAGE = 50;
 /** Garde-fou : nombre max de pages osu! parcourues pour remplir une page filtrée. */
@@ -32,8 +47,9 @@ function matchesFilters(mapset: Beatmapset, mode: string, status: string) {
   return true;
 }
 
-export default function Home() {
+export default function Home({ loaderData }: Route.ComponentProps) {
   useRipple();
+  const signedIn = Boolean(useRouteLoaderData<typeof layoutLoader>("routes/layout")?.user);
 
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState("all");
@@ -44,6 +60,12 @@ export default function Home() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // Recherche par le son (« Shazam pour osu! »).
+  const [listenOpen, setListenOpen] = useState(false);
+  const [listenSummary, setListenSummary] = useState<string | null>(null);
+  const [listenStatus, setListenStatus] = useState("");
+  const [listenError, setListenError] = useState("");
 
   // Filtres figés au moment de la recherche (comme script.js).
   const searchedRef = useRef({ q: "", mode: "all", status: "all" });
@@ -69,6 +91,9 @@ export default function Home() {
     }
 
     const id = ++requestRef.current;
+    setListenSummary(null);
+    setListenError("");
+    setListenOpen(false);
     setPhase("loading");
 
     try {
@@ -123,8 +148,66 @@ export default function Home() {
     }
   }
 
+  /**
+   * Recherche par le son : l'extrait est analysé par Gemini (voir /api/listen), puis les beatmaps de ce
+   * morceau et des beatmaps proches s'affichent dans la grille, sous un résumé de ce qui a été entendu.
+   */
+  async function identifySound(clip: AudioClip) {
+    const id = ++requestRef.current;
+    setListenOpen(false);
+    setListenSummary(null);
+    setListenError("");
+    setListenStatus("J'écoute ton extrait…");
+    setPhase("loading");
+
+    let text = "";
+    const cards: Beatmapset[] = [];
+    let errorCode: string | null = null;
+
+    try {
+      const response = await fetch("/api/listen", {
+        method: "POST",
+        headers: { "Content-Type": "audio/wav", Accept: "application/x-ndjson" },
+        body: clip.wav,
+      });
+      if (!response.ok || !response.body) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        errorCode = body?.error ?? "";
+      } else {
+        await readEvents(response, (event) => {
+          if (id !== requestRef.current) return;
+          if (event.t === "status") setListenStatus(event.text);
+          else if (event.t === "delta") text += event.text;
+          else if (event.t === "cards") {
+            for (const item of event.items) if (!cards.some((c) => c.id === item.id)) cards.push(item);
+          } else if (event.t === "error") errorCode = event.code;
+        });
+      }
+    } catch {
+      errorCode = "";
+    }
+
+    if (id !== requestRef.current) return; // une recherche plus récente a pris le relais
+    setListenStatus("");
+    if (errorCode !== null) {
+      setListenError(errorMessage(errorCode));
+      setPhase("error");
+      return;
+    }
+
+    searchedRef.current = { q: "", mode: "all", status: "all" };
+    setAllResults(cards);
+    setCursor(null);
+    setPage(1);
+    setListenSummary(text.trim() || null);
+    setPhase(cards.length > 0 ? "results" : "empty");
+  }
+
   function clearSearch() {
     requestRef.current++;
+    setListenSummary(null);
+    setListenError("");
+    setListenOpen(false);
     setQuery("");
     setAllResults([]);
     setCursor(null);
@@ -201,6 +284,15 @@ export default function Home() {
               </Button>
             )}
             <Button
+              id="listenButton"
+              aria-label="Identifier un son (Shazam pour osu!)"
+              aria-expanded={listenOpen}
+              aria-controls="home-listen"
+              onPress={() => setListenOpen((open) => !open)}
+            >
+              🎧
+            </Button>
+            <Button
               id="clearButton"
               className="suggestion-btn"
               aria-label="Effacer la recherche"
@@ -210,6 +302,17 @@ export default function Home() {
             </Button>
           </div>
         </div>
+
+        {listenOpen && (
+          <div className="listen-popover">
+            <ListenPanel
+              id="home-listen"
+              signedIn={signedIn}
+              busy={phase === "loading"}
+              onClip={(clip) => void identifySound(clip)}
+            />
+          </div>
+        )}
       </section>
 
       <div id="filters" className="filters">
@@ -238,10 +341,21 @@ export default function Home() {
 
       <div id="result"></div>
       <div id="results" className="results-grid" aria-busy={phase === "loading"}>
-        {phase === "loading" && <div className="spinner" role="status" aria-label="Chargement" />}
-        {phase === "empty" && <span style={{ color: "red" }}>No beatmaps found.</span>}
+        {phase === "loading" && (
+          <>
+            <div className="spinner" role="status" aria-label={listenStatus || "Chargement"} />
+            {listenStatus && <p className="spinner-status">{listenStatus}</p>}
+          </>
+        )}
+        {phase === "empty" && !listenSummary && <span style={{ color: "red" }}>No beatmaps found.</span>}
         {phase === "error" && (
-          <span style={{ color: "red" }}>Error fetching data. Try again later.</span>
+          <span style={{ color: "red" }}>{listenError || "Error fetching data. Try again later."}</span>
+        )}
+        {listenSummary && (phase === "results" || phase === "empty") && (
+          <div className="listen-summary" role="status">
+            <strong>🎧 RÉSULTAT DE L'ÉCOUTE</strong>
+            {listenSummary}
+          </div>
         )}
         {phase === "results" && (
           <>
@@ -274,6 +388,8 @@ export default function Home() {
           </>
         )}
       </div>
+
+      {phase === "idle" && loaderData.lenses.length > 0 && <Discovery lenses={loaderData.lenses} />}
     </>
   );
 }

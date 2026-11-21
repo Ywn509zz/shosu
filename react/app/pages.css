@@ -518,3 +518,75 @@ body.light-mode .detail-cover::after {
     text-align: left;
   }
 }
+
+/* ===== Suggestions sous la recherche ===== */
+.discover {
+  margin: 8px 0 0;
+  text-align: center;
+}
+.discover .eyebrow {
+  margin-bottom: 12px;
+}
+/* .tab est stylé pour un lien ; un onglet est ici un bouton : on neutralise le style global des boutons. */
+button.tab {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+button.tab.is-active {
+  background: rgba(156, 124, 255, 0.2);
+}
+.discover .results-grid {
+  text-align: left;
+}
+.discover-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+button.discover-btn {
+  width: auto;
+  height: auto;
+  padding: 10px 18px;
+  border-color: var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+/* ===== Résultat d'une écoute dans la page de recherche ===== */
+.listen-summary {
+  grid-column: 1 / -1;
+  padding: 14px 18px;
+  border: 1px solid rgba(195, 173, 255, 0.35);
+  border-radius: 16px;
+  background: rgba(156, 124, 255, 0.08);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-line;
+}
+.listen-summary strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+}
+.listen-popover {
+  max-width: 700px;
+  margin: 12px auto 0;
+  text-align: left;
+}
+.spinner-status {
+  grid-column: 1 / -1;
+  margin: -30px 0 40px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}

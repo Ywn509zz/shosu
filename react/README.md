@@ -94,6 +94,11 @@ ajoutez une option `database` à `betterAuth()` dans [`app/lib/auth.server.ts`](
 
 - **Lecteur d'aperçus** : une seule piste à la fois pour tout le site. Une barre fixe en bas de l'écran (cover, titre,
   ⏮ ▶/⏸ ⏭, position, volume mémorisé) apparaît dès qu'on lance un aperçu ; les cartes d'une même liste s'enchaînent.
+- **Suggestions « À découvrir »** sous la recherche (tant qu'aucune recherche n'est affichée) : les plus jouées, récemment classées, les plus
+  aimées, ou une sélection surprise. Chaque visite tire 18 beatmaps au hasard parmi les 40 premières de chaque tri ; « 🔄 Autres suggestions »
+  fait défiler les suivantes. Aucune connexion requise ; si osu! ne répond pas, la page s'affiche simplement sans elles.
+- **Recherche par le son** : le bouton 🎧 de la barre de recherche (et celui de Stack) identifie un morceau et trouve des maps proches
+  (voir « Shazam pour osu! » plus bas).
 - **Favoris et « à jouer plus tard »** : boutons ♡ et 🕒 sur chaque carte et sur la page d'une beatmap, page **Mes listes**
   (`/lists`). 200 beatmaps par liste ; les métadonnées sont relues chez osu!, jamais prises du navigateur.
 - **Page d'une beatmap** (`/beatmap/:id`) : cover, BPM, durée, favoris, tags, toutes les difficultés (étoiles, CS/AR/OD/HP,
@@ -141,8 +146,9 @@ disparaît à sa fermeture ; rien n'est enregistré côté serveur.
 
 ### 🎧 « Shazam pour osu! » : retrouver des maps à partir d'un son
 
-Le bouton 🎧 du panneau permet de **faire écouter un morceau** à Stack, au micro (15 s) ou en important un fichier audio (30 Mo max) :
-Gemini l'écoute, puis Stack cherche les beatmaps **de ce morceau** et des beatmaps **au son proche**.
+Le bouton 🎧 permet de **faire écouter un morceau**, au micro (15 s) ou en important un fichier audio (30 Mo max) : Gemini l'écoute, puis
+le site cherche les beatmaps **de ce morceau** et des beatmaps **au son proche**. On l'utilise **depuis la barre de recherche** (les maps
+s'affichent dans la grille des résultats, sous un résumé de ce qui a été entendu) ou **depuis Stack** (dans la conversation). Il faut être connecté.
 
 1. Le navigateur décode l'audio (mp3, m4a, ogg, webm…) et le convertit en **WAV 16 kHz mono de 30 s maximum**, volume normalisé
    (pour un fichier plus long : 30 s à partir de 30 % du morceau, plutôt que l'intro). Le micro est enregistré sans traitement.
@@ -225,12 +231,13 @@ react/
 │   │   ├── api.listen.ts                       POST /api/listen : « Shazam pour osu! » (WAV → Gemini → maps)
 │   │   ├── api.lists.ts, api.search.ts         Listes ; recherche publique (limite par IP, cache CDN)
 │   │   └── api.auth.*.ts                       login, callback, check, endpoints Better Auth
-│   ├── components/                             Account, Assistant (Stack), BeatmapCard, PlayerBar, ListButtons…
+│   ├── components/                             Account, Assistant (Stack), BeatmapCard, Discovery, ListenPanel, PlayerBar, ListButtons…
 │   └── lib/
 │       ├── store.server.ts, rate-limit.server.ts, cache.server.ts   Upstash + repli mémoire, limites, cache
 │       ├── osu.server.ts, osu.ts               Client osu! (recherche, beatmap, joueurs, classements) et types
 │       ├── gemini.server.ts, assistant.server.ts, assistant.ts      Client Gemini en flux, outils de Stack
 │       ├── listen.server.ts, ndjson.server.ts, audio.ts             Écoute audio (analyse, recherche), flux, capture micro / WAV
+│       ├── discover.server.ts, stream-client.ts                     Suggestions de l'accueil ; lecture des flux côté navigateur
 │       ├── lists*.ts(x), player.tsx            Listes (stockage, contexte), lecteur audio global
 │       └── auth*.ts, session.server.ts, use-*.ts                    Authentification, hooks
 └── public/                                     shosu.png (logo), stack.jpeg (logo de l'assistant)

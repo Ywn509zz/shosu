@@ -176,3 +176,6 @@ export function parsePlayerRef(value: string): { key: "id" | "username"; value: 
   if (/^[A-Za-z0-9_\[\] -]{2,20}$/.test(value)) return { key: "username", value };
   return null;
 }
+
+/** Une rangée de suggestions de la page d'accueil (« les plus jouées », « récentes »…). */
+export type DiscoveryLens = { id: string; title: string; items: Beatmapset[] };
