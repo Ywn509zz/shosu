@@ -76,3 +76,101 @@ export function getStarColor(stars: number): string {
     default: return "#000000"; // 10+
   }
 }
+
+// ---------------------------------------------------------------------------
+// Détail d'une beatmap, joueurs et classements
+// ---------------------------------------------------------------------------
+
+export type BeatmapDifficulty = {
+  id: number;
+  mode: string;
+  version: string;
+  stars: number;
+  cs: number | null;
+  ar: number | null;
+  od: number | null;
+  hp: number | null;
+  bpm: number | null;
+  lengthSeconds: number | null;
+  maxCombo: number | null;
+  circles: number | null;
+  sliders: number | null;
+  spinners: number | null;
+};
+
+export type BeatmapsetDetail = Beatmapset & {
+  source: string | null;
+  tags: string[];
+  genre: string | null;
+  language: string | null;
+  bpm: number | null;
+  lengthSeconds: number | null;
+  playCount: number | null;
+  favouriteCount: number | null;
+  rankedDate: string | null;
+  creatorId: number | null;
+  difficulties: BeatmapDifficulty[];
+};
+
+/** Un joueur dans un classement ou une recherche. */
+export type PlayerSummary = {
+  id: number;
+  username: string;
+  country: string | null;
+  globalRank: number | null;
+  countryRank: number | null;
+  pp: number | null;
+  accuracy: number | null;
+  playCount: number | null;
+};
+
+export type TopPlay = {
+  beatmapsetId: number;
+  title: string;
+  artist: string;
+  version: string;
+  stars: number;
+  pp: number | null;
+  accuracy: number | null;
+  mods: string[];
+  rank: string;
+  bpm: number | null;
+  lengthSeconds: number | null;
+};
+
+export type PlayerPage = PlayerSummary & {
+  mode: string;
+  level: number | null;
+  playTimeHours: number | null;
+  rankedScore: number | null;
+  maxCombo: number | null;
+  grades: { ss: number; s: number; a: number };
+  topPlays: TopPlay[];
+};
+
+export const avatarUrl = (id: number) => `https://a.ppy.sh/${id}`;
+export const osuDirectUrl = (setId: number) => `osu://s/${setId}`;
+export const playerUrl = (id: number) => `${OSU_BASE_URL}/users/${id}`;
+
+/** Drapeau emoji depuis un code pays ISO à deux lettres (« FR » → 🇫🇷). */
+export function countryFlag(code: string | null | undefined): string {
+  if (!code || !/^[A-Za-z]{2}$/.test(code)) return "";
+  return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+
+export function formatDuration(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+export const formatNumber = (value: number | null | undefined) =>
+  typeof value === "number" && Number.isFinite(value) ? value.toLocaleString("fr-FR") : "—";
+
+/** Identifiant (nombre) ou pseudo osu! valide pour une URL de profil. */
+export function parsePlayerRef(value: string): { key: "id" | "username"; value: string } | null {
+  if (/^\d{1,10}$/.test(value)) return { key: "id", value };
+  if (/^[A-Za-z0-9_\[\] -]{2,20}$/.test(value)) return { key: "username", value };
+  return null;
+}

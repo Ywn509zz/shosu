@@ -1,5 +1,6 @@
 import { Button } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 
 import { ASSISTANT_LOGO, ASSISTANT_NAME } from "~/lib/assistant";
 import { authClient } from "~/lib/auth-client";
@@ -17,11 +18,17 @@ export function Account({
 }) {
   return (
     <div id="account" className="account">
+      {user && (
+        <Link className="account-btn" to="/lists">
+          <span aria-hidden>♥</span> Listes
+        </Link>
+      )}
       <Button
         id="assistant-toggle"
         className="assistant-toggle"
         aria-expanded={assistantOpen}
         aria-controls="assistant-panel"
+        aria-keyshortcuts="S"
         onPress={onToggleAssistant}
       >
         <img src={ASSISTANT_LOGO} alt="" width={26} height={26} />
@@ -80,6 +87,12 @@ function AccountMenu({ user }: { user: SessionUser }) {
       </Button>
 
       <div className="account-dropdown" id="account-dropdown" hidden={!open}>
+        {user.osuId && (
+          <Link to={`/player/${user.osuId}`} onClick={() => setOpen(false)}>
+            <span>Mon profil</span>
+            <small>Statistiques et meilleurs scores</small>
+          </Link>
+        )}
         <Button type="button" onPress={() => logoutAndRedirect(false)}>
           <span>Déconnexion</span>
           <small>Quitter shOsu!</small>

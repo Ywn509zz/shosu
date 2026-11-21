@@ -353,3 +353,48 @@ body.light-mode .assistant-open-link:hover {
     padding: 4px;
   }
 }
+
+/* ===== Réponses en direct, statut des outils, dictée, cartes de joueurs ===== */
+.assistant-msg.is-streaming::after {
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--accent-strong);
+  content: "▍";
+  animation: assistant-caret 1s steps(1) infinite;
+}
+@keyframes assistant-caret {
+  50% {
+    opacity: 0;
+  }
+}
+.assistant-typing span {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 6px;
+}
+button.assistant-mic {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-color: var(--line);
+  font-size: 1.05rem;
+}
+button.assistant-mic.is-listening {
+  border-color: rgba(195, 173, 255, 0.6);
+  background: rgba(156, 124, 255, 0.28);
+}
+.assistant-card.is-player img {
+  border-radius: 50%;
+}
+.assistant-card.is-player {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+.assistant-card-body a:hover {
+  color: var(--accent-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-msg.is-streaming::after {
+    animation: none;
+  }
+}

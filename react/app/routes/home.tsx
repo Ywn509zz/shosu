@@ -12,7 +12,6 @@ import {
   type Beatmapset,
   type SearchResponse,
 } from "~/lib/osu";
-import { useAudioPreview } from "~/lib/use-audio-preview";
 import { useRipple } from "~/lib/use-ripple";
 import { useSpeechRecognition } from "~/lib/use-speech-recognition";
 
@@ -49,7 +48,6 @@ export default function Home() {
   // Filtres figés au moment de la recherche (comme script.js).
   const searchedRef = useRef({ q: "", mode: "all", status: "all" });
   const requestRef = useRef(0);
-  const { playingId, toggle: togglePreview, stop } = useAudioPreview();
 
   async function fetchPage(q: string, m: string, s: string, next: string | null) {
     const params = new URLSearchParams({ q, mode: m, status: s });
@@ -70,7 +68,6 @@ export default function Home() {
       return;
     }
 
-    stop();
     const id = ++requestRef.current;
     setPhase("loading");
 
@@ -128,7 +125,6 @@ export default function Home() {
 
   function clearSearch() {
     requestRef.current++;
-    stop();
     setQuery("");
     setAllResults([]);
     setCursor(null);
@@ -253,22 +249,12 @@ export default function Home() {
               {allResults.length} beatmapsets
             </p>
             {pageResults.map((mapset) => (
-              <BeatmapCard
-                key={mapset.id}
-                mapset={mapset}
-                isPlaying={playingId === mapset.id}
-                onTogglePreview={togglePreview}
-              />
+              <BeatmapCard key={mapset.id} mapset={mapset} queue={pageResults} />
             ))}
             {showPagination && (
               <div className="pagination">
                 {page > 1 && (
-                  <Button
-                    onPress={() => {
-                      stop();
-                      setPage((p) => p - 1);
-                    }}
-                  >
+                  <Button onPress={() => setPage((p) => p - 1)}>
                     ← Previous
                   </Button>
                 )}
@@ -276,7 +262,6 @@ export default function Home() {
                   <Button
                     isPending={loadingMore}
                     onPress={() => {
-                      stop();
                       if (page < totalPages) setPage((p) => p + 1);
                       else void loadMore();
                     }}
