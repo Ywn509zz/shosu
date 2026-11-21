@@ -28,14 +28,19 @@ export function LoginNotice() {
         : { title: "Connexion impossible", text: ERRORS[error ?? ""] ?? "Veuillez réessayer." },
     );
 
+    // Le nettoyage de l'URL change les paramètres et relance cet effet : le minuteur de masquage
+    // vit donc dans son propre effet, sinon il serait annulé avant d'avoir sonné.
     const clean = new URL(window.location.href);
     clean.searchParams.delete("login");
     clean.searchParams.delete("error");
     void navigate(clean.pathname + clean.search, { replace: true });
+  }, [login, error, navigate]);
 
+  useEffect(() => {
+    if (!notice) return;
     const timer = window.setTimeout(() => setNotice(null), 4000);
     return () => window.clearTimeout(timer);
-  }, [login, error, navigate]);
+  }, [notice]);
 
   if (!notice) return null;
   return (

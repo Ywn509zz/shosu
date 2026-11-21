@@ -31,3 +31,6 @@
 
 /* Assistant IA : panneau latéral dans le même langage visuel. */
 @import "./assistant.css";
+
+/* Lecteur, listes, détail d'une beatmap et profil joueur. */
+@import "./pages.css";

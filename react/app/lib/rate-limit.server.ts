@@ -1,27 +1,21 @@
+import { incrementWindow } from "./store.server";
+
 /**
- * Limiteur de débit en mémoire (fenêtre glissante).
+ * Limiteur de débit à fenêtre fixe, partagé entre toutes les instances quand
+ * une base Upstash est configurée (voir store.server.ts), sinon en mémoire.
  *
- * Protège la clé Gemini d'un usage abusif. Limite : l'état est propre à chaque
- * instance serverless, donc la limite effective est « par instance ». Pour une
- * garantie stricte, passer à un stockage partagé (Vercel KV / Upstash).
+ * Protège la clé Gemini et le quota osu! d'un usage abusif.
  */
-const hits = new Map<string, number[]>();
+export async function rateLimit(key: string, limit: number, windowMs: number) {
+  const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+  const { count, ttlSeconds } = await incrementWindow(`rl:${key}:${windowSeconds}`, windowSeconds);
 
-export function rateLimit(key: string, limit: number, windowMs: number) {
-  const now = Date.now();
-  const recent = (hits.get(key) ?? []).filter((time) => now - time < windowMs);
-
-  if (recent.length >= limit) {
-    hits.set(key, recent);
-    return { ok: false as const, retryAfterSeconds: Math.ceil((windowMs - (now - recent[0])) / 1000) };
-  }
-
-  recent.push(now);
-  hits.set(key, recent);
-
-  // Évite que la table grossisse indéfiniment.
-  if (hits.size > 5_000) {
-    for (const [k, times] of hits) if (times.every((t) => now - t >= windowMs)) hits.delete(k);
-  }
+  if (count > limit) return { ok: false as const, retryAfterSeconds: ttlSeconds };
   return { ok: true as const, retryAfterSeconds: 0 };
+}
+
+/** Adresse du client, telle que transmise par Vercel (non usurpable depuis l'extérieur). */
+export function clientIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return request.headers.get("x-real-ip") || forwarded || "unknown";
 }

@@ -44,6 +44,7 @@ Mêmes noms que la version HTML/JS : **rien à renommer dans Vercel**.
 | `DIAGNOSTICS_TOKEN`            |     non     | Active `/api/auth/check` (16 caractères min.) ; sinon l'endpoint répond 404 |
 | `GEMINI_API_KEY`               |     non     | Clé Gemini pour Stack (sans elle, le panneau indique que Stack n'est pas configuré) |
 | `GEMINI_MODEL`                 |     non     | Modèle principal (défaut `gemini-3.1-flash-lite`, repli automatique)     |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | non | Base Redis : listes persistantes et limites de débit partagées (`KV_REST_API_URL` / `KV_REST_API_TOKEN` acceptées) |
 
 ## Fidélité au design
 
@@ -89,45 +90,103 @@ incrémentez `AUTH_SESSION_VERSION` pour tout invalider. osu! ne fournit pas d'e
 technique `<id>@users.osu.invalid` est généré. Pour des comptes persistants (abonnements, favoris…),
 ajoutez une option `database` à `betterAuth()` dans [`app/lib/auth.server.ts`](app/lib/auth.server.ts).
 
+## Fonctionnalités du site
+
+- **Lecteur d'aperçus** : une seule piste à la fois pour tout le site. Une barre fixe en bas de l'écran (cover, titre,
+  ⏮ ▶/⏸ ⏭, position, volume mémorisé) apparaît dès qu'on lance un aperçu ; les cartes d'une même liste s'enchaînent.
+- **Suggestions « À découvrir »** sous la recherche (tant qu'aucune recherche n'est affichée) : les plus jouées, récemment classées, les plus
+  aimées, ou une sélection surprise. Chaque visite tire 18 beatmaps au hasard parmi les 40 premières de chaque tri ; « 🔄 Autres suggestions »
+  fait défiler les suivantes. Aucune connexion requise ; si osu! ne répond pas, la page s'affiche simplement sans elles.
+- **Recherche par le son** : le bouton 🎧 de la barre de recherche (et celui de Stack) identifie un morceau et trouve des maps proches
+  (voir « Shazam pour osu! » plus bas).
+- **Favoris et « à jouer plus tard »** : boutons ♡ et 🕒 sur chaque carte et sur la page d'une beatmap, page **Mes listes**
+  (`/lists`). 200 beatmaps par liste ; les métadonnées sont relues chez osu!, jamais prises du navigateur.
+- **Page d'une beatmap** (`/beatmap/:id`) : cover, BPM, durée, favoris, tags, toutes les difficultés (étoiles, CS/AR/OD/HP,
+  combo), « Ouvrir dans osu! » (`osu://`), et « ✨ Expliquer avec Stack ».
+- **Profil joueur** (`/player/:id`, identifiant ou pseudo) : rangs, pp, précision, niveau, temps de jeu, grades, 25 meilleurs scores,
+  par mode. Accessible depuis le menu du compte (« Mon profil ») et depuis Stack.
+- **Raccourcis clavier** (jamais actifs pendant une saisie) : `/` recherche · `S` ouvrir/fermer Stack · `Espace` lecture/pause ·
+  `Échap` fermer Stack.
+- **Cache** : les recherches sont gardées 60 s en mémoire et le CDN de Vercel les sert 60 s (puis 5 min en actualisant en arrière-plan) ;
+  les pages détail, profils et classements sont gardés 5 min. Cela économise le quota osu! sans jamais servir de donnée propre à un utilisateur.
+
+## Stockage et limite de débit partagée (Upstash)
+
+Les listes et les limites de débit passent par [`app/lib/store.server.ts`](app/lib/store.server.ts) :
+- **Avec Upstash Redis** (variables ci-dessus) : les listes survivent aux redéploiements, et les limites (`/api/assistant`, `/api/lists`,
+  `/api/search`) sont **partagées entre toutes les instances**.
+- **Sans base** : tout fonctionne, mais en mémoire (listes perdues au redéploiement, limites « par instance »). La page *Mes listes*
+  l'indique.
+- **Base en panne** : les limites retombent sur la mémoire (le site continue), les listes répondent « indisponible » plutôt que de perdre des données.
+
+**Mise en place.** Dans Vercel : *Storage* (ou *Marketplace*) → **Upstash Redis** → créer une base gratuite et la relier au projet : les
+variables `KV_REST_API_URL` / `KV_REST_API_TOKEN` sont ajoutées toutes seules (acceptées telles quelles). Puis redéployer.
+Limites appliquées : 20 messages Stack / 10 min par joueur, 200 / h au total, 120 modifications de listes / 10 min par joueur,
+90 recherches / min par adresse IP.
+
 ## Stack, l'assistant IA (Gemini)
 
-Le bouton **Stack** du header ouvre un panneau latéral de discussion. Il comprend ce qu'on lui demande,
-**lance lui-même les recherches** et peut lire ton profil osu! pour proposer des maps à ton niveau.
-Le nom et le logo se changent dans [`app/lib/assistant.ts`](app/lib/assistant.ts) (`ASSISTANT_NAME`,
-`ASSISTANT_LOGO`, image dans `public/`).
+Le bouton **Stack** du header (ou la touche `S`) ouvre un panneau latéral de discussion. Il comprend ce qu'on lui demande, **lance lui-même
+les recherches**, lit ton profil osu! pour proposer des maps à ton niveau et **agit sur la page**. Les réponses s'écrivent **en direct**
+(flux), avec l'outil en cours affiché (« Je cherche… »). On peut aussi lui **dicter** un message (micro). Le nom et le logo se changent dans
+[`app/lib/assistant.ts`](app/lib/assistant.ts) (`ASSISTANT_NAME`, `ASSISTANT_LOGO`, image dans `public/`).
 
-**Ce qu'il sait faire.** Deux outils, exécutés par le serveur (Gemini ne touche à rien directement) :
-- `search_beatmaps` : cherche de vraies beatmaps chez osu! (mots-clés, mode, statut, fourchette d'étoiles).
-  Les résultats s'affichent en cartes sous sa réponse, avec aperçu audio et un lien « Voir dans la recherche »
-  qui ouvre la page principale déjà remplie (`/?q=…&mode=…&status=…`).
-- `get_player_profile` : profil **public** du joueur connecté (pp, rang, précision, 25 meilleurs scores),
-  envoyé sans pseudo ni identifiant.
+**Ce qu'il sait faire.** Des outils, exécutés par le serveur (Gemini ne touche à rien directement) :
+- `search_beatmaps` : de vraies beatmaps (mots-clés, mode, statut, fourchette d'étoiles), en cartes avec aperçu audio.
+- `get_player_profile` : profil **public** du joueur connecté (pp, rang, précision, 25 meilleurs scores), envoyé sans pseudo ni identifiant.
+- `get_beatmap` : BPM, durée, tags, difficultés avec CS/AR/OD/HP et nombre d'objets, pour **expliquer** une map à partir de ses chiffres.
+- `find_player` et `get_rankings` : retrouver un joueur par pseudo, ou consulter le classement mondial ou d'un pays (cartes de joueurs).
+- `get_my_lists`, `add_to_list`, `remove_from_list` : gérer tes listes, sur demande explicite et seulement pour des beatmaps déjà affichées.
+- 🎧 **écoute** (voir plus bas) : identifier un son et trouver des maps proches.
+- `show_in_search`, `open_beatmap`, `open_player` : ouvrir la recherche déjà remplie (`/?q=…&mode=…&status=…`), une beatmap ou un profil.
+  Le navigateur revalide chaque action et ne navigue que vers les pages du site.
 
-Il ne cite que des beatmaps renvoyées par la recherche : il n'en invente pas. La conversation est
-gardée dans l'onglet (sessionStorage) et disparaît à sa fermeture ; rien n'est enregistré côté serveur.
+Il ne cite que des données renvoyées par ses outils : il n'en invente pas. La conversation est gardée dans l'onglet (sessionStorage) et
+disparaît à sa fermeture ; rien n'est enregistré côté serveur.
+
+### 🎧 « Shazam pour osu! » : retrouver des maps à partir d'un son
+
+Le bouton 🎧 permet de **faire écouter un morceau**, au micro (15 s) ou en important un fichier audio (30 Mo max) : Gemini l'écoute, puis
+le site cherche les beatmaps **de ce morceau** et des beatmaps **au son proche**. On l'utilise **depuis la barre de recherche** (les maps
+s'affichent dans la grille des résultats, sous un résumé de ce qui a été entendu) ou **depuis Stack** (dans la conversation). Il faut être connecté.
+
+1. Le navigateur décode l'audio (mp3, m4a, ogg, webm…) et le convertit en **WAV 16 kHz mono de 30 s maximum**, volume normalisé
+   (pour un fichier plus long : 30 s à partir de 30 % du morceau, plutôt que l'intro). Le micro est enregistré sans traitement.
+2. `POST /api/listen` envoie ce WAV à Gemini, qui renvoie un **JSON contraint par un schéma** : titre et artiste (seulement s'il reconnaît
+   vraiment le morceau, avec un niveau de confiance), genres, tempo estimé, ambiance, instruments, voix, et des mots-clés de recherche.
+3. Le serveur cherche chez osu! les maps qui correspondent au titre et à l'artiste (appariement vérifié), puis des maps proches par mots-clés,
+   **classées par proximité de tempo** (±12 % du BPM estimé en premier). Le texte de réponse est composé côté serveur.
+
+**Honnêteté de l'identification.** Gemini n'est pas un service d'empreinte audio comme Shazam : il peut reconnaître des morceaux connus, mais
+pas tous. La consigne lui interdit d'inventer un titre ; en cas de doute, Stack le dit et se contente de décrire le son et de chercher des maps
+proches. Le tempo estimé est une indication. Sur un extrait de test synthétique, le tempo (120 BPM) et le style ont été correctement estimés
+et aucun titre n'a été inventé.
+
+**Sécurité.** Réservé aux utilisateurs connectés, avec contrôle d'origine ; l'en-tête du WAV est vérifié (PCM 16 bits, mono, 16 kHz, 3 à 31 s,
+1 Mo environ au maximum) avant tout appel à Gemini ; 6 extraits / 10 min par joueur et 60 / h au total. Ce qui est dit ou chanté dans
+l'extrait est traité comme du contenu à analyser, jamais comme une instruction, et la sortie du modèle est nettoyée et bornée. L'audio est
+envoyé à Gemini (Google) pour analyse ; shOsu! ne le conserve pas.
 
 **Sécurité de la clé et de l'endpoint** (`POST /api/assistant`).
-- La clé reste côté serveur (variable d'environnement) et part dans l'en-tête `x-goog-api-key`, jamais
-  dans une URL. Elle n'est ni dans le bundle navigateur ni dans les journaux.
-- Réservé aux utilisateurs connectés, avec contrôle d'origine (anti-CSRF) et corps limité à 16 Ko.
-- L'historique envoyé par le navigateur n'est pas cru : seuls des textes « user » / « assistant » bornés
-  sont acceptés (aucun faux message système ni faux appel d'outil), et le dernier message doit être celui de l'utilisateur.
-- Limites : 20 messages / 10 min par utilisateur, 200 / heure au total, 4 allers-retours avec le modèle et
-  5 appels d'outils maximum par message. L'état est en mémoire, donc propre à chaque instance serverless ;
-  pour une garantie stricte, utilisez un stockage partagé (Vercel KV, Upstash).
-- Les titres de beatmaps, les résultats d'outils et les messages sont traités comme des **données**
-  (consigne anti-injection, testée). Les outils sont en lecture seule : même détourné, l'assistant ne peut
-  que lancer des recherches. Sa réponse est nettoyée, bornée et affichée comme du texte, jamais comme du HTML ;
-  les liens sont construits par le site, jamais par le modèle.
-- Si le modèle principal est saturé (429/5xx), les modèles de repli sont essayés automatiquement.
+- La clé reste côté serveur (variable d'environnement) et part dans l'en-tête `x-goog-api-key`, jamais dans une URL. Elle n'est ni dans
+  le bundle navigateur ni dans les journaux.
+- Réservé aux utilisateurs connectés, avec contrôle d'origine (anti-CSRF) et corps limité à 24 Ko.
+- L'historique envoyé par le navigateur n'est pas cru : seuls des textes « user » / « assistant » bornés sont acceptés (aucun faux message
+  système ni faux appel d'outil), et le dernier message doit être celui de l'utilisateur.
+- Limites : 20 messages / 10 min par utilisateur, 200 / h au total (partagées si Upstash est configuré) ; 5 allers-retours avec le modèle,
+  6 appels d'outils et 3 modifications de listes au maximum par message.
+- **Modifications de listes** : seules les beatmaps déjà affichées à l'utilisateur dans la conversation sont acceptées (liste blanche), pour
+  qu'un titre piégé ne puisse pas faire ajouter n'importe quoi. Tous les autres outils sont en lecture seule.
+- Les titres de beatmaps, pseudos, résultats d'outils et messages sont traités comme des **données** (consigne anti-injection, testée). La
+  réponse est nettoyée, bornée et affichée comme du texte, jamais comme du HTML ; les liens sont construits par le site, jamais par le modèle.
+- Si aucun fragment n'arrive en 12 s ou si le modèle est saturé (429/5xx), le modèle de repli est essayé automatiquement.
 
-**Confidentialité.** Les messages et les statistiques publiques utiles à la demande sont transmis à l'API
-Gemini de Google (c'est indiqué sous la zone de saisie). Consultez les conditions de Google pour l'offre de
-votre clé (les offres gratuites peuvent autoriser l'amélioration des modèles).
+**Confidentialité.** Les messages et les données publiques utiles à la demande (profil, classements…) sont transmis à l'API Gemini de Google
+(c'est indiqué sous la zone de saisie). Consultez les conditions de Google pour l'offre de votre clé (les offres gratuites peuvent autoriser
+l'amélioration des modèles).
 
-**Mise en place.** Créez une clé sur <https://aistudio.google.com/apikey>, ajoutez-la dans `.env` en local et
-dans les variables d'environnement de Vercel (Production et Preview). Idéalement, limitez-la côté Google
-(quota, restriction d'API). Une réponse prend quelques secondes.
+**Mise en place.** Créez une clé sur <https://aistudio.google.com/apikey>, ajoutez-la dans `.env` en local et dans les variables d'environnement
+de Vercel (Production et Preview). Idéalement, limitez-la côté Google (quota, restriction d'API).
 
 ## Ce qui change par rapport à la version HTML/JS
 
@@ -162,15 +221,24 @@ react/
 │   ├── root.tsx, routes.ts, entry.server.tsx   Document, routes, en-têtes de sécurité
 │   ├── app.css                                 Imports (HeroUI sans reset Tailwind)
 │   ├── legacy.css                              Votre style.css d'origine
-│   ├── overrides.css                           Compléments minimaux
-│   ├── assistant.css                           Styles du panneau Stack
+│   ├── overrides.css, assistant.css, pages.css Compléments, panneau Stack, nouvelles pages
 │   ├── routes/
-│   │   ├── layout.tsx                          Header (compte), footer, bandeau de connexion
-│   │   ├── home.tsx                            Hero, recherche, filtres, résultats
-│   │   ├── api.assistant.ts                    POST /api/assistant (auth, limites, validation)
-│   │   ├── api.search.ts                       GET /api/search
+│   │   ├── layout.tsx                          Header, lecteur, raccourcis, panneau Stack
+│   │   ├── home.tsx                            Hero, recherche, filtres, résultats (+ lien profond ?q=)
+│   │   ├── beatmap.$id.tsx, player.$id.tsx     Détail d'une beatmap, profil joueur
+│   │   ├── lists.tsx                           Mes listes (favoris, à jouer plus tard)
+│   │   ├── api.assistant.ts                    POST /api/assistant (flux, auth, limites, validation)
+│   │   ├── api.listen.ts                       POST /api/listen : « Shazam pour osu! » (WAV → Gemini → maps)
+│   │   ├── api.lists.ts, api.search.ts         Listes ; recherche publique (limite par IP, cache CDN)
 │   │   └── api.auth.*.ts                       login, callback, check, endpoints Better Auth
-│   ├── components/                             Account, Assistant (Stack), BeatmapCard, ThemeToggle, LoginNotice
-│   └── lib/                                    auth, session, client osu!, Gemini, assistant, hooks
+│   ├── components/                             Account, Assistant (Stack), BeatmapCard, Discovery, ListenPanel, PlayerBar, ListButtons…
+│   └── lib/
+│       ├── store.server.ts, rate-limit.server.ts, cache.server.ts   Upstash + repli mémoire, limites, cache
+│       ├── osu.server.ts, osu.ts               Client osu! (recherche, beatmap, joueurs, classements) et types
+│       ├── gemini.server.ts, assistant.server.ts, assistant.ts      Client Gemini en flux, outils de Stack
+│       ├── listen.server.ts, ndjson.server.ts, audio.ts             Écoute audio (analyse, recherche), flux, capture micro / WAV
+│       ├── discover.server.ts, stream-client.ts                     Suggestions de l'accueil ; lecture des flux côté navigateur
+│       ├── lists*.ts(x), player.tsx            Listes (stockage, contexte), lecteur audio global
+│       └── auth*.ts, session.server.ts, use-*.ts                    Authentification, hooks
 └── public/                                     shosu.png (logo), stack.jpeg (logo de l'assistant)
 ```

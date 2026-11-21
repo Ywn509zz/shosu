@@ -1,9 +1,15 @@
+import { cached } from "./cache.server";
 import {
   API_MODE,
   API_STATUS,
   OSU_BASE_URL,
+  parsePlayerRef,
   type Beatmapset,
+  type BeatmapsetDetail,
+  type PlayerPage,
+  type PlayerSummary,
   type SearchResponse,
+  type TopPlay,
 } from "./osu";
 
 /**
@@ -70,6 +76,7 @@ type RawBeatmapset = {
   creator: string;
   status: string;
   mode?: string;
+  bpm?: number;
   preview_url?: string | null;
   beatmaps?: { mode: string; difficulty_rating: number }[];
 };
@@ -91,14 +98,20 @@ function toBeatmapset(raw: RawBeatmapset): Beatmapset {
     minStars: maps && maps.length > 0 ? Math.min(...maps.map((m) => m.difficulty_rating)) : null,
     maxStars: maps && maps.length > 0 ? Math.max(...maps.map((m) => m.difficulty_rating)) : null,
     previewFile: raw.preview_url ? (raw.preview_url.split("/").pop() ?? null) : null,
+    bpm: typeof raw.bpm === "number" ? Math.round(raw.bpm) : null,
   };
 }
 
-export async function searchBeatmapsets(params: {
+/** Tris acceptés par la recherche osu! (liste blanche : jamais une valeur libre vers l'API). */
+export const SEARCH_SORTS = ["plays_desc", "ranked_desc", "favourites_desc", "updated_desc", "rating_desc"] as const;
+export type SearchSort = (typeof SEARCH_SORTS)[number];
+
+async function searchBeatmapsetsUncached(params: {
   q: string;
   mode?: string;
   status?: string;
   cursor?: string | null;
+  sort?: SearchSort;
 }): Promise<SearchResponse> {
   const url = new URL(`${osuBase()}/api/v2/beatmapsets/search`);
   url.searchParams.set("q", params.q);
@@ -111,6 +124,7 @@ export async function searchBeatmapsets(params: {
   if (params.status && API_STATUS.has(params.status)) {
     url.searchParams.set("s", params.status);
   }
+  if (params.sort && (SEARCH_SORTS as readonly string[]).includes(params.sort)) url.searchParams.set("sort", params.sort);
   if (params.cursor) url.searchParams.set("cursor_string", params.cursor);
 
   const response = await fetch(url, {
@@ -133,6 +147,18 @@ export async function searchBeatmapsets(params: {
     beatmapsets: (data.beatmapsets ?? []).map(toBeatmapset),
     cursor: data.cursor_string ?? null,
   };
+}
+
+/** Recherche avec cache de 60 s (économise le quota osu!, accélère les recherches répétées). */
+export function searchBeatmapsets(params: {
+  q: string;
+  mode?: string;
+  status?: string;
+  cursor?: string | null;
+  sort?: SearchSort;
+}): Promise<SearchResponse> {
+  const key = `search:${params.q.toLowerCase()}|${params.mode ?? ""}|${params.status ?? ""}|${params.cursor ?? ""}|${params.sort ?? ""}`;
+  return cached(key, 60_000, () => searchBeatmapsetsUncached(params));
 }
 
 // ---------------------------------------------------------------------------
@@ -254,4 +280,212 @@ export async function getPlayerProfile(osuId: number, mode: string): Promise<Pla
       modUsage,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Détail d'une beatmap
+// ---------------------------------------------------------------------------
+
+type RawDifficulty = {
+  id: number;
+  mode: string;
+  version: string;
+  difficulty_rating: number;
+  cs?: number;
+  ar?: number;
+  accuracy?: number;
+  drain?: number;
+  bpm?: number;
+  total_length?: number;
+  max_combo?: number | null;
+  count_circles?: number;
+  count_sliders?: number;
+  count_spinners?: number;
+};
+
+type RawSetDetail = Omit<RawBeatmapset, "beatmaps"> & {
+  bpm?: number;
+  source?: string;
+  tags?: string;
+  genre?: { name?: string } | null;
+  language?: { name?: string } | null;
+  play_count?: number;
+  favourite_count?: number;
+  ranked_date?: string | null;
+  user_id?: number;
+  beatmaps?: RawDifficulty[];
+};
+
+const numOrNull = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : null);
+
+export function getBeatmapset(id: number): Promise<BeatmapsetDetail> {
+  return cached(`set:${id}`, 5 * 60_000, async () => {
+    const raw = await osuGet<RawSetDetail>(`/beatmapsets/${id}`);
+    const base = toBeatmapset(raw as RawBeatmapset);
+    const difficulties = (raw.beatmaps ?? [])
+      .map((d) => ({
+        id: d.id,
+        mode: d.mode,
+        version: String(d.version ?? "").slice(0, 80),
+        stars: Math.round(d.difficulty_rating * 100) / 100,
+        cs: numOrNull(d.cs),
+        ar: numOrNull(d.ar),
+        od: numOrNull(d.accuracy),
+        hp: numOrNull(d.drain),
+        bpm: numOrNull(d.bpm),
+        lengthSeconds: numOrNull(d.total_length),
+        maxCombo: numOrNull(d.max_combo),
+        circles: numOrNull(d.count_circles),
+        sliders: numOrNull(d.count_sliders),
+        spinners: numOrNull(d.count_spinners),
+      }))
+      .sort((a, b) => a.stars - b.stars);
+
+    return {
+      ...base,
+      source: raw.source ? String(raw.source).slice(0, 80) : null,
+      tags: String(raw.tags ?? "")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 24)
+        .map((t) => t.slice(0, 32)),
+      genre: raw.genre?.name ?? null,
+      language: raw.language?.name ?? null,
+      bpm: numOrNull(raw.bpm),
+      lengthSeconds: difficulties.length ? (difficulties[difficulties.length - 1].lengthSeconds ?? null) : null,
+      playCount: numOrNull(raw.play_count),
+      favouriteCount: numOrNull(raw.favourite_count),
+      rankedDate: raw.ranked_date ?? null,
+      creatorId: numOrNull(raw.user_id),
+      difficulties,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Joueurs : page de profil, recherche par pseudo, classements
+// ---------------------------------------------------------------------------
+
+type RawUser = {
+  id: number;
+  username: string;
+  country_code?: string;
+  statistics?: {
+    pp?: number;
+    global_rank?: number | null;
+    country_rank?: number | null;
+    hit_accuracy?: number;
+    play_count?: number;
+    play_time?: number;
+    ranked_score?: number;
+    maximum_combo?: number;
+    level?: { current?: number };
+    grade_counts?: { ss?: number; ssh?: number; s?: number; sh?: number; a?: number };
+  };
+};
+
+type RawBestScore = {
+  pp?: number | null;
+  accuracy?: number;
+  mods?: (string | { acronym: string })[];
+  rank?: string;
+  beatmap?: { difficulty_rating: number; version?: string; bpm?: number; total_length?: number };
+  beatmapset?: { id?: number; title?: string; artist?: string };
+};
+
+function toSummary(user: RawUser): PlayerSummary {
+  const st = user.statistics ?? {};
+  return {
+    id: user.id,
+    username: String(user.username).slice(0, 30),
+    country: user.country_code ?? null,
+    globalRank: numOrNull(st.global_rank),
+    countryRank: numOrNull(st.country_rank),
+    pp: round(st.pp, 0),
+    accuracy: round(st.hit_accuracy, 2),
+    playCount: numOrNull(st.play_count),
+  };
+}
+
+/** Profil complet d'un joueur (par identifiant ou pseudo) avec ses meilleurs scores. */
+export function getPlayerPage(ref: string, mode: string, withTopPlays = true): Promise<PlayerPage> {
+  const parsed = parsePlayerRef(ref);
+  if (!parsed) throw new OsuError("Invalid player reference", 404);
+
+  return cached(`player:${parsed.key}:${parsed.value.toLowerCase()}:${mode}:${withTopPlays}`, 5 * 60_000, async () => {
+    const user = await osuGet<RawUser>(`/users/${encodeURIComponent(parsed.value)}/${mode}`, { key: parsed.key });
+    const summary = toSummary(user);
+    const st = user.statistics ?? {};
+
+    let topPlays: TopPlay[] = [];
+    if (withTopPlays) {
+      const scores = await osuGet<RawBestScore[]>(`/users/${user.id}/scores/best`, { mode, limit: "25" });
+      topPlays = scores
+        .filter((score) => score.beatmap && score.beatmapset?.id)
+        .map((score) => ({
+          beatmapsetId: score.beatmapset!.id!,
+          title: (score.beatmapset?.title ?? "").slice(0, 100),
+          artist: (score.beatmapset?.artist ?? "").slice(0, 80),
+          version: String(score.beatmap!.version ?? "").slice(0, 60),
+          stars: round(score.beatmap!.difficulty_rating) ?? 0,
+          pp: round(score.pp, 0),
+          accuracy: score.accuracy !== undefined ? round(score.accuracy * 100, 2) : null,
+          mods: (score.mods ?? []).map((m) => (typeof m === "string" ? m : m.acronym)),
+          rank: score.rank ?? "",
+          bpm: round(score.beatmap!.bpm, 0),
+          lengthSeconds: round(score.beatmap!.total_length, 0),
+        }));
+    }
+
+    return {
+      ...summary,
+      mode,
+      level: round(st.level?.current, 0),
+      playTimeHours: st.play_time !== undefined ? Math.round(st.play_time / 3600) : null,
+      rankedScore: numOrNull(st.ranked_score),
+      maxCombo: numOrNull(st.maximum_combo),
+      grades: {
+        ss: (st.grade_counts?.ss ?? 0) + (st.grade_counts?.ssh ?? 0),
+        s: (st.grade_counts?.s ?? 0) + (st.grade_counts?.sh ?? 0),
+        a: st.grade_counts?.a ?? 0,
+      },
+      topPlays,
+    };
+  });
+}
+
+/** Page de 10 joueurs d'un classement mondial ou par pays (1 = rangs 1 à 10, 2 = rangs 11 à 20…). */
+export async function getRankings(params: {
+  mode: string;
+  country?: string;
+  page?: number;
+}): Promise<{ players: PlayerSummary[]; total: number | null }> {
+  const country = params.country && /^[A-Za-z]{2}$/.test(params.country) ? params.country.toUpperCase() : "";
+  const page = Math.min(Math.max(Math.floor(params.page ?? 1), 1), 100);
+  const start = (page - 1) * 10;
+  const apiPage = Math.floor(start / 50) + 1; // osu! renvoie 50 joueurs par page
+  const offset = start % 50;
+
+  const { players, total } = await cached(`rank:${params.mode}:${country}:${apiPage}`, 5 * 60_000, async () => {
+    const query: Record<string, string> = {};
+    if (country) query.country = country;
+    if (apiPage > 1) query["cursor[page]"] = String(apiPage);
+
+    const data = await osuGet<{
+      ranking?: (RawUser["statistics"] & { user: RawUser })[];
+      total?: number;
+    }>(`/rankings/${params.mode}/performance`, query);
+
+    const players = (data.ranking ?? []).map((entry, index) => {
+      const summary = toSummary({ ...entry.user, statistics: entry });
+      // La liste de classement ne renvoie pas toujours le rang : on le déduit de la position.
+      const position = (apiPage - 1) * 50 + index + 1;
+      if (country && summary.countryRank === null) summary.countryRank = position;
+      if (!country && summary.globalRank === null) summary.globalRank = position;
+      return summary;
+    });
+    return { players, total: numOrNull(data.total) };
+  });
+
+  return { players: players.slice(offset, offset + 10), total };
 }

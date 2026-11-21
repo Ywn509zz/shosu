@@ -1,40 +1,49 @@
 import { Button } from "@heroui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
+import { toTrack } from "~/components/beatmap-card";
+import { ListenPanel, type AudioClip } from "~/components/listen-panel";
 import {
   ASSISTANT_LOGO,
   ASSISTANT_NAME,
   ASSISTANT_TAGLINE,
   MAX_MESSAGE_LENGTH,
   SUGGESTIONS,
-  type AssistantReply,
   type SearchLink,
+  type StreamEvent,
+  type UiAction,
 } from "~/lib/assistant";
-import { beatmapsetUrl, coverUrl, type Beatmapset } from "~/lib/osu";
-import { useAudioPreview } from "~/lib/use-audio-preview";
+import { useLists } from "~/lib/lists-context";
+import {
+  avatarUrl,
+  countryFlag,
+  coverUrl,
+  formatNumber,
+  MODE_IDS,
+  STATUS_IDS,
+  type Beatmapset,
+  type PlayerSummary,
+} from "~/lib/osu";
+import { usePlayer, type Track } from "~/lib/player";
+import { errorMessage, readEvents } from "~/lib/stream-client";
+import { useSpeechRecognition } from "~/lib/use-speech-recognition";
 
 type Msg = {
   id: number;
   role: "user" | "assistant";
   text: string;
   cards?: Beatmapset[];
+  players?: PlayerSummary[];
   searchLink?: SearchLink | null;
   error?: boolean;
+  /** Réponse en cours de réception (non conservée dans le stockage). */
+  streaming?: boolean;
+  status?: string;
 };
 
-const STORAGE_KEY = "stack-chat-v1";
+const STORAGE_KEY = "stack-chat-v2";
 const MAX_STORED = 30;
-
-const ERRORS: Record<string, string> = {
-  unauthenticated: "Ta session a expiré. Reconnecte-toi avec osu! pour continuer.",
-  rate_limited: "Tu m'envoies beaucoup de messages ! Patiente quelques minutes avant de réessayer.",
-  assistant_unavailable: `${ASSISTANT_NAME} n'est pas encore configuré sur ce site.`,
-  ai_unavailable: "L'IA est momentanément indisponible. Réessaie dans un instant.",
-  ai_bad_response: "L'IA a renvoyé une réponse inexploitable. Réessaie.",
-  invalid_request: "Je n'ai pas pu traiter ce message. Essaie de le reformuler.",
-};
-const GENERIC_ERROR = "Un problème est survenu. Réessaie dans un instant.";
 
 function searchHref(link: SearchLink) {
   const params = new URLSearchParams({ q: link.q });
@@ -43,15 +52,59 @@ function searchHref(link: SearchLink) {
   return `/?${params}`;
 }
 
+/** Les actions viennent du serveur mais sont revalidées ici : on ne navigue que vers nos propres pages. */
+function actionUrl(action: UiAction): string | null {
+  switch (action.type) {
+    case "show_in_search": {
+      if (typeof action.q !== "string" || !action.q || action.q.length > 200) return null;
+      if (!MODE_IDS.includes(action.mode) || !STATUS_IDS.includes(action.status)) return null;
+      return searchHref({ q: action.q, mode: action.mode, status: action.status });
+    }
+    case "open_beatmap":
+      return Number.isInteger(action.id) && action.id > 0 ? `/beatmap/${action.id}` : null;
+    case "open_player":
+      return Number.isInteger(action.id) && action.id > 0 ? `/player/${action.id}` : null;
+    default:
+      return null;
+  }
+}
+
+/** Relit la conversation stockée en écartant tout ce qui n'a pas la bonne forme. */
+function restore(raw: string | null): Msg[] {
+  try {
+    const saved = JSON.parse(raw ?? "[]") as unknown;
+    if (!Array.isArray(saved)) return [];
+    return saved
+      .filter(
+        (m): m is Msg =>
+          !!m && typeof m === "object" && typeof (m as Msg).id === "number" && typeof (m as Msg).text === "string" &&
+          ((m as Msg).role === "user" || (m as Msg).role === "assistant"),
+      )
+      .map((m) => ({ ...m, streaming: false, status: "" }))
+      .filter((m) => m.role === "user" || m.text || m.cards?.length || m.players?.length);
+  } catch {
+    return [];
+  }
+}
+
 export function Assistant({
   open,
   onClose,
   signedIn,
+  pendingAsk,
+  onAskConsumed,
 }: {
   open: boolean;
   onClose: () => void;
   signedIn: boolean;
+  /** Question posée depuis une autre page (« Expliquer avec Stack »), envoyée dès l'ouverture. */
+  pendingAsk: string | null;
+  onAskConsumed: () => void;
 }) {
+  const navigate = useNavigate();
+  const player = usePlayer();
+  const lists = useLists();
+
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -62,16 +115,23 @@ export function Assistant({
   const abortRef = useRef<AbortController | null>(null);
   const nextId = useRef(1);
   const wasOpen = useRef(false);
-  const { playingId, toggle: togglePreview, stop } = useAudioPreview();
+  const sendingRef = useRef(false);
+  const messagesRef = useRef<Msg[]>([]);
+  messagesRef.current = messages;
+
+  const [listenOpen, setListenOpen] = useState(false);
+
+  const voice = useSpeechRecognition((text) => {
+    setInput((prev) => `${prev ? `${prev} ` : ""}${text}`.slice(0, MAX_MESSAGE_LENGTH));
+    inputRef.current?.focus();
+  });
 
   // La conversation survit à un rechargement de la page (onglet courant seulement).
   useEffect(() => {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "[]") as Msg[];
-      if (Array.isArray(saved)) {
-        setMessages(saved);
-        nextId.current = saved.reduce((max, m) => Math.max(max, m.id), 0) + 1;
-      }
+      const saved = restore(sessionStorage.getItem(STORAGE_KEY));
+      setMessages(saved);
+      nextId.current = saved.reduce((max, m) => Math.max(max, m.id), 0) + 1;
     } catch {
       /* stockage indisponible : on repart d'une conversation vide */
     }
@@ -79,13 +139,13 @@ export function Assistant({
   }, []);
 
   useEffect(() => {
-    if (!restored) return;
+    if (!restored || sending) return;
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_STORED)));
     } catch {
       /* ignoré */
     }
-  }, [messages, restored]);
+  }, [messages, restored, sending]);
 
   // Focus à l'ouverture, retour sur le bouton à la fermeture.
   useEffect(() => {
@@ -96,93 +156,183 @@ export function Assistant({
     }
     if (wasOpen.current) {
       wasOpen.current = false;
-      stop();
       document.getElementById("assistant-toggle")?.focus();
     }
-  }, [open, stop]);
+  }, [open]);
 
-  // Nouvelle réponse : on montre son DÉBUT (le texte avant les cartes) ; sinon on suit le bas.
+  // Pendant la réponse on suit le bas ; une fois terminée on montre son DÉBUT (le texte avant les cartes).
   useEffect(() => {
     const log = logRef.current;
     if (!log) return;
     const last = messages[messages.length - 1];
-    if (last?.role === "assistant" && !sending) {
+    if (last?.role === "assistant" && !last.streaming && !last.error) {
       log.querySelector<HTMLElement>(`[data-msg-id="${last.id}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" });
     } else {
-      log.scrollTo({ top: log.scrollHeight, behavior: "smooth" });
+      log.scrollTo({ top: log.scrollHeight, behavior: last?.streaming ? "auto" : "smooth" });
     }
-  }, [messages, sending, open]);
+  }, [messages, open]);
 
   // Annule une requête en cours si le composant disparaît.
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const send = useCallback(
-    async (raw: string) => {
-      const text = raw.trim().slice(0, MAX_MESSAGE_LENGTH);
-      if (!text || sending) return;
+  const closeIfSmall = useCallback(() => {
+    if (window.innerWidth < 700) onClose();
+  }, [onClose]);
 
-      const userMsg: Msg = { id: nextId.current++, role: "user", text };
-      const history = [...messages, userMsg]
-        .filter((m) => !m.error)
-        .slice(-12)
-        .map((m) => ({ role: m.role, text: m.text }));
-
-      setMessages((prev) => [...prev, userMsg]);
-      setInput("");
+  /**
+   * Envoie un message (ou un extrait audio) et lit la réponse en flux. `request` fait l'appel réseau ;
+   * le reste (affichage progressif, cartes, actions sur la page) est commun à Stack et à l'écoute.
+   */
+  const converse = useCallback(
+    async (userText: string, request: (signal: AbortSignal) => Promise<Response>) => {
+      if (sendingRef.current) return;
+      sendingRef.current = true;
       setSending(true);
+
+      const userMsg: Msg = { id: nextId.current++, role: "user", text: userText };
+      const botId = nextId.current++;
+
+      setMessages((prev) => [...prev, userMsg, { id: botId, role: "assistant", text: "", streaming: true }]);
+
+      const patchBot = (change: (m: Msg) => Msg) =>
+        setMessages((prev) => prev.map((m) => (m.id === botId ? change(m) : m)));
+      const fail = (code: string) =>
+        patchBot((m) =>
+          m.text
+            ? { ...m, streaming: false, status: "", text: `${m.text}\n\n⚠ ${errorMessage(code)}` }
+            : { ...m, streaming: false, status: "", error: true, text: errorMessage(code) },
+        );
 
       const controller = new AbortController();
       abortRef.current = controller;
+      let navigation: UiAction | null = null;
+      let listsChanged = false;
+      let finished = false;
 
       try {
-        const response = await fetch("/api/assistant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ messages: history }),
-          signal: controller.signal,
-        });
-        const body = (await response.json().catch(() => null)) as
-          | (AssistantReply & { error?: string })
-          | null;
+        const response = await request(controller.signal);
 
-        if (!response.ok || !body || body.error) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: nextId.current++,
-              role: "assistant",
-              text: ERRORS[body?.error ?? ""] ?? GENERIC_ERROR,
-              error: true,
-            },
-          ]);
-        } else {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: nextId.current++,
-              role: "assistant",
-              text: body.reply,
-              cards: body.cards,
-              searchLink: body.searchLink,
-            },
-          ]);
+        if (!response.ok || !response.body) {
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          fail(body?.error ?? "");
+          return;
+        }
+
+        const handle = (event: StreamEvent) => {
+          switch (event.t) {
+            case "status":
+              patchBot((m) => ({ ...m, status: event.text }));
+              break;
+            case "delta":
+              patchBot((m) => ({ ...m, status: "", text: m.text + event.text }));
+              break;
+            case "cards":
+              patchBot((m) => {
+                const seen = new Set((m.cards ?? []).map((c) => c.id));
+                return { ...m, cards: [...(m.cards ?? []), ...event.items.filter((c) => !seen.has(c.id))] };
+              });
+              break;
+            case "players":
+              patchBot((m) => {
+                const seen = new Set((m.players ?? []).map((p) => p.id));
+                return { ...m, players: [...(m.players ?? []), ...event.items.filter((p) => !seen.has(p.id))] };
+              });
+              break;
+            case "link":
+              patchBot((m) => ({ ...m, searchLink: event.link }));
+              break;
+            case "action":
+              if (event.action.type === "lists_changed") listsChanged = true;
+              else navigation = event.action; // la dernière demande l'emporte
+              break;
+            case "done":
+              finished = true;
+              break;
+            case "error":
+              finished = true;
+              fail(event.code);
+              break;
+          }
+        };
+
+        await readEvents(response, handle);
+
+        if (!finished) fail("interrupted");
+        else patchBot((m) => (m.error ? m : { ...m, streaming: false, status: "" }));
+
+        if (listsChanged) void lists.refresh();
+        const url = navigation ? actionUrl(navigation) : null;
+        if (url) {
+          void navigate(url);
+          closeIfSmall();
         }
       } catch (error) {
-        if ((error as Error).name === "AbortError") return;
-        setMessages((prev) => [
-          ...prev,
-          { id: nextId.current++, role: "assistant", text: GENERIC_ERROR, error: true },
-        ]);
+        if ((error as Error).name !== "AbortError") fail("");
       } finally {
+        sendingRef.current = false;
         setSending(false);
       }
     },
-    [messages, sending],
+    [lists, navigate, closeIfSmall],
   );
+
+  const send = useCallback(
+    async (raw: string) => {
+      const text = raw.trim().slice(0, MAX_MESSAGE_LENGTH);
+      if (!text || sendingRef.current) return;
+
+      const prior = messagesRef.current
+        .filter((m) => !m.error && m.text)
+        .slice(-11)
+        .map((m) => ({
+          role: m.role,
+          text: m.text,
+          ...(m.role === "assistant" && m.cards?.length ? { cardIds: m.cards.map((c) => c.id) } : {}),
+        }));
+      const history = [...prior, { role: "user" as const, text }];
+
+      setInput("");
+      await converse(text, (signal) =>
+        fetch("/api/assistant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
+          body: JSON.stringify({ messages: history }),
+          signal,
+        }),
+      );
+    },
+    [converse],
+  );
+
+  /** « Shazam pour osu! » : fait écouter l'extrait (déjà converti en petit WAV) à Gemini. */
+  const identify = useCallback(
+    async (clip: AudioClip) => {
+      if (sendingRef.current) return;
+      setListenOpen(false);
+      await converse(`🎧 Extrait audio (${Math.round(clip.seconds)} s)`, (signal) =>
+        fetch("/api/listen", {
+          method: "POST",
+          headers: { "Content-Type": "audio/wav", Accept: "application/x-ndjson" },
+          body: clip.wav,
+          signal,
+        }),
+      );
+    },
+    [converse],
+  );
+
+  // Question posée depuis une autre page : envoyée dès que le panneau est prêt.
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  useEffect(() => {
+    if (!pendingAsk || !restored) return;
+    onAskConsumed();
+    if (signedIn) void sendRef.current(pendingAsk);
+  }, [pendingAsk, restored, signedIn, onAskConsumed]);
 
   function newConversation() {
     abortRef.current?.abort();
-    stop();
+    sendingRef.current = false;
     setMessages([]);
     setSending(false);
     setInput("");
@@ -193,6 +343,8 @@ export function Assistant({
     }
     inputRef.current?.focus();
   }
+
+  const playQueue = (cards: Beatmapset[]) => cards.map(toTrack).filter((t): t is Track => t !== null);
 
   return (
     <aside
@@ -224,8 +376,8 @@ export function Assistant({
       {!signedIn ? (
         <div className="assistant-login">
           <p>
-            Je suis <strong translate="no">{ASSISTANT_NAME}</strong>. Je cherche des beatmaps pour toi et je t'aide à
-            progresser selon ton profil osu!. Connecte-toi pour discuter avec moi.
+            Je suis <strong translate="no">{ASSISTANT_NAME}</strong>. Je cherche des beatmaps pour toi, je retrouve des
+            joueurs et je t'aide à progresser selon ton profil osu!. Connecte-toi pour discuter avec moi.
           </p>
           <a className="account-btn" href="/api/auth/login">
             Se connecter avec osu!
@@ -233,72 +385,91 @@ export function Assistant({
         </div>
       ) : (
         <>
-          <div className="assistant-log" ref={logRef} role="log" aria-live="polite" aria-relevant="additions">
+          <div className="assistant-log" ref={logRef} role="log" aria-live="polite" aria-relevant="additions text">
             {messages.length === 0 && (
               <p className="assistant-welcome">
-                Salut, je suis <strong translate="no">{ASSISTANT_NAME}</strong> ! Dis-moi ce que tu veux jouer : je
-                lance les recherches pour toi, ou je regarde ton profil pour te proposer des maps à ton niveau.
+                Salut, je suis <strong translate="no">{ASSISTANT_NAME}</strong> ! Dis-moi ce que tu veux jouer : je lance les
+                recherches pour toi, je regarde ton profil pour te proposer des maps à ton niveau, et je peux aussi t'expliquer une
+                beatmap, retrouver un joueur ou gérer tes listes.
               </p>
             )}
 
             {messages.map((m) => (
               <div className="assistant-block" key={m.id} data-msg-id={m.id}>
-                <div className={`assistant-msg is-${m.role}${m.error ? " is-error" : ""}`}>{m.text}</div>
+                {m.role === "assistant" && m.streaming && !m.text ? (
+                  <div className="assistant-typing" role="status" aria-label={m.status || `${ASSISTANT_NAME} réfléchit`}>
+                    <i />
+                    <i />
+                    <i />
+                    {m.status && <span>{m.status}</span>}
+                  </div>
+                ) : (
+                  <div
+                    className={`assistant-msg is-${m.role}${m.error ? " is-error" : ""}${m.streaming ? " is-streaming" : ""}`}
+                  >
+                    {m.text}
+                  </div>
+                )}
 
-                {m.cards && m.cards.length > 0 && (
-                  <>
-                    {m.cards.map((card) => (
-                      <article className="assistant-card" key={card.id}>
-                        <img src={coverUrl(card.id)} alt="" loading="lazy" width={52} height={52} />
-                        <div className="assistant-card-body">
-                          <a href={beatmapsetUrl(card.id)} target="_blank" rel="noopener noreferrer">
-                            {card.title}
-                          </a>
-                          <p>
-                            {card.artist} · {card.creator}
-                          </p>
-                          {card.minStars !== null && card.maxStars !== null && (
-                            <small>
-                              ⭐ {card.minStars.toFixed(1)}
-                              {Math.abs(card.maxStars - card.minStars) >= 0.05 ? ` – ${card.maxStars.toFixed(1)}` : ""}
-                            </small>
-                          )}
-                        </div>
-                        {card.previewFile && (
-                          <Button
-                            className="assistant-play"
-                            aria-label={`${playingId === card.id ? "Pause" : "Écouter"} l'aperçu de ${card.title}`}
-                            aria-pressed={playingId === card.id}
-                            onPress={() => togglePreview(card.id, card.previewFile!)}
-                          >
-                            {playingId === card.id ? "⏸" : "▶"}
-                          </Button>
-                        )}
-                      </article>
-                    ))}
-                    {m.searchLink && (
-                      <Link
-                        className="assistant-open-link"
-                        to={searchHref(m.searchLink)}
-                        onClick={() => {
-                          if (window.innerWidth < 700) onClose();
+                {m.cards?.map((card) => (
+                  <article className="assistant-card" key={`b${card.id}`}>
+                    <img src={coverUrl(card.id)} alt="" loading="lazy" width={52} height={52} />
+                    <div className="assistant-card-body">
+                      <Link to={`/beatmap/${card.id}`} onClick={closeIfSmall}>
+                        {card.title}
+                      </Link>
+                      <p>
+                        {card.artist} · {card.creator}
+                      </p>
+                      {card.minStars !== null && card.maxStars !== null && (
+                        <small>
+                          ⭐ {card.minStars.toFixed(1)}
+                          {Math.abs(card.maxStars - card.minStars) >= 0.05 ? ` – ${card.maxStars.toFixed(1)}` : ""}
+                        </small>
+                      )}
+                    </div>
+                    {card.previewFile && (
+                      <Button
+                        className="assistant-play"
+                        aria-label={`${player.isPlaying(card.id) ? "Pause" : "Écouter"} l'aperçu de ${card.title}`}
+                        aria-pressed={player.isPlaying(card.id)}
+                        onPress={() => {
+                          const track = toTrack(card);
+                          if (track) player.toggle(track, playQueue(m.cards ?? []));
                         }}
                       >
-                        Voir dans la recherche ↗
-                      </Link>
+                        {player.isPlaying(card.id) ? "⏸" : "▶"}
+                      </Button>
                     )}
-                  </>
+                  </article>
+                ))}
+
+                {m.players?.map((p) => (
+                  <article className="assistant-card is-player" key={`p${p.id}`}>
+                    <img src={avatarUrl(p.id)} alt="" loading="lazy" width={52} height={52} />
+                    <div className="assistant-card-body">
+                      <Link to={`/player/${p.id}`} onClick={closeIfSmall} translate="no">
+                        {countryFlag(p.country)} {p.username}
+                      </Link>
+                      <p>
+                        {p.globalRank ? `#${formatNumber(p.globalRank)} mondial` : p.countryRank ? `#${formatNumber(p.countryRank)} ${p.country}` : "Non classé"}
+                        {p.globalRank && p.countryRank ? ` · #${formatNumber(p.countryRank)} ${p.country}` : ""}
+                      </p>
+                      <small>
+                        {p.pp !== null ? `${formatNumber(p.pp)} pp` : ""}
+                        {p.accuracy !== null ? ` · ${p.accuracy.toFixed(2)} %` : ""}
+                      </small>
+                    </div>
+                  </article>
+                ))}
+
+                {m.searchLink && m.cards && m.cards.length > 0 && !m.streaming && (
+                  <Link className="assistant-open-link" to={searchHref(m.searchLink)} onClick={closeIfSmall}>
+                    Voir dans la recherche ↗
+                  </Link>
                 )}
               </div>
             ))}
-
-            {sending && (
-              <div className="assistant-typing" role="status" aria-label={`${ASSISTANT_NAME} réfléchit`}>
-                <i />
-                <i />
-                <i />
-              </div>
-            )}
           </div>
 
           {messages.length === 0 && (
@@ -318,6 +489,9 @@ export function Assistant({
               void send(input);
             }}
           >
+            {listenOpen && (
+              <ListenPanel id="assistant-listen" signedIn={signedIn} busy={sending} onClip={(clip) => void identify(clip)} />
+            )}
             <div className="assistant-input-row">
               <textarea
                 ref={inputRef}
@@ -335,6 +509,25 @@ export function Assistant({
                 }}
               />
               <Button
+                className={`assistant-mic${listenOpen ? " is-listening" : ""}`}
+                aria-label="Identifier un son (Shazam pour osu!)"
+                aria-expanded={listenOpen}
+                aria-controls="assistant-listen"
+                onPress={() => setListenOpen((open) => !open)}
+              >
+                🎧
+              </Button>
+              {voice.supported !== false && (
+                <Button
+                  className={`assistant-mic${voice.listening ? " is-listening" : ""}`}
+                  aria-label={voice.listening ? "Arrêter la dictée" : "Dicter un message"}
+                  aria-pressed={voice.listening}
+                  onPress={voice.toggle}
+                >
+                  🎙️
+                </Button>
+              )}
+              <Button
                 type="submit"
                 className="assistant-send"
                 aria-label="Envoyer"
@@ -344,8 +537,8 @@ export function Assistant({
               </Button>
             </div>
             <p className="assistant-note">
-              Propulsé par Gemini (Google). {ASSISTANT_NAME} lit ton profil osu! public pour t'aider, ne retient rien côté serveur
-              et peut se tromper.
+              Propulsé par Gemini (Google). {ASSISTANT_NAME} lit ton profil osu! public pour t'aider, ne retient rien côté serveur et
+              peut se tromper.
             </p>
           </form>
         </>

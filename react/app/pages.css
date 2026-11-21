@@ -1,0 +1,592 @@
+/*
+ * Nouvelles pages et composants (lecteur, listes, détail d'une beatmap, profil joueur).
+ * Même langage visuel que legacy.css : variables, bordures, panneaux, accent.
+ */
+
+/* ===== Cartes : liens, actions, boutons de listes ===== */
+.card-footer {
+  flex-wrap: wrap;
+}
+.card-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+button.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-color: var(--line);
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+button.icon-btn.is-on {
+  border-color: rgba(195, 173, 255, 0.6);
+  color: var(--text);
+  background: rgba(156, 124, 255, 0.22);
+}
+button.icon-btn[data-disabled],
+button.icon-btn:disabled {
+  opacity: 0.5;
+}
+
+/* Lien du menu de compte (le reste est stylé par legacy.css pour les boutons). */
+.account-dropdown a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 11px 12px;
+  color: var(--text);
+  text-align: left;
+  text-decoration: none;
+}
+.account-dropdown a:hover {
+  background: rgba(156, 124, 255, 0.12);
+}
+.account-dropdown a span {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.account-dropdown a small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+/* ===== Lecteur d'aperçu ===== */
+body.has-player {
+  padding-bottom: 96px;
+}
+.player-bar {
+  position: fixed;
+  z-index: 3000;
+  bottom: 14px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(940px, calc(100% - 24px));
+  padding: 8px 14px 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel-solid);
+  box-shadow: var(--shadow);
+  text-align: left;
+  transform: translateX(-50%);
+}
+.player-bar img {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #20263a;
+  object-fit: cover;
+}
+.player-info {
+  display: grid;
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.player-info a {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-info a:hover {
+  color: var(--accent-strong);
+}
+.player-info span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-controls {
+  display: flex;
+  gap: 2px;
+}
+button.player-btn {
+  width: 36px;
+  height: 36px;
+  font-size: 0.9rem;
+}
+button.player-btn.player-main {
+  border-color: rgba(195, 173, 255, 0.45);
+  color: #fff;
+  background: var(--accent);
+}
+button.player-btn.player-main:hover {
+  background: var(--accent-strong);
+}
+.player-progress,
+.player-volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.player-progress {
+  flex: 2 1 220px;
+}
+.player-progress input,
+.player-volume input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+.player-volume {
+  flex: 0 0 110px;
+}
+
+/* ===== Onglets (modes, listes) ===== */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 24px;
+}
+.tab {
+  padding: 8px 15px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.tab:hover {
+  color: var(--text);
+  border-color: rgba(195, 173, 255, 0.45);
+}
+.tab.is-active {
+  border-color: rgba(195, 173, 255, 0.6);
+  color: var(--text);
+  background: rgba(156, 124, 255, 0.2);
+}
+
+/* ===== En-têtes de page ===== */
+.page-head {
+  max-width: 760px;
+  margin: 0 auto 26px;
+  text-align: center;
+}
+.page-head h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+.page-head p {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+.notice {
+  max-width: 760px;
+  margin: 0 auto 22px;
+  padding: 11px 14px;
+  border: 1px solid rgba(195, 173, 255, 0.35);
+  border-radius: 12px;
+  color: var(--muted);
+  background: rgba(156, 124, 255, 0.08);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-align: left;
+}
+.empty {
+  max-width: 480px;
+  margin: 30px auto;
+  color: var(--muted);
+  text-align: center;
+}
+.empty .account-btn {
+  display: inline-block;
+  margin-top: 10px;
+}
+
+/* ===== Page détail d'une beatmap ===== */
+.detail-cover {
+  position: relative;
+  height: 260px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #20263a;
+}
+.detail-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.detail-cover::after {
+  position: absolute;
+  inset: 40% 0 0;
+  background: linear-gradient(transparent, rgba(8, 10, 19, 0.78));
+  content: "";
+}
+.detail-cover .status-badge {
+  top: 16px;
+  right: 16px;
+}
+.detail-head {
+  margin: 22px 0 0;
+  text-align: left;
+}
+.detail-title {
+  margin: 6px 0 4px;
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+.detail-sub {
+  margin: 0;
+  color: var(--muted);
+}
+.detail-sub a {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 22px;
+}
+.detail-actions .account-btn,
+.detail-actions button.account-btn {
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 0.82rem;
+}
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.stat-tile {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: left;
+}
+.stat-tile span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.stat-tile strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.15rem;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 26px;
+}
+.chip {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.section-title {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  text-align: left;
+}
+.diff-list {
+  display: grid;
+  gap: 8px;
+}
+.diff-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) 84px repeat(4, 52px) 96px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  font-size: 0.8rem;
+  text-align: left;
+}
+.diff-row .name {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diff-row .name small {
+  display: block;
+  color: var(--muted);
+  font-weight: 400;
+}
+.diff-row .stars {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.diff-row .attr {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+.diff-row .attr b {
+  display: block;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+.diff-head {
+  padding-top: 0;
+  padding-bottom: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.diff-head span:not(:first-child) {
+  text-align: center;
+}
+
+/* ===== Page profil joueur ===== */
+.player-hero {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 0 0 24px;
+  text-align: left;
+}
+.player-hero img {
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: #20263a;
+  object-fit: cover;
+  box-shadow: 0 12px 34px rgba(121, 93, 255, 0.3);
+}
+.player-hero h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4.5vw, 2.7rem);
+  letter-spacing: -0.05em;
+  overflow-wrap: anywhere;
+}
+.player-hero p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+.player-hero a {
+  color: var(--accent-strong);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+.plays {
+  display: grid;
+  gap: 8px;
+}
+.play-row {
+  display: grid;
+  grid-template-columns: 28px 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: left;
+}
+.play-row .rank-no {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: center;
+}
+.play-row img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: #20263a;
+  object-fit: cover;
+}
+.play-row .info {
+  min-width: 0;
+}
+.play-row .info a {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.play-row .info a:hover {
+  color: var(--accent-strong);
+}
+.play-row .info p {
+  overflow: hidden;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.play-row .score {
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.play-row .score b {
+  display: block;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+.mod {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent-strong);
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+/* ===== Thème clair, mobile ===== */
+body.light-mode .detail-cover::after {
+  background: linear-gradient(transparent, rgba(255, 255, 255, 0.6));
+}
+@media (max-width: 760px) {
+  .diff-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+  .diff-row .attr {
+    display: none;
+  }
+  .diff-head {
+    display: none;
+  }
+  .detail-cover {
+    height: 190px;
+  }
+  .player-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+  .player-volume,
+  .player-progress span {
+    display: none;
+  }
+  .player-bar {
+    gap: 8px;
+  }
+  .play-row {
+    grid-template-columns: 24px 40px minmax(0, 1fr);
+  }
+  .play-row .score {
+    grid-column: 3;
+    text-align: left;
+  }
+}
+
+/* ===== Suggestions sous la recherche ===== */
+.discover {
+  margin: 8px 0 0;
+  text-align: center;
+}
+.discover .eyebrow {
+  margin-bottom: 12px;
+}
+/* .tab est stylé pour un lien ; un onglet est ici un bouton : on neutralise le style global des boutons. */
+button.tab {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+button.tab.is-active {
+  background: rgba(156, 124, 255, 0.2);
+}
+.discover .results-grid {
+  text-align: left;
+}
+.discover-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+button.discover-btn {
+  width: auto;
+  height: auto;
+  padding: 10px 18px;
+  border-color: var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+/* ===== Résultat d'une écoute dans la page de recherche ===== */
+.listen-summary {
+  grid-column: 1 / -1;
+  padding: 14px 18px;
+  border: 1px solid rgba(195, 173, 255, 0.35);
+  border-radius: 16px;
+  background: rgba(156, 124, 255, 0.08);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-line;
+}
+.listen-summary strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+}
+.listen-popover {
+  max-width: 700px;
+  margin: 12px auto 0;
+  text-align: left;
+}
+.spinner-status {
+  grid-column: 1 / -1;
+  margin: -30px 0 40px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
