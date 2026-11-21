@@ -104,6 +104,7 @@ function Shell({ user }: { user: SessionUser | null }) {
           open={assistantOpen}
           onClose={() => setAssistantOpen(false)}
           signedIn={user !== null}
+          plan={user?.plan}
           pendingAsk={pendingAsk}
           onAskConsumed={() => setPendingAsk(null)}
         />

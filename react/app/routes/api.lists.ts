@@ -3,6 +3,7 @@ import { data } from "react-router";
 import { isListId, type ListId } from "~/lib/lists";
 import { addToList, getListIds, ListFullError, removeFromList } from "~/lib/lists.server";
 import { OsuError } from "~/lib/osu.server";
+import { PLANS } from "~/lib/plans";
 import { rateLimit } from "~/lib/rate-limit.server";
 import { getUser } from "~/lib/session.server";
 import { isPersistent } from "~/lib/store.server";
@@ -11,7 +12,7 @@ import type { Route } from "./+types/api.lists";
 
 const headers = { "Cache-Control": "no-store" };
 const MAX_BODY_BYTES = 500;
-const WRITE_LIMIT = { limit: 120, windowMs: 10 * 60_000 };
+const WRITE_LIMIT = { limit: 300, windowMs: 10 * 60_000 };
 
 const fail = (code: string, status: number) => data({ error: code }, { status, headers });
 
@@ -61,11 +62,11 @@ export async function action({ request }: Route.ActionArgs) {
   const list: ListId = body.list;
 
   try {
-    if (body.action === "add") await addToList(user.osuId, list, id);
+    if (body.action === "add") await addToList(user.osuId, list, id, PLANS[user.plan].listLimit);
     else await removeFromList(user.osuId, list, id);
     return data({ ok: true, list, id, inList: body.action === "add" }, { headers });
   } catch (error) {
-    if (error instanceof ListFullError) return fail("list_full", 409);
+    if (error instanceof ListFullError) return data({ error: "list_full", plan: user.plan, limit: PLANS[user.plan].listLimit }, { status: 409, headers });
     if (error instanceof OsuError && error.status === 404) return fail("beatmap_not_found", 404);
     console.error("Lists error:", error instanceof Error ? error.name : "Error");
     return fail("storage_unavailable", 503);

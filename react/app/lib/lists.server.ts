@@ -1,4 +1,4 @@
-import { isListId, LIST_IDS, MAX_LIST_ITEMS, type ListId, type ListItem } from "./lists";
+import { isListId, LIST_IDS, type ListId, type ListItem } from "./lists";
 import type { Beatmapset } from "./osu";
 import { getBeatmapset } from "./osu.server";
 import { hash } from "./store.server";
@@ -51,13 +51,13 @@ export async function getListIds(osuId: number): Promise<Record<ListId, number[]
 }
 
 /**
- * Ajoute une beatmap. Les métadonnées viennent d'osu!, jamais du navigateur :
- * un client ne peut pas faire stocker du texte de son choix.
+ * Ajoute une beatmap (`limit` : taille maximale de la liste, selon le plan du joueur). Les métadonnées
+ * viennent d'osu!, jamais du navigateur : un client ne peut pas faire stocker du texte de son choix.
  */
-export async function addToList(osuId: number, list: ListId, beatmapsetId: number): Promise<Beatmapset> {
+export async function addToList(osuId: number, list: ListId, beatmapsetId: number, limit: number): Promise<Beatmapset> {
   const key = keyFor(osuId, list);
-  const existing = await hash.getAll(key);
-  if (!(String(beatmapsetId) in existing) && Object.keys(existing).length >= MAX_LIST_ITEMS) {
+  // Une beatmap déjà présente peut toujours être « réajoutée » ; sinon la liste ne doit pas être pleine.
+  if (!(await hash.has(key, String(beatmapsetId))) && (await hash.length(key)) >= limit) {
     throw new ListFullError();
   }
 

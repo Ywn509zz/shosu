@@ -15,7 +15,11 @@ export const STREAM_ERRORS: Record<string, string> = {
 
 export const GENERIC_ERROR = "Un problème est survenu. Réessaie dans un instant.";
 
-export const errorMessage = (code?: string) => STREAM_ERRORS[code ?? ""] ?? GENERIC_ERROR;
+export function errorMessage(code?: string, plan?: string): string {
+  const base = STREAM_ERRORS[code ?? ""] ?? GENERIC_ERROR;
+  // Les comptes gratuits apprennent que le plan Premium relève cette limite.
+  return code === "rate_limited" && plan === "free" ? `${base} Le plan Premium offre bien plus de messages.` : base;
+}
 
 /** Lit un flux « un objet JSON par ligne » (NDJSON) et remet chaque événement à `onEvent`. */
 export async function readEvents(response: Response, onEvent: (event: StreamEvent) => void): Promise<void> {

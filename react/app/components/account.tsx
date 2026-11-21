@@ -4,6 +4,7 @@ import { Link } from "react-router";
 
 import { ASSISTANT_LOGO, ASSISTANT_NAME } from "~/lib/assistant";
 import { authClient } from "~/lib/auth-client";
+import { PLANS } from "~/lib/plans";
 import type { SessionUser } from "~/lib/session.server";
 
 /** Zone de compte du header : lien de connexion, ou menu une fois connecté. */
@@ -83,10 +84,19 @@ function AccountMenu({ user }: { user: SessionUser }) {
       >
         <span className="account-avatar">{user.name.slice(0, 1).toUpperCase()}</span>
         <span>{user.name}</span>
+        {user.plan === "premium" && (
+          <span className="plan-badge" title="Plan Premium">
+            ✦ Premium
+          </span>
+        )}
         <span className="account-chevron">⌄</span>
       </Button>
 
       <div className="account-dropdown" id="account-dropdown" hidden={!open}>
+        <Link to="/premium" onClick={() => setOpen(false)}>
+          <span>Mon plan : {PLANS[user.plan].label}</span>
+          <small>{user.plan === "premium" ? "Voir mes avantages" : "Voir les formules"}</small>
+        </Link>
         {user.osuId && (
           <Link to={`/player/${user.osuId}`} onClick={() => setOpen(false)}>
             <span>Mon profil</span>

@@ -90,6 +90,22 @@ export const hash = {
     hashes.get(key)?.delete(field);
   },
 
+  async get(key: string, field: string): Promise<string | null> {
+    if (isPersistent()) {
+      const [value] = (await redisPipeline([["HGET", key, field]])) as [string | null];
+      return value ?? null;
+    }
+    return hashes.get(key)?.get(field) ?? null;
+  },
+
+  async has(key: string, field: string): Promise<boolean> {
+    if (isPersistent()) {
+      const [exists] = (await redisPipeline([["HEXISTS", key, field]])) as [number];
+      return exists === 1;
+    }
+    return hashes.get(key)?.has(field) ?? false;
+  },
+
   async getAll(key: string): Promise<Record<string, string>> {
     if (isPersistent()) {
       const [flat] = (await redisPipeline([["HGETALL", key]])) as [string[] | Record<string, string>];

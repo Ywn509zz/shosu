@@ -3,6 +3,7 @@ import { data } from "react-router";
 import { MAX_MESSAGE_LENGTH, type ChatTurn } from "~/lib/assistant";
 import { runAssistant } from "~/lib/assistant.server";
 import { isGeminiConfigured } from "~/lib/gemini.server";
+import { PLANS } from "~/lib/plans";
 import { streamEvents } from "~/lib/ndjson.server";
 import { rateLimit } from "~/lib/rate-limit.server";
 import { getUser } from "~/lib/session.server";
@@ -14,8 +15,8 @@ const MAX_BODY_BYTES = 24_000;
 const MAX_HISTORY = 12;
 const MAX_KNOWN_IDS = 120;
 
-/** Par utilisateur : 20 messages / 10 min. Global : 200 / heure. Partagés entre instances si Upstash est configuré. */
-const USER_LIMIT = { limit: 20, windowMs: 10 * 60_000 };
+/** Par utilisateur : selon son plan (voir plans.ts) par 10 min. Global : 200 / heure. Partagés entre instances si Upstash est configuré. */
+const USER_WINDOW_MS = 10 * 60_000;
 const GLOBAL_LIMIT = { limit: 200, windowMs: 60 * 60_000 };
 
 const fail = (code: string, status: number, extra: HeadersInit = {}) =>
@@ -74,7 +75,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (!isGeminiConfigured()) return fail("assistant_unavailable", 503);
 
-  const userHit = await rateLimit(`assistant:user:${user.id}`, USER_LIMIT.limit, USER_LIMIT.windowMs);
+  const userHit = await rateLimit(`assistant:user:${user.id}`, PLANS[user.plan].stackMessagesPer10Min, USER_WINDOW_MS);
   const globalHit = await rateLimit("assistant:global", GLOBAL_LIMIT.limit, GLOBAL_LIMIT.windowMs);
   if (!userHit.ok || !globalHit.ok) {
     const retry = Math.max(userHit.retryAfterSeconds, globalHit.retryAfterSeconds);
@@ -94,6 +95,6 @@ export async function action({ request }: Route.ActionArgs) {
   if (!history) return fail("invalid_request", 400);
 
   return streamEvents((emit) =>
-    runAssistant({ history: history.turns, knownIds: history.knownIds, osuId: user.osuId!, emit }),
+    runAssistant({ history: history.turns, knownIds: history.knownIds, osuId: user.osuId!, plan: user.plan, emit }),
   );
 }

@@ -34,3 +34,8 @@ export async function cached<T>(key: string, ttlMs: number, load: () => Promise<
   inflight.set(key, promise);
   return promise;
 }
+
+/** Oublie une entrée (par exemple le plan d'un joueur qui vient d'être modifié). */
+export function forget(key: string): void {
+  entries.delete(key);
+}

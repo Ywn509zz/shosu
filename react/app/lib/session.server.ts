@@ -1,4 +1,6 @@
 import { auth } from "./auth.server";
+import type { PlanId } from "./plans";
+import { getPlan } from "./plans.server";
 
 export type SessionUser = {
   id: string;
@@ -7,8 +9,8 @@ export type SessionUser = {
   image: string | null;
   /** Identifiant osu! (public). */
   osuId: number | null;
-  /** Offre : toujours « free » pour l'instant (comme l'ancienne session). */
-  plan: "free";
+  /** Formule du joueur (voir plans.ts) ; « free » par défaut. */
+  plan: PlanId;
 };
 
 export async function getUser(request: Request): Promise<SessionUser | null> {
@@ -18,5 +20,6 @@ export async function getUser(request: Request): Promise<SessionUser | null> {
   // L'e-mail est celui fabriqué dans auth.server.ts (`<id osu!>@users.osu.invalid`),
   // lu depuis le cookie chiffré : il ne vient jamais d'une saisie utilisateur.
   const osuId = Number(/^(\d+)@users\.osu\.invalid$/.exec(email)?.[1]) || null;
-  return { id, name, image: image ?? null, osuId, plan: "free" };
+  const plan = osuId ? await getPlan(osuId) : "free";
+  return { id, name, image: image ?? null, osuId, plan };
 }

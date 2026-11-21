@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 1.6), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 1.7), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -13,7 +13,7 @@ d'origine est reprise telle quelle et le balisage est le même.
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 1.6 » ↔ `1.6.0`).
+temps que `version` dans `package.json` (« bêta 1.7 » ↔ `1.7.0`).
 
 ## Démarrage
 
@@ -46,6 +46,8 @@ Mêmes noms que la version HTML/JS : **rien à renommer dans Vercel**.
 | `SESSION_SECRET`               |     oui     | Au moins 32 caractères (`BETTER_AUTH_SECRET` en alternative)             |
 | `BETTER_AUTH_URL`              |     non     | URL publique ; par défaut, l'origine de `OSU_REDIRECT_URI`               |
 | `AUTH_SESSION_VERSION`         |     non     | Incrémenter pour invalider **toutes** les sessions                       |
+| `PREMIUM_USER_IDS`             |     non     | Identifiants osu! (séparés par des virgules) qui ont le plan Premium, sans limite de durée |
+| `ADMIN_TOKEN`                  |     non     | Active `/api/admin/plan` (24 caractères min.) pour attribuer le Premium ; sinon l'endpoint répond 404 |
 | `DIAGNOSTICS_TOKEN`            |     non     | Active `/api/auth/check` (16 caractères min.) ; sinon l'endpoint répond 404 |
 | `GEMINI_API_KEY`               |     non     | Clé Gemini pour Stack (sans elle, le panneau indique que Stack n'est pas configuré) |
 | `GEMINI_MODEL`                 |     non     | Modèle principal (défaut `gemini-3.1-flash-lite`, repli automatique)     |
@@ -94,6 +96,36 @@ Better Auth remplace le module maison (`api/_auth.js`). Mêmes URLs et mêmes fo
 incrémentez `AUTH_SESSION_VERSION` pour tout invalider. osu! ne fournit pas d'e-mail : un identifiant
 technique `<id>@users.osu.invalid` est généré. Pour des comptes persistants (abonnements, favoris…),
 ajoutez une option `database` à `betterAuth()` dans [`app/lib/auth.server.ts`](app/lib/auth.server.ts).
+
+## Plans : Gratuit et Premium
+
+| | Gratuit | Premium |
+|---|---|---|
+| Recherche, suggestions, profils, pages de beatmaps, lecteur | ✓ | ✓ |
+| Messages à Stack | 20 / 10 min | **100 / 10 min** |
+| Taille de chaque liste (favoris, à jouer plus tard) | 200 | **1 000** |
+| Recherche par le son | 6 extraits / 10 min | 6 extraits / 10 min |
+
+Les limites sont définies **à un seul endroit** : [`app/lib/plans.ts`](app/lib/plans.ts). La page `/premium` les affiche, le menu du compte montre le plan
+(badge « ✦ Premium »), la page *Mes listes* indique « n / limite », et un compte gratuit qui atteint la limite de Stack voit un rappel du Premium.
+Les prix ne sont pas définis : le Premium est attribué à la main pour l'instant, l'abonnement (Stripe) viendra ensuite.
+
+**Attribuer le Premium** (deux moyens) :
+1. **Variable `PREMIUM_USER_IDS`** dans Vercel (ex. `727,1234`) : permanent, sans base de données. Un redéploiement est nécessaire pour la modifier.
+2. **Endpoint `/api/admin/plan`** (avec `ADMIN_TOKEN`), effet immédiat et durée possible. Exige une **base Upstash** (sans elle, l'attribution serait perdue au
+   prochain redéploiement : l'endpoint refuse avec `storage_not_persistent`) :
+   ```bash
+   curl -X POST https://<domaine>/api/admin/plan \
+     -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+     -d '{"osuId": 727, "plan": "premium", "days": 30}'   # "days" facultatif ; "plan": "free" retire le Premium
+   ```
+   `GET /api/admin/plan?osuId=727` (même jeton) indique le plan courant. Sans jeton valide : 404, comme si la route n'existait pas.
+
+**Sécurité.** Le plan est lu **côté serveur** (le navigateur ne peut pas se l'attribuer), gardé 60 s en mémoire, et en cas de doute ou de panne de la base on retombe sur
+« gratuit » : jamais d'avantage donné par erreur. Le jeton d'administration est comparé en temps constant, limité à 30 essais / min / IP, et exigé à 24 caractères minimum.
+
+**Brancher Stripe plus tard.** Le webhook d'abonnement n'aura qu'à appeler `setPlan(osuId, "premium", jours)` (et `"free"` à l'annulation) : tout le reste (limites, badge,
+pages) fonctionne déjà. Stripe héberge la page de paiement : le site ne voit jamais de données de carte.
 
 ## Fonctionnalités du site
 
@@ -231,7 +263,8 @@ react/
 │   │   ├── layout.tsx                          Header, lecteur, raccourcis, panneau Stack
 │   │   ├── home.tsx                            Hero, recherche, filtres, résultats (+ lien profond ?q=)
 │   │   ├── beatmap.$id.tsx, player.$id.tsx     Détail d'une beatmap, profil joueur
-│   │   ├── lists.tsx                           Mes listes (favoris, à jouer plus tard)
+│   │   ├── lists.tsx, premium.tsx              Mes listes ; comparaison des plans
+│   │   ├── api.admin.plan.ts                   Attribution du Premium (ADMIN_TOKEN)
 │   │   ├── api.assistant.ts                    POST /api/assistant (flux, auth, limites, validation)
 │   │   ├── api.listen.ts                       POST /api/listen : « Shazam pour osu! » (WAV → Gemini → maps)
 │   │   ├── api.lists.ts, api.search.ts         Listes ; recherche publique (limite par IP, cache CDN)
@@ -243,6 +276,7 @@ react/
 │       ├── gemini.server.ts, assistant.server.ts, assistant.ts      Client Gemini en flux, outils de Stack
 │       ├── listen.server.ts, ndjson.server.ts, audio.ts             Écoute audio (analyse, recherche), flux, capture micro / WAV
 │       ├── discover.server.ts, stream-client.ts                     Suggestions de l'accueil ; lecture des flux côté navigateur
+│       ├── plans.ts, plans.server.ts           Définition des plans et attribution
 │       ├── lists*.ts(x), player.tsx            Listes (stockage, contexte), lecteur audio global
 │       └── auth*.ts, session.server.ts, use-*.ts                    Authentification, hooks
 └── public/                                     shosu.png (logo), stack.jpeg (logo de l'assistant)
