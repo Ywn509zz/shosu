@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 1.9), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 2.0), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -13,7 +13,7 @@ d'origine est reprise telle quelle et le balisage est le même.
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 1.9 » ↔ `1.9.0`).
+temps que `version` dans `package.json` (« bêta 2.0 » ↔ `2.0.0`).
 
 ## Démarrage
 
@@ -157,6 +157,8 @@ Les listes et les limites de débit passent par [`app/lib/store.server.ts`](app/
 - **Sans base** : tout fonctionne, mais en mémoire (listes perdues au redéploiement, limites « par instance »). La page *Mes listes*
   l'indique.
 - **Base en panne** : les limites retombent sur la mémoire (le site continue), les listes répondent « indisponible » plutôt que de perdre des données.
+
+**État actuel :** la base `shosu-redis` (Upstash, plan gratuit, région `iad1`) est reliée au projet Vercel : les listes sont persistantes.
 
 **Mise en place.** Dans Vercel : *Storage* (ou *Marketplace*) → **Upstash Redis** → créer une base gratuite et la relier au projet : les
 variables `KV_REST_API_URL` / `KV_REST_API_TOKEN` sont ajoutées toutes seules (acceptées telles quelles). Puis redéployer.
