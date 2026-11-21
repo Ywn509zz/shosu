@@ -8,7 +8,7 @@ import { hash, isPersistent } from "./store.server";
  * Un joueur est Premium si l'une de ces sources le dit :
  *   1. la variable PREMIUM_USER_IDS (identifiants osu! séparés par des virgules) — permanent, sans base ;
  *   2. une entrée dans la base (`shosu:plans`), écrite par l'endpoint d'administration ou, plus tard,
- *      par le webhook Stripe : { plan, until } où `until` (ms, ou null) est la date d'expiration.
+ *      par un éventuel futur webhook de paiement : { plan, until } où `until` (ms, ou null) est la date d'expiration.
  * En cas de doute ou de panne de la base, on retombe sur « free » : on ne donne jamais un avantage par erreur.
  */
 const PLANS_KEY = "shosu:plans";

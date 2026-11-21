@@ -23,8 +23,11 @@ export default function Premium({ loaderData }: Route.ComponentProps) {
     <>
       <section className="page-head">
         <p className="eyebrow">PLANS</p>
-        <h1>Choisis comment tu utilises shOsu!</h1>
-        <p>La recherche, les suggestions, les profils et les pages de beatmaps restent gratuits. Le Premium débloque plus de Stack et de place.</p>
+        <h1>shOsu! est gratuit pour tout le monde.</h1>
+        <p>
+          Recherche, suggestions, profils, listes et Stack sont inclus, sans paiement. Le plan Premium offre simplement plus de messages et de place : il est
+          attribué sur invitation, gratuitement.
+        </p>
       </section>
 
       <div className="plan-grid">
@@ -49,7 +52,7 @@ export default function Premium({ loaderData }: Route.ComponentProps) {
           <h2>
             {premium.label} <span className="plan-badge">✦</span>
           </h2>
-          <p className="plan-price">Tarif à venir</p>
+          <p className="plan-price">Sur invitation</p>
           <ul>
             <li>Tout le plan {free.label}</li>
             <li>
@@ -66,13 +69,13 @@ export default function Premium({ loaderData }: Route.ComponentProps) {
               Se connecter avec osu!
             </a>
           ) : (
-            <p className="plan-state is-soon">Le Premium est attribué sur invitation pour l'instant ; l'abonnement arrive bientôt.</p>
+            <p className="plan-state is-soon">Le Premium est attribué sur invitation, sans paiement.</p>
           )}
         </article>
       </div>
 
       <p className="notice">
-        Ces limites protègent le service et peuvent évoluer. Besoin de plus ? Parle-en au créateur du site.{" "}
+        Ces limites servent à garder le site gratuit et rapide pour tous, et peuvent évoluer. Besoin de plus ? Parle-en au créateur du site.{" "}
         <Link to="/">Retour à la recherche</Link>
       </p>
     </>

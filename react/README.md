@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 1.7), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 1.8), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -13,7 +13,7 @@ d'origine est reprise telle quelle et le balisage est le même.
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 1.7 » ↔ `1.7.0`).
+temps que `version` dans `package.json` (« bêta 1.8 » ↔ `1.8.0`).
 
 ## Démarrage
 
@@ -84,7 +84,7 @@ Better Auth remplace le module maison (`api/_auth.js`). Mêmes URLs et mêmes fo
   aussi `public`, inutile pour lire le profil).
 - Sans base de données : la session et l'état OAuth sont des cookies **chiffrés (JWE)**, `HttpOnly`,
   `Secure`, `SameSite=Lax`, valables 7 jours.
-- Le plan `free` est conservé dans la session côté serveur, prêt pour une future gestion d'abonnement.
+- Le plan `free` est conservé dans la session côté serveur, prêt pour d'éventuels plans.
 - L'URL de callback déjà enregistrée dans osu! continue de fonctionner : `/api/auth/callback` relaie
   vers Better Auth ([`api.auth.callback.ts`](app/routes/api.auth.callback.ts)).
 - `/api/auth/check` n'est plus public : chaque appel utilise le secret osu!. Il répond 404 tant que
@@ -108,7 +108,8 @@ ajoutez une option `database` à `betterAuth()` dans [`app/lib/auth.server.ts`](
 
 Les limites sont définies **à un seul endroit** : [`app/lib/plans.ts`](app/lib/plans.ts). La page `/premium` les affiche, le menu du compte montre le plan
 (badge « ✦ Premium »), la page *Mes listes* indique « n / limite », et un compte gratuit qui atteint la limite de Stack voit un rappel du Premium.
-Les prix ne sont pas définis : le Premium est attribué à la main pour l'instant, l'abonnement (Stripe) viendra ensuite.
+**shOsu! est entièrement gratuit : il n'y a aucun paiement.** Le Premium est attribué à la main, sur invitation (amis, soutiens, bêta-testeurs), pour offrir plus de messages
+Stack et de place dans les listes à certains joueurs ; tous les autres restent sur le plan Gratuit, avec toutes les fonctionnalités.
 
 **Attribuer le Premium** (deux moyens) :
 1. **Variable `PREMIUM_USER_IDS`** dans Vercel (ex. `727,1234`) : permanent, sans base de données. Un redéploiement est nécessaire pour la modifier.
@@ -124,7 +125,7 @@ Les prix ne sont pas définis : le Premium est attribué à la main pour l'insta
 **Sécurité.** Le plan est lu **côté serveur** (le navigateur ne peut pas se l'attribuer), gardé 60 s en mémoire, et en cas de doute ou de panne de la base on retombe sur
 « gratuit » : jamais d'avantage donné par erreur. Le jeton d'administration est comparé en temps constant, limité à 30 essais / min / IP, et exigé à 24 caractères minimum.
 
-**Brancher Stripe plus tard.** Le webhook d'abonnement n'aura qu'à appeler `setPlan(osuId, "premium", jours)` (et `"free"` à l'annulation) : tout le reste (limites, badge,
+**Si un jour vous voulez faire payer** (rien n'est prévu) : le webhook d'abonnement n'aura qu'à appeler `setPlan(osuId, "premium", jours)` (et `"free"` à l'annulation) : tout le reste (limites, badge,
 pages) fonctionne déjà. Stripe héberge la page de paiement : le site ne voit jamais de données de carte.
 
 ## Fonctionnalités du site

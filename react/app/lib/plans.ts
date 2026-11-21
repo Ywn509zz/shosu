@@ -1,8 +1,9 @@
 /**
  * Formules de shOsu! : définitions partagées entre serveur et navigateur.
  *
- * Modifier ici les limites de chaque plan. Les prix ne sont volontairement pas définis : les
- * abonnements (Stripe) se brancheront sur `setPlan` (voir plans.server.ts) une fois les tarifs choisis.
+ * Modifier ici les limites de chaque plan. Le site est entièrement gratuit : le Premium est attribué
+ * sur invitation (voir plans.server.ts) et il n'y a aucun paiement. Si un jour des abonnements voient
+ * le jour, ils se brancheront sur `setPlan`.
  */
 export const PLAN_IDS = ["free", "premium"] as const;
 export type PlanId = (typeof PLAN_IDS)[number];
