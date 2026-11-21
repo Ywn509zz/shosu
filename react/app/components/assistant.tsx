@@ -91,12 +91,15 @@ export function Assistant({
   open,
   onClose,
   signedIn,
+  plan,
   pendingAsk,
   onAskConsumed,
 }: {
   open: boolean;
   onClose: () => void;
   signedIn: boolean;
+  /** Formule du joueur : adapte le message affiché quand la limite de messages est atteinte. */
+  plan?: string;
   /** Question posée depuis une autre page (« Expliquer avec Stack »), envoyée dès l'ouverture. */
   pendingAsk: string | null;
   onAskConsumed: () => void;
@@ -199,8 +202,8 @@ export function Assistant({
       const fail = (code: string) =>
         patchBot((m) =>
           m.text
-            ? { ...m, streaming: false, status: "", text: `${m.text}\n\n⚠ ${errorMessage(code)}` }
-            : { ...m, streaming: false, status: "", error: true, text: errorMessage(code) },
+            ? { ...m, streaming: false, status: "", text: `${m.text}\n\n⚠ ${errorMessage(code, plan)}` }
+            : { ...m, streaming: false, status: "", error: true, text: errorMessage(code, plan) },
         );
 
       const controller = new AbortController();
@@ -273,7 +276,7 @@ export function Assistant({
         setSending(false);
       }
     },
-    [lists, navigate, closeIfSmall],
+    [lists, navigate, closeIfSmall, plan],
   );
 
   const send = useCallback(

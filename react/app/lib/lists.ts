@@ -9,8 +9,6 @@ export const LIST_LABELS: Record<ListId, string> = {
   later: "À jouer plus tard",
 };
 
-export const MAX_LIST_ITEMS = 200;
-
 export type ListItem = Beatmapset & { addedAt: number };
 
 export const isListId = (value: unknown): value is ListId =>

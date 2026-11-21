@@ -31,7 +31,7 @@ const ListsContext = createContext<ListsApi>({
 });
 
 const ERRORS: Record<string, string> = {
-  list_full: "Cette liste est pleine (200 beatmaps maximum).",
+  list_full: "Cette liste est pleine. Le plan Premium permet d'en garder beaucoup plus.",
   beatmap_not_found: "Impossible de retrouver cette beatmap chez osu!.",
   rate_limited: "Trop d'actions d'affilée. Patiente un instant.",
   unauthenticated: "Ta session a expiré. Reconnecte-toi avec osu!.",

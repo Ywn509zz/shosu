@@ -6,6 +6,7 @@ export default [
   route("api/assistant", "routes/api.assistant.ts"),
   route("api/lists", "routes/api.lists.ts"),
   route("api/listen", "routes/api.listen.ts"),
+  route("api/admin/plan", "routes/api.admin.plan.ts"),
   route("api/auth/login", "routes/api.auth.login.ts"),
   route("api/auth/callback", "routes/api.auth.callback.ts"),
   route("api/auth/check", "routes/api.auth.check.ts"),
@@ -17,6 +18,7 @@ export default [
     route("beatmap/:id", "routes/beatmap.$id.tsx"),
     route("player/:id", "routes/player.$id.tsx"),
     route("lists", "routes/lists.tsx"),
+    route("premium", "routes/premium.tsx"),
     route("*", "routes/not-found.tsx"),
   ]),
 ] satisfies RouteConfig;

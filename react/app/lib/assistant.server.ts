@@ -11,8 +11,9 @@ import {
   type GeminiPart,
 } from "./gemini.server";
 import { isListId, LIST_IDS, type ListId } from "./lists";
-import { addToList, getListItems, removeFromList } from "./lists.server";
+import { addToList, getListItems, ListFullError, removeFromList } from "./lists.server";
 import { API_STATUS, MODE_IDS, parsePlayerRef, type Beatmapset, type PlayerSummary } from "./osu";
+import { PLANS, type PlanId } from "./plans";
 import {
   getBeatmapset,
   getPlayerPage,
@@ -222,6 +223,8 @@ const modeOf = (value: unknown, fallback: string) =>
 
 type Context = {
   osuId: number;
+  /** Plan du joueur : fixe la taille maximale de ses listes. */
+  plan: PlanId;
   emit: (event: StreamEvent) => void;
   /** Beatmaps que l'utilisateur a vues dans cette conversation : seules celles-ci peuvent entrer dans ses listes. */
   known: Set<number>;
@@ -364,8 +367,20 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
       if (ctx.listChanges >= MAX_LIST_CHANGES) return { error: "Limite de modifications de listes atteinte pour ce message." };
       ctx.listChanges++;
 
-      if (name === "add_to_list") await addToList(ctx.osuId, list as ListId, id);
-      else await removeFromList(ctx.osuId, list as ListId, id);
+      try {
+        if (name === "add_to_list") await addToList(ctx.osuId, list as ListId, id, PLANS[ctx.plan].listLimit);
+        else await removeFromList(ctx.osuId, list as ListId, id);
+      } catch (error) {
+        if (error instanceof ListFullError) {
+          const { label, listLimit } = PLANS[ctx.plan];
+          return {
+            error: `La liste est pleine (${listLimit} beatmaps maximum avec le plan ${label}).${
+              ctx.plan === "free" ? " Le plan Premium permet d'en garder beaucoup plus." : ""
+            }`,
+          };
+        }
+        throw error;
+      }
       ctx.emit({ t: "action", action: { type: "lists_changed" } });
       return { ok: true, list, id, action: name === "add_to_list" ? "ajoutée" : "retirée" };
     }
@@ -407,10 +422,12 @@ export async function runAssistant(params: {
   history: ChatTurn[];
   knownIds: Set<number>;
   osuId: number;
+  plan: PlanId;
   emit: (event: StreamEvent) => void;
 }): Promise<void> {
   const ctx: Context = {
     osuId: params.osuId,
+    plan: params.plan,
     emit: params.emit,
     known: params.knownIds,
     shown: new Set(),
