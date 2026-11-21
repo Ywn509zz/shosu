@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 1.5), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 1.6), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -9,6 +9,11 @@ d'origine est reprise telle quelle et le balisage est le même.
 | Routing + rendu serveur   | [React Router 8](https://reactrouter.com) en *framework mode*         |
 | Composants                | [HeroUI v3](https://www.heroui.com) (`Button`, `Input`) + Tailwind 4  |
 | Authentification          | [Better Auth](https://www.better-auth.com), connexion via osu! (OAuth) |
+
+## Versions
+
+La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
+temps que `version` dans `package.json` (« bêta 1.6 » ↔ `1.6.0`).
 
 ## Démarrage
 

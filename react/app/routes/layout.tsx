@@ -7,6 +7,7 @@ import { LoginNotice } from "~/components/login-notice";
 import { PlayerBar } from "~/components/player-bar";
 import { AssistantContext } from "~/lib/assistant-context";
 import { ListsProvider, useLists } from "~/lib/lists-context";
+import { APP_VERSION } from "~/lib/config";
 import { PlayerProvider, usePlayer } from "~/lib/player";
 import { getUser, type SessionUser } from "~/lib/session.server";
 import { useShortcuts } from "~/lib/use-shortcuts";
@@ -93,7 +94,7 @@ function Shell({ user }: { user: SessionUser | null }) {
         </main>
 
         <footer id="version-info" translate="no">
-          shOsu! · bêta 1.5
+          shOsu! · {APP_VERSION}
         </footer>
 
         <LoginNotice />
