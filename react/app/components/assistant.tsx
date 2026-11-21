@@ -13,6 +13,7 @@ import {
   type StreamEvent,
   type UiAction,
 } from "~/lib/assistant";
+import { audioToWav, MAX_FILE_BYTES, MAX_RECORD_SECONDS, useRecorder } from "~/lib/audio";
 import { useLists } from "~/lib/lists-context";
 import {
   avatarUrl,
@@ -51,6 +52,8 @@ const ERRORS: Record<string, string> = {
   ai_bad_response: "L'IA a renvoyé une réponse inexploitable. Réessaie.",
   invalid_request: "Je n'ai pas pu traiter ce message. Essaie de le reformuler.",
   interrupted: "La réponse a été interrompue. Réessaie.",
+  audio_invalid: "Je n'ai pas pu lire cet extrait audio. Essaie un extrait plus long ou un autre fichier.",
+  audio_too_large: "Cet extrait est trop volumineux. Essaie un extrait plus court.",
 };
 const GENERIC_ERROR = "Un problème est survenu. Réessaie dans un instant.";
 
@@ -128,6 +131,12 @@ export function Assistant({
   const messagesRef = useRef<Msg[]>([]);
   messagesRef.current = messages;
 
+  const [listenOpen, setListenOpen] = useState(false);
+  const [listenError, setListenError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const identifyRef = useRef<(blob: Blob) => Promise<void>>(async () => {});
+  const recorder = useRecorder((blob) => void identifyRef.current(blob));
+
   const voice = useSpeechRecognition((text) => {
     setInput((prev) => `${prev ? `${prev} ` : ""}${text}`.slice(0, MAX_MESSAGE_LENGTH));
     inputRef.current?.focus();
@@ -186,26 +195,20 @@ export function Assistant({
     if (window.innerWidth < 700) onClose();
   }, [onClose]);
 
-  const send = useCallback(
-    async (raw: string) => {
-      const text = raw.trim().slice(0, MAX_MESSAGE_LENGTH);
-      if (!text || sendingRef.current) return;
+  /**
+   * Envoie un message (ou un extrait audio) et lit la réponse en flux. `request` fait l'appel réseau ;
+   * le reste (affichage progressif, cartes, actions sur la page) est commun à Stack et à l'écoute.
+   */
+  const converse = useCallback(
+    async (userText: string, request: (signal: AbortSignal) => Promise<Response>) => {
+      if (sendingRef.current) return;
       sendingRef.current = true;
       setSending(true);
 
-      const userMsg: Msg = { id: nextId.current++, role: "user", text };
+      const userMsg: Msg = { id: nextId.current++, role: "user", text: userText };
       const botId = nextId.current++;
-      const history = [...messagesRef.current, userMsg]
-        .filter((m) => !m.error && m.text)
-        .slice(-12)
-        .map((m) => ({
-          role: m.role,
-          text: m.text,
-          ...(m.role === "assistant" && m.cards?.length ? { cardIds: m.cards.map((c) => c.id) } : {}),
-        }));
 
       setMessages((prev) => [...prev, userMsg, { id: botId, role: "assistant", text: "", streaming: true }]);
-      setInput("");
 
       const patchBot = (change: (m: Msg) => Msg) =>
         setMessages((prev) => prev.map((m) => (m.id === botId ? change(m) : m)));
@@ -223,12 +226,7 @@ export function Assistant({
       let finished = false;
 
       try {
-        const response = await fetch("/api/assistant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
-          body: JSON.stringify({ messages: history }),
-          signal: controller.signal,
-        });
+        const response = await request(controller.signal);
 
         if (!response.ok || !response.body) {
           const body = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -311,6 +309,77 @@ export function Assistant({
     },
     [lists, navigate, closeIfSmall],
   );
+
+  const send = useCallback(
+    async (raw: string) => {
+      const text = raw.trim().slice(0, MAX_MESSAGE_LENGTH);
+      if (!text || sendingRef.current) return;
+
+      const prior = messagesRef.current
+        .filter((m) => !m.error && m.text)
+        .slice(-11)
+        .map((m) => ({
+          role: m.role,
+          text: m.text,
+          ...(m.role === "assistant" && m.cards?.length ? { cardIds: m.cards.map((c) => c.id) } : {}),
+        }));
+      const history = [...prior, { role: "user" as const, text }];
+
+      setInput("");
+      await converse(text, (signal) =>
+        fetch("/api/assistant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
+          body: JSON.stringify({ messages: history }),
+          signal,
+        }),
+      );
+    },
+    [converse],
+  );
+
+  /** « Shazam pour osu! » : convertit l'extrait en petit WAV et le fait écouter à Gemini. */
+  const identify = useCallback(
+    async (blob: Blob) => {
+      if (sendingRef.current) return;
+      setListenError("");
+
+      let converted: { wav: Blob; seconds: number };
+      try {
+        converted = await audioToWav(blob);
+      } catch {
+        setListenError("Je n'ai pas pu lire cet audio. Essaie un autre fichier ou un enregistrement plus long.");
+        return;
+      }
+
+      setListenOpen(false);
+      await converse(`🎧 Extrait audio (${Math.round(converted.seconds)} s)`, (signal) =>
+        fetch("/api/listen", {
+          method: "POST",
+          headers: { "Content-Type": "audio/wav", Accept: "application/x-ndjson" },
+          body: converted.wav,
+          signal,
+        }),
+      );
+    },
+    [converse],
+  );
+  identifyRef.current = identify;
+
+  function onFileChosen(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // permet de rechoisir le même fichier
+    if (!file) return;
+    if (file.size > MAX_FILE_BYTES) {
+      setListenError("Ce fichier est trop volumineux (30 Mo maximum).");
+      return;
+    }
+    if (file.type && !file.type.startsWith("audio/")) {
+      setListenError("Ce fichier n'est pas un fichier audio.");
+      return;
+    }
+    void identify(file);
+  }
 
   // Question posée depuis une autre page : envoyée dès que le panneau est prêt.
   const sendRef = useRef(send);
@@ -480,6 +549,55 @@ export function Assistant({
               void send(input);
             }}
           >
+            {listenOpen && (
+              <div className="assistant-listen" id="assistant-listen">
+                <p>
+                  <strong>🎧 Quel est ce son ?</strong> Fais-moi écouter un morceau ou importe un fichier : je cherche les maps
+                  qui l'ont, ou qui s'en rapprochent.
+                </p>
+                {recorder.recording ? (
+                  <div className="assistant-rec" role="status">
+                    <span className="rec-dot" aria-hidden />
+                    <span>
+                      Écoute en cours… {Math.floor(recorder.seconds)} / {MAX_RECORD_SECONDS} s
+                    </span>
+                    <Button className="assistant-chip" onPress={recorder.stop}>
+                      Terminer
+                    </Button>
+                    <Button className="assistant-chip" onPress={recorder.cancel}>
+                      Annuler
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="assistant-listen-actions">
+                    {recorder.supported !== false && (
+                      <Button
+                        className="assistant-chip"
+                        isDisabled={sending}
+                        onPress={() => {
+                          setListenError("");
+                          void recorder.start();
+                        }}
+                      >
+                        🎤 Écouter ({MAX_RECORD_SECONDS} s)
+                      </Button>
+                    )}
+                    <Button className="assistant-chip" isDisabled={sending} onPress={() => fileRef.current?.click()}>
+                      📁 Importer un fichier
+                    </Button>
+                    <input ref={fileRef} type="file" accept="audio/*" hidden onChange={onFileChosen} />
+                  </div>
+                )}
+                {(listenError || recorder.error) && (
+                  <p className="assistant-listen-error" role="alert">
+                    {listenError || recorder.error}
+                  </p>
+                )}
+                <p className="assistant-note">
+                  L'extrait (30 s maximum) est envoyé à Gemini (Google) pour analyse ; shOsu! ne le conserve pas.
+                </p>
+              </div>
+            )}
             <div className="assistant-input-row">
               <textarea
                 ref={inputRef}
@@ -496,6 +614,18 @@ export function Assistant({
                   }
                 }}
               />
+              <Button
+                className={`assistant-mic${listenOpen ? " is-listening" : ""}`}
+                aria-label="Identifier un son (Shazam pour osu!)"
+                aria-expanded={listenOpen}
+                aria-controls="assistant-listen"
+                onPress={() => {
+                  setListenOpen((open) => !open);
+                  setListenError("");
+                }}
+              >
+                🎧
+              </Button>
               {voice.supported !== false && (
                 <Button
                   className={`assistant-mic${voice.listening ? " is-listening" : ""}`}

@@ -132,11 +132,34 @@ les recherches**, lit ton profil osu! pour proposer des maps à ton niveau et **
 - `get_beatmap` : BPM, durée, tags, difficultés avec CS/AR/OD/HP et nombre d'objets, pour **expliquer** une map à partir de ses chiffres.
 - `find_player` et `get_rankings` : retrouver un joueur par pseudo, ou consulter le classement mondial ou d'un pays (cartes de joueurs).
 - `get_my_lists`, `add_to_list`, `remove_from_list` : gérer tes listes, sur demande explicite et seulement pour des beatmaps déjà affichées.
+- 🎧 **écoute** (voir plus bas) : identifier un son et trouver des maps proches.
 - `show_in_search`, `open_beatmap`, `open_player` : ouvrir la recherche déjà remplie (`/?q=…&mode=…&status=…`), une beatmap ou un profil.
   Le navigateur revalide chaque action et ne navigue que vers les pages du site.
 
 Il ne cite que des données renvoyées par ses outils : il n'en invente pas. La conversation est gardée dans l'onglet (sessionStorage) et
 disparaît à sa fermeture ; rien n'est enregistré côté serveur.
+
+### 🎧 « Shazam pour osu! » : retrouver des maps à partir d'un son
+
+Le bouton 🎧 du panneau permet de **faire écouter un morceau** à Stack, au micro (15 s) ou en important un fichier audio (30 Mo max) :
+Gemini l'écoute, puis Stack cherche les beatmaps **de ce morceau** et des beatmaps **au son proche**.
+
+1. Le navigateur décode l'audio (mp3, m4a, ogg, webm…) et le convertit en **WAV 16 kHz mono de 30 s maximum**, volume normalisé
+   (pour un fichier plus long : 30 s à partir de 30 % du morceau, plutôt que l'intro). Le micro est enregistré sans traitement.
+2. `POST /api/listen` envoie ce WAV à Gemini, qui renvoie un **JSON contraint par un schéma** : titre et artiste (seulement s'il reconnaît
+   vraiment le morceau, avec un niveau de confiance), genres, tempo estimé, ambiance, instruments, voix, et des mots-clés de recherche.
+3. Le serveur cherche chez osu! les maps qui correspondent au titre et à l'artiste (appariement vérifié), puis des maps proches par mots-clés,
+   **classées par proximité de tempo** (±12 % du BPM estimé en premier). Le texte de réponse est composé côté serveur.
+
+**Honnêteté de l'identification.** Gemini n'est pas un service d'empreinte audio comme Shazam : il peut reconnaître des morceaux connus, mais
+pas tous. La consigne lui interdit d'inventer un titre ; en cas de doute, Stack le dit et se contente de décrire le son et de chercher des maps
+proches. Le tempo estimé est une indication. Sur un extrait de test synthétique, le tempo (120 BPM) et le style ont été correctement estimés
+et aucun titre n'a été inventé.
+
+**Sécurité.** Réservé aux utilisateurs connectés, avec contrôle d'origine ; l'en-tête du WAV est vérifié (PCM 16 bits, mono, 16 kHz, 3 à 31 s,
+1 Mo environ au maximum) avant tout appel à Gemini ; 6 extraits / 10 min par joueur et 60 / h au total. Ce qui est dit ou chanté dans
+l'extrait est traité comme du contenu à analyser, jamais comme une instruction, et la sortie du modèle est nettoyée et bornée. L'audio est
+envoyé à Gemini (Google) pour analyse ; shOsu! ne le conserve pas.
 
 **Sécurité de la clé et de l'endpoint** (`POST /api/assistant`).
 - La clé reste côté serveur (variable d'environnement) et part dans l'en-tête `x-goog-api-key`, jamais dans une URL. Elle n'est ni dans
@@ -199,6 +222,7 @@ react/
 │   │   ├── beatmap.$id.tsx, player.$id.tsx     Détail d'une beatmap, profil joueur
 │   │   ├── lists.tsx                           Mes listes (favoris, à jouer plus tard)
 │   │   ├── api.assistant.ts                    POST /api/assistant (flux, auth, limites, validation)
+│   │   ├── api.listen.ts                       POST /api/listen : « Shazam pour osu! » (WAV → Gemini → maps)
 │   │   ├── api.lists.ts, api.search.ts         Listes ; recherche publique (limite par IP, cache CDN)
 │   │   └── api.auth.*.ts                       login, callback, check, endpoints Better Auth
 │   ├── components/                             Account, Assistant (Stack), BeatmapCard, PlayerBar, ListButtons…
@@ -206,6 +230,7 @@ react/
 │       ├── store.server.ts, rate-limit.server.ts, cache.server.ts   Upstash + repli mémoire, limites, cache
 │       ├── osu.server.ts, osu.ts               Client osu! (recherche, beatmap, joueurs, classements) et types
 │       ├── gemini.server.ts, assistant.server.ts, assistant.ts      Client Gemini en flux, outils de Stack
+│       ├── listen.server.ts, ndjson.server.ts, audio.ts             Écoute audio (analyse, recherche), flux, capture micro / WAV
 │       ├── lists*.ts(x), player.tsx            Listes (stockage, contexte), lecteur audio global
 │       └── auth*.ts, session.server.ts, use-*.ts                    Authentification, hooks
 └── public/                                     shosu.png (logo), stack.jpeg (logo de l'assistant)

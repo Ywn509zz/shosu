@@ -72,6 +72,8 @@ export async function* streamContent(params: {
   system: string;
   contents: GeminiContent[];
   tools?: GeminiFunctionDeclaration[];
+  /** Si fourni : la réponse est un JSON conforme à ce schéma (sans outils). */
+  responseSchema?: GeminiSchema;
   model?: string;
   temperature?: number;
   maxOutputTokens?: number;
@@ -103,6 +105,9 @@ export async function* streamContent(params: {
           generationConfig: {
             temperature: params.temperature ?? 0.6,
             maxOutputTokens: params.maxOutputTokens ?? 1500,
+            ...(params.responseSchema
+              ? { responseMimeType: "application/json", responseSchema: params.responseSchema }
+              : {}),
           },
         }),
         signal: AbortSignal.any([watchdog.signal, AbortSignal.timeout(STREAM_TIMEOUT_MS)]),

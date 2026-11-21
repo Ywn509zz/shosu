@@ -398,3 +398,61 @@ button.assistant-mic.is-listening {
     animation: none;
   }
 }
+
+/* ===== « Shazam pour osu! » : panneau d'écoute ===== */
+.assistant-listen {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(156, 124, 255, 0.07);
+}
+.assistant-listen p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+.assistant-listen strong {
+  color: var(--text);
+}
+.assistant-listen-actions,
+.assistant-rec {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.assistant-rec {
+  color: var(--text);
+  font-size: 0.82rem;
+}
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff5c7a;
+  box-shadow: 0 0 0 0 rgba(255, 92, 122, 0.6);
+  animation: rec-pulse 1.2s ease-out infinite;
+}
+@keyframes rec-pulse {
+  to {
+    box-shadow: 0 0 0 10px rgba(255, 92, 122, 0);
+  }
+}
+.assistant-listen .assistant-listen-error {
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 128, 104, 0.45);
+  border-radius: 10px;
+  color: #ffb4a6;
+  background: rgba(255, 128, 104, 0.08);
+}
+body.light-mode .assistant-listen .assistant-listen-error {
+  color: #b33a22;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-dot {
+    animation: none;
+  }
+}

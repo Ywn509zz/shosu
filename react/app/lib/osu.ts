@@ -18,6 +18,8 @@ export type Beatmapset = {
   maxStars: number | null;
   /** Nom du fichier d'aperçu audio (ex. « 123.mp3 »), ou null. */
   previewFile: string | null;
+  /** Tempo du morceau, quand osu! le fournit. */
+  bpm?: number | null;
 };
 
 export type SearchResponse = {

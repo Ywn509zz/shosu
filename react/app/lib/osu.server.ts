@@ -76,6 +76,7 @@ type RawBeatmapset = {
   creator: string;
   status: string;
   mode?: string;
+  bpm?: number;
   preview_url?: string | null;
   beatmaps?: { mode: string; difficulty_rating: number }[];
 };
@@ -97,6 +98,7 @@ function toBeatmapset(raw: RawBeatmapset): Beatmapset {
     minStars: maps && maps.length > 0 ? Math.min(...maps.map((m) => m.difficulty_rating)) : null,
     maxStars: maps && maps.length > 0 ? Math.max(...maps.map((m) => m.difficulty_rating)) : null,
     previewFile: raw.preview_url ? (raw.preview_url.split("/").pop() ?? null) : null,
+    bpm: typeof raw.bpm === "number" ? Math.round(raw.bpm) : null,
   };
 }
 

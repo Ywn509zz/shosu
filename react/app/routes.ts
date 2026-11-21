@@ -5,6 +5,7 @@ export default [
   route("api/search", "routes/api.search.ts"),
   route("api/assistant", "routes/api.assistant.ts"),
   route("api/lists", "routes/api.lists.ts"),
+  route("api/listen", "routes/api.listen.ts"),
   route("api/auth/login", "routes/api.auth.login.ts"),
   route("api/auth/callback", "routes/api.auth.callback.ts"),
   route("api/auth/check", "routes/api.auth.check.ts"),

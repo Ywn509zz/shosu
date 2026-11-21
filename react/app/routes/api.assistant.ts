@@ -1,8 +1,9 @@
 import { data } from "react-router";
 
-import { MAX_MESSAGE_LENGTH, type ChatTurn, type StreamEvent } from "~/lib/assistant";
+import { MAX_MESSAGE_LENGTH, type ChatTurn } from "~/lib/assistant";
 import { runAssistant } from "~/lib/assistant.server";
-import { GeminiError, isGeminiConfigured } from "~/lib/gemini.server";
+import { isGeminiConfigured } from "~/lib/gemini.server";
+import { streamEvents } from "~/lib/ndjson.server";
 import { rateLimit } from "~/lib/rate-limit.server";
 import { getUser } from "~/lib/session.server";
 
@@ -92,47 +93,7 @@ export async function action({ request }: Route.ActionArgs) {
   const history = normalizeHistory(body.messages);
   if (!history) return fail("invalid_request", 400);
 
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      let closed = false;
-      const emit = (event: StreamEvent) => {
-        if (closed) return;
-        try {
-          controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
-        } catch {
-          closed = true; // le navigateur a fermé la connexion
-        }
-      };
-
-      try {
-        await runAssistant({ history: history.turns, knownIds: history.knownIds, osuId: user.osuId!, emit });
-      } catch (error) {
-        // Un code seulement : ni clé, ni prompt, ni réponse du modèle dans les journaux.
-        if (error instanceof GeminiError) {
-          console.error("Gemini assistant error:", error.kind);
-          emit({ t: "error", code: error.kind === "bad_response" ? "ai_bad_response" : "ai_unavailable" });
-        } else {
-          console.error("Assistant error:", error instanceof Error ? error.name : "Error");
-          emit({ t: "error", code: "assistant_failed" });
-        }
-      } finally {
-        closed = true;
-        try {
-          controller.close();
-        } catch {
-          /* déjà fermé */
-        }
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      ...headers,
-      "Content-Type": "application/x-ndjson; charset=utf-8",
-      // Empêche un proxy de regrouper les lignes avant de les envoyer.
-      "X-Accel-Buffering": "no",
-    },
-  });
+  return streamEvents((emit) =>
+    runAssistant({ history: history.turns, knownIds: history.knownIds, osuId: user.osuId!, emit }),
+  );
 }
