@@ -44,6 +44,17 @@ type Msg = {
   status?: string;
 };
 
+/** Secondes écoulées depuis l'affichage (« 0s », « 3s »…) : montre que Stack travaille, comme Génie sur iptron.one. */
+function Elapsed() {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const timer = window.setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return <em className="assistant-elapsed">{seconds}s</em>;
+}
+
 /** Découpe un texte en mots pour que chacun puisse apparaître en fondu pendant la réponse en direct. */
 function StreamedText({ text }: { text: string }) {
   return (
@@ -461,10 +472,9 @@ export function Assistant({
               <div className="assistant-block" key={m.id} data-msg-id={m.id}>
                 {m.role === "assistant" && m.streaming && !m.text ? (
                   <div className="assistant-typing" role="status" aria-label={m.status || `${ASSISTANT_NAME} réfléchit`}>
-                    <i />
-                    <i />
-                    <i />
-                    {m.status && <span key={m.status}>{m.status}</span>}
+                    <b className="assistant-spin" aria-hidden />
+                    <span key={m.status || "thinking"}>{m.status || `${ASSISTANT_NAME} réfléchit…`}</span>
+                    <Elapsed />
                   </div>
                 ) : (
                   <div

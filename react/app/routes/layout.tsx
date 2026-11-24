@@ -151,8 +151,14 @@ function Shell({ user }: { user: SessionUser | null }) {
           <Outlet />
         </main>
 
-        <footer id="version-info" translate="no">
-          shOsu! · {APP_VERSION}
+        <footer id="version-info">
+          <nav className="footer-links" aria-label="Liens du site">
+            <Link to="/collections">Collections</Link>
+            <Link to="/compare">Comparer</Link>
+            <Link to="/premium">Plans</Link>
+            <Link to="/history">Historique</Link>
+          </nav>
+          <span translate="no">shOsu! · {APP_VERSION}</span>
         </footer>
 
         <MobileNav user={user} assistantOpen={assistantOpen} onToggleAssistant={toggleAssistant} onSearch={focusSearch} />

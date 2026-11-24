@@ -308,6 +308,24 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
+        <nav className="hero-links" aria-label="Raccourcis">
+          <Link className="account-btn is-primary" to="/collections">
+            Découvrir les collections
+          </Link>
+          {signedIn ? (
+            <Link className="account-btn" to="/dna">
+              Mon Music DNA
+            </Link>
+          ) : (
+            <a className="account-btn" href="/api/auth/login">
+              Se connecter avec osu!
+            </a>
+          )}
+          <Link className="account-btn" to="/compare">
+            Comparer deux beatmaps
+          </Link>
+        </nav>
+
         {listenOpen && (
           <div className="listen-popover">
             <ListenPanel

@@ -53,6 +53,20 @@
   .hero h1 {
     font-size: clamp(2rem, 11vw, 3rem);
   }
+  .hero-links .account-btn {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 46px;
+  }
+  .discover::before,
+  .reco::before,
+  .progress::before,
+  .performance::before,
+  .activity::before,
+  .profile-collections::before,
+  #version-info::before {
+    display: none;
+  }
   .hero-copy {
     margin: 14px auto 20px;
     font-size: 0.95rem;

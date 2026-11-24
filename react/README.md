@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 3.1), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 3.2), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -19,7 +19,7 @@ et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour c
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 3.1 » ↔ `3.1.0`).
+temps que `version` dans `package.json` (« bêta 3.2 » ↔ `3.2.0`).
 
 ## Démarrage
 
