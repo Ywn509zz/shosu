@@ -6,6 +6,7 @@ export const STREAM_ERRORS: Record<string, string> = {
   rate_limited: "Trop de demandes d'affilée ! Patiente quelques minutes avant de réessayer.",
   assistant_unavailable: `${ASSISTANT_NAME} n'est pas encore configuré sur ce site.`,
   ai_unavailable: "L'IA est momentanément indisponible. Réessaie dans un instant.",
+  ai_overloaded: "Les serveurs de Google (Gemini) sont surchargés en ce moment : ce n'est pas ton compte. Réessaie dans une à deux minutes.",
   ai_bad_response: "L'IA a renvoyé une réponse inexploitable. Réessaie.",
   invalid_request: "Je n'ai pas pu traiter ce message. Essaie de le reformuler.",
   interrupted: "La réponse a été interrompue. Réessaie.",

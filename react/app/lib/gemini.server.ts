@@ -15,12 +15,14 @@ import { bump } from "./usage-buffer";
 /** URL de l'API (surchargeable pour les tests locaux, comme OSU_BASE_URL). */
 const ENDPOINT = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_MODEL = "gemini-3.1-flash-lite";
-const FALLBACK_MODELS = ["gemini-3-flash-preview", "gemini-3.8-flash"];
+const FALLBACK_MODELS = ["gemini-3-flash-preview", "gemini-3.8-flash", "gemini-2.5-flash"];
 
 export class GeminiError extends Error {
   constructor(
     readonly kind: "not_configured" | "rejected" | "unavailable" | "bad_response",
     message: string,
+    /** Dernier code HTTP de Google (503/429 = serveurs surchargés ou quota atteint). */
+    readonly status = 0,
   ) {
     super(message);
     this.name = "GeminiError";
@@ -103,8 +105,15 @@ export async function* streamContent(params: {
   const primary = process.env.GEMINI_MODEL || DEFAULT_MODEL;
   const models = params.model ? [params.model] : [primary, ...FALLBACK_MODELS.filter((m) => m !== primary)];
 
+  // Deux passes sur les modèles : quand Google est surchargé (503) ou limite le débit (429), une courte pause
+  // suffit souvent à ce qu'un modèle réponde. Une erreur définitive (clé refusée, requête invalide) sort tout de suite.
+  const attempts = [...models, ...models];
   let lastStatus = 0;
-  for (const model of models) {
+  for (const [index, model] of attempts.entries()) {
+    if (index === models.length) {
+      if (![0, 429, 503].includes(lastStatus)) break;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
     const watchdog = new AbortController();
     const firstChunkTimer = setTimeout(() => watchdog.abort(), FIRST_CHUNK_TIMEOUT_MS);
     let response: Response;
@@ -217,5 +226,5 @@ export async function* streamContent(params: {
     return;
   }
 
-  throw new GeminiError("unavailable", `Gemini unavailable (last status ${lastStatus || "timeout"})`);
+  throw new GeminiError("unavailable", `Gemini unavailable (last status ${lastStatus || "timeout"})`, lastStatus);
 }

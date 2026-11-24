@@ -26,7 +26,8 @@ export function streamEvents(run: (emit: (event: StreamEvent) => void) => Promis
       } catch (error) {
         if (error instanceof GeminiError) {
           console.error("Gemini error:", error.kind);
-          emit({ t: "error", code: error.kind === "bad_response" ? "ai_bad_response" : "ai_unavailable" });
+          const overloaded = error.status === 503 || error.status === 429;
+          emit({ t: "error", code: error.kind === "bad_response" ? "ai_bad_response" : overloaded ? "ai_overloaded" : "ai_unavailable" });
         } else {
           console.error("Stream error:", error instanceof Error ? error.name : "Error");
           emit({ t: "error", code: "assistant_failed" });
