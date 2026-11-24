@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { toTrack } from "~/components/beatmap-card";
+import { EmptyState } from "~/components/empty-state";
 import { MapMatchCard } from "~/components/map-match-card";
 import type { SimilarMap } from "~/lib/insights";
 import type { Track } from "~/lib/player";
@@ -65,10 +66,15 @@ export function SimilarMaps({ setId }: { setId: number }) {
         </div>
       )}
       {state.phase === "error" && (
-        <p className="empty">Impossible de charger les beatmaps similaires pour le moment.</p>
+        <EmptyState icon="⚠" tone="error" title="Beatmaps similaires indisponibles">
+          osu! ne répond pas pour le moment : recharge la page dans un instant.
+        </EmptyState>
       )}
       {state.phase === "ready" && state.items.length === 0 && (
-        <p className="empty">Aucune beatmap vraiment proche n'a été trouvée.</p>
+        <EmptyState icon="🔎" title="Aucune beatmap vraiment proche">
+          Cette beatmap est assez singulière. Essaie l'onglet « {focus === "mix" ? "Musique proche" : "Globale"} », ou
+          lance une recherche par artiste.
+        </EmptyState>
       )}
       {state.phase === "ready" && state.items.length > 0 && (
         <div className="similar-grid">

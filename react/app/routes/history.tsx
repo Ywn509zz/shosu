@@ -1,6 +1,8 @@
 import { Button } from "@heroui/react";
 import { Link, useSearchParams } from "react-router";
 
+import { EmptyState } from "~/components/empty-state";
+
 import { searchHref } from "~/lib/assistant";
 import { timeAgo, useHistory } from "~/lib/history";
 import { coverUrl, MODE_OPTIONS, STATUS_OPTIONS } from "~/lib/osu";
@@ -27,22 +29,42 @@ export default function History() {
       </section>
 
       <nav className="tabs" aria-label="Historique">
-        <Link className={`tab${tab === "searches" ? " is-active" : ""}`} to="?tab=searches" aria-current={tab === "searches" ? "page" : undefined}>
+        <Link
+          className={`tab${tab === "searches" ? " is-active" : ""}`}
+          to="?tab=searches"
+          aria-current={tab === "searches" ? "page" : undefined}
+        >
           ⌕ Recherches ({history.searches.length})
         </Link>
-        <Link className={`tab${tab === "views" ? " is-active" : ""}`} to="?tab=views" aria-current={tab === "views" ? "page" : undefined}>
+        <Link
+          className={`tab${tab === "views" ? " is-active" : ""}`}
+          to="?tab=views"
+          aria-current={tab === "views" ? "page" : undefined}
+        >
           👁 Consultées ({history.views.length})
         </Link>
-        <Link className={`tab${tab === "listens" ? " is-active" : ""}`} to="?tab=listens" aria-current={tab === "listens" ? "page" : undefined}>
+        <Link
+          className={`tab${tab === "listens" ? " is-active" : ""}`}
+          to="?tab=listens"
+          aria-current={tab === "listens" ? "page" : undefined}
+        >
           🎧 Écoutes ({history.listens.length})
         </Link>
       </nav>
 
       {tab === "views" ? (
         history.views.length === 0 ? (
-          <p className="empty">
-            Aucune beatmap consultée pour l'instant. Ouvre la page d'une beatmap depuis une <Link to="/">recherche</Link> : elle apparaîtra ici.
-          </p>
+          <EmptyState
+            icon="👁"
+            title="Aucune beatmap consultée"
+            actions={
+              <Link className="account-btn is-primary" to="/">
+                Lancer une recherche
+              </Link>
+            }
+          >
+            Ouvre la page d'une beatmap depuis une recherche : elle apparaîtra ici, et nourrira ton Music DNA.
+          </EmptyState>
         ) : (
           <>
             <div className="history-actions">
@@ -53,7 +75,14 @@ export default function History() {
             <ul className="history-list">
               {history.views.map((entry) => (
                 <li key={entry.id} className="history-row">
-                  <img className="history-cover" src={coverUrl(entry.id)} alt="" loading="lazy" width={48} height={48} />
+                  <img
+                    className="history-cover"
+                    src={coverUrl(entry.id)}
+                    alt=""
+                    loading="lazy"
+                    width={48}
+                    height={48}
+                  />
                   <Link to={`/beatmap/${entry.id}`} className="history-main">
                     <strong>{entry.title || `Beatmap ${entry.id}`}</strong>
                     <small>
@@ -61,7 +90,11 @@ export default function History() {
                       {timeAgo(entry.at)}
                     </small>
                   </Link>
-                  <Button className="icon-btn" aria-label={`Retirer ${entry.title} de l'historique`} onPress={() => history.removeView(entry.id)}>
+                  <Button
+                    className="icon-btn"
+                    aria-label={`Retirer ${entry.title} de l'historique`}
+                    onPress={() => history.removeView(entry.id)}
+                  >
                     ✕
                   </Button>
                 </li>
@@ -71,9 +104,17 @@ export default function History() {
         )
       ) : tab === "searches" ? (
         history.searches.length === 0 ? (
-          <p className="empty">
-            Aucune recherche pour l'instant. Lance une <Link to="/">recherche</Link> : elle apparaîtra ici.
-          </p>
+          <EmptyState
+            icon="⌕"
+            title="Aucune recherche pour l'instant"
+            actions={
+              <Link className="account-btn is-primary" to="/">
+                Lancer une recherche
+              </Link>
+            }
+          >
+            Tes recherches récentes apparaîtront ici, pour les relancer en un clic.
+          </EmptyState>
         ) : (
           <>
             <div className="history-actions">
@@ -92,7 +133,11 @@ export default function History() {
                       {timeAgo(entry.at)}
                     </small>
                   </Link>
-                  <Button className="icon-btn" aria-label={`Retirer « ${entry.q} » de l'historique`} onPress={() => history.removeSearch(entry.at)}>
+                  <Button
+                    className="icon-btn"
+                    aria-label={`Retirer « ${entry.q} » de l'historique`}
+                    onPress={() => history.removeSearch(entry.at)}
+                  >
                     ✕
                   </Button>
                 </li>
@@ -101,9 +146,18 @@ export default function History() {
           </>
         )
       ) : history.listens.length === 0 ? (
-        <p className="empty">
-          Aucune écoute pour l'instant. Utilise le bouton 🎧 de la recherche ou de Stack pour identifier un son.
-        </p>
+        <EmptyState
+          icon="🎧"
+          title="Aucune écoute pour l'instant"
+          actions={
+            <Link className="account-btn is-primary" to="/">
+              Identifier un son
+            </Link>
+          }
+        >
+          Fais écouter un extrait avec le bouton 🎧 de la recherche ou de Stack : shOsu! retrouve ses beatmaps et en
+          garde la trace ici.
+        </EmptyState>
       ) : (
         <>
           <div className="history-actions">
@@ -127,7 +181,11 @@ export default function History() {
                     </div>
                   )}
                 </div>
-                <Button className="icon-btn" aria-label="Retirer cette écoute de l'historique" onPress={() => history.removeListen(entry.at)}>
+                <Button
+                  className="icon-btn"
+                  aria-label="Retirer cette écoute de l'historique"
+                  onPress={() => history.removeListen(entry.at)}
+                >
                   ✕
                 </Button>
               </li>

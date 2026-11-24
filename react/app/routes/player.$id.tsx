@@ -94,6 +94,13 @@ export default function PlayerProfile({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
+      {!isMe && (
+        <div className="profile-edit-btn">
+          <Link className="account-btn" to={`/compare/players?a=${player.id}&mode=${player.mode}`}>
+            ⚖ Comparer avec un autre joueur
+          </Link>
+        </div>
+      )}
       {isMe && <ProfileEditor custom={custom} publicCollections={publicCollections} />}
 
       <nav className="tabs" aria-label="Mode de jeu">

@@ -3,6 +3,7 @@
   <url><loc>https://shosure.vercel.app/</loc><priority>1.0</priority></url>
   <url><loc>https://shosure.vercel.app/collections</loc><priority>0.8</priority></url>
   <url><loc>https://shosure.vercel.app/compare</loc><priority>0.5</priority></url>
+  <url><loc>https://shosure.vercel.app/compare/players</loc><priority>0.4</priority></url>
   <url><loc>https://shosure.vercel.app/premium</loc><priority>0.4</priority></url>
   <url><loc>https://shosure.vercel.app/privacy</loc><priority>0.3</priority></url>
 </urlset>

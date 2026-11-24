@@ -25,7 +25,7 @@
 13. [Profil joueur](#profil-joueur) · 14. [Recommandations « Pour toi »](#recommandations-pour-toi) · 15. [Historique](#historique) · 16. [Lecteur audio](#lecteur-audio) · 17. [Raccourcis clavier](#raccourcis-clavier)
 18. [Navigation et mouvement](#navigation-et-mouvement) · 19. [Icône et identité](#icône-et-identité) · 20. [Caches et limites de débit](#caches-et-limites-de-débit)
 21. [Mobile](#mobile-téléphone) · 22. [Chargement progressif](#chargement-progressif-des-résultats)
-33. [Thème visuel iptron](#thème-visuel-iptron) · 34. [Photos de profil](#photos-de-profil) · 35. [Confidentialité et Mes données](#confidentialité-et-mes-données) · 36. [Quotas (administrateurs)](#quotas-administrateurs) · 37. [Tests et CI](#tests-et-ci) · 38. [Fichiers du site (SEO, favicon)](#fichiers-du-site-seo-favicon)
+33. [Thème visuel iptron](#thème-visuel-iptron) · 34. [Photos de profil](#photos-de-profil) · 35. [Confidentialité et Mes données](#confidentialité-et-mes-données) · 36. [Quotas (administrateurs)](#quotas-administrateurs) · 37. [Tests et CI](#tests-et-ci) · 38. [Fichiers du site (SEO, favicon)](#fichiers-du-site-seo-favicon) · 39. [Filtres de recherche avancés](#filtres-de-recherche-avancés) · 40. [Importer ses favoris osu!](#importer-ses-favoris-osu) · 41. [Comparer deux joueurs](#comparer-deux-joueurs) · 42. [États vides](#états-vides)
 30. [Collections publiques (découverte)](#collections-publiques-découverte) · 31. [Partager une liste](#partager-une-liste) · 32. [Profils personnalisables](#profils-personnalisables)
 26. [Music DNA](#music-dna) · 27. [Similar Sound](#similar-sound-musique-proche) · 28. [Comparer deux beatmaps](#comparer-deux-beatmaps) · 29. [Partager une beatmap](#partager-une-beatmap-aperçus-de-liens)
 23. [Suivi de progression (Progress Tracker)](#suivi-de-progression-progress-tracker) · 24. [Analyse des performances](#analyse-des-performances-et-points-faibles) · 25. [Mes statistiques](#mes-statistiques)
@@ -50,7 +50,7 @@
 (`matchesFilters`) et affiche les résultats en **défilement continu** (voir « Chargement progressif ») ; la page osu! suivante est demandée automatiquement au bout de la liste (`MAX_FILL_FETCHES = 5` pages tentées pour trouver au moins un résultat qui passe le filtre). Lien profond : `/?q=…&mode=…&status=…` lance la recherche (utilisé par Stack et l'historique).
 Boutons : recherche, thème, micro (dictée), 🎧 (recherche par le son), 🗑 (effacer). Effet « ripple » sur les boutons d'action (`use-ripple.ts`).
 **Doit fonctionner ainsi** — la recherche est publique (aucune connexion) ; les identifiants osu! restent côté serveur ; le tri n'accepte que la liste blanche `SEARCH_SORTS` ; `q` ≤ 200 caractères ; le curseur est validé par regex.
-Chaque recherche aboutie est ajoutée à l'historique local (voir Historique).
+Chaque recherche aboutie est ajoutée à l'historique local (voir Historique). **Filtres avancés** (étoiles, BPM, durée, tri) : voir la fiche dédiée ; une recherche peut n'avoir **que des filtres** (texte vide).
 **Limites** — 90 recherches/min/IP, compteur **par instance** (pas de Redis). Réponses publiques cachées 60 s au CDN (`s-maxage=60`, `stale-while-revalidate=300`).
 **Fichiers** — `routes/home.tsx`, `routes/api.search.ts`, `lib/osu.server.ts` (`searchBeatmapsets`), `components/beatmap-card.tsx`, `lib/use-speech-recognition.ts`.
 **Tester** — local : `/?q=camellia`. Le faux osu! filtre sur titre/artiste/tags.
@@ -384,3 +384,28 @@ Utilisé dans : menu du compte (header), onglet « Profil » de la barre du bas 
 ## Fichiers du site (SEO, favicon)
 
 `<html lang="fr">` (root.tsx) ; `public/favicon.ico` (16/32/48 px, tiré de `icon.svg`) ; `public/robots.txt` (indexation autorisée sauf `/api/`, `/stats`, `/dna`, `/history`, `/my-data`, `/admin`) ; `public/sitemap.xml` (pages publiques fixes : accueil, collections, comparer, plans, confidentialité — les pages dynamiques ne sont pas listées) ; `<meta name="description">` par défaut dans `root.tsx`. Le domaine `shosure.vercel.app` est écrit en dur dans `robots.txt` et `sitemap.xml` : à changer si le domaine change.
+
+## Filtres de recherche avancés
+
+**But** — affiner la recherche par difficulté, tempo, durée et tri, comme sur le site d'osu!.
+**Comment ça marche** — bouton « Filtres avancés » (badge = nombre de filtres actifs) sous « Affiner les résultats » : **Étoiles** min/max, **BPM** min/max, **Durée max** (secondes), **Tri** (pertinence, plus jouées, plus récentes, plus aimées, mises à jour, mieux notées). `lib/search-filters.ts` (module partagé) : `parseFilters` **valide** (bornes : étoiles 0–15, BPM 20–1000, durée 10–3600 s ; plage inversée corrigée ; tri en liste blanche), `filtersToQuery` produit la **syntaxe osu!** ajoutée au texte de la recherche (` stars>=5 stars<=6 bpm>=180 length<=180` — osu! la comprend, **vérifié sur l'API**, donc le filtrage a lieu côté osu!, avant la pagination), `filtersToParams` écrit les paramètres d'URL (`smin smax bmin bmax lmax sort`). `routes/api.search.ts` valide et traduit ; `home.tsx` garde les filtres figés pendant la pagination (`searchedRef.filters`) et re-contrôle les plages d'étoiles et de BPM avec `matchesRange` (filet de sécurité).
+**Doit fonctionner ainsi** — **jamais de texte libre dans la requête osu!** : seuls des nombres validés sont traduits (testé : `smin="5 OR artist=x"` → ignoré) ; liens profonds `/?smin=7&bmin=180` relancent la recherche ; la recherche à texte vide n'est acceptée que s'il y a un filtre ou un tri (sinon 400) ; les filtres ne sont pas gardés dans l'historique (seulement le texte). Les cartes affichent maintenant la **plage d'étoiles du set** (« 1.74–7.90★ ») au lieu de la seule première difficulté.
+**Fichiers** — `lib/search-filters.ts`, `routes/api.search.ts`, `routes/home.tsx`, `components/beatmap-card.tsx`, tests `tests/search-filters.test.ts`. Le faux osu! de `dev/` comprend la même syntaxe.
+
+## Importer ses favoris osu!
+
+**But** — retrouver d'un coup, dans la liste « Favoris » de shOsu!, les beatmaps mises en favori sur osu.ppy.sh.
+**Comment ça marche** — bouton « ⬇ Importer mes favoris osu! » (onglet Favoris de `/lists`, et dans l'état vide) → `POST /api/lists {action:"import_osu_favourites"}` → `lib/lists.server.ts#importOsuFavourites(osuId, limit)` : lit `/users/{id}/beatmapsets/favourite` par pages de 50 (20 pages max = 1 000), ignore les beatmaps déjà présentes, s'arrête à la limite du plan (200 / 1 000), écrit par paquets (`hash.setMany`). Résultat affiché : « N importées, M déjà présentes, K non ajoutées (liste pleine) ».
+**Doit fonctionner ainsi** — ne modifie **jamais** les favoris chez osu! ; n'écrase rien ; métadonnées lues chez osu! (pas du navigateur) ; réservé au joueur connecté ; 3 imports par heure et par joueur (par instance) ; les relances sont idempotentes. **Fichiers** — `lib/lists.server.ts`, `routes/api.lists.ts`, `routes/lists.tsx`, `tests/lists-import.test.ts`.
+
+## Comparer deux joueurs
+
+**But** — mettre deux joueurs côte à côte (`/compare/players`, onglet « Joueurs » de `/compare`, bouton « ⚖ Comparer avec un autre joueur » sur un profil, outil Stack `compare_players`).
+**Comment ça marche** — `?a=<pseudo|id|lien osu!>&b=…&mode=osu` : le loader lit les deux profils (`getPlayerPage`, cache 5 min) et leurs modes (`getProgress(...).modes`) ; `lib/compare-players.ts#comparePlayers` (fonction **pure**, testée) produit un tableau (rang mondial/national, pp, précision, parties, temps de jeu, niveau, combo max, grades SS/S, difficulté et BPM moyens des meilleurs scores, part de scores DT/NC), un **résumé en phrases** (écart de pp, mieux classé, plus précis, temps de jeu, difficulté, modes préférés) et les **beatmaps en commun** dans leurs 25 meilleurs scores. La meilleure valeur est mise en avant (pour le rang : le plus petit) ; les lignes de style de jeu ne désignent personne. Boutons : Inverser, onglets de mode, « Me mettre dans la comparaison » (connecté).
+**Doit fonctionner ainsi** — données **publiques** uniquement ; entrées validées (`parsePlayerRef` : pseudo ou id) ; joueur introuvable ou osu! indisponible → message dans la page ; mode sans stats → « Pas de statistiques dans ce mode » ; 30 requêtes/min/IP par instance. **Fichiers** — `lib/compare-players.ts`, `routes/compare-players.tsx`, `tests/compare-players.test.ts`.
+
+## États vides
+
+**But** — qu'aucune page ne se retrouve avec un simple « Aucun… » : toujours une explication et **une action**.
+**Comment ça marche** — composant `components/empty-state.tsx` (`<EmptyState icon title actions tone>` ; `tone="error"` pour un problème temporaire, avec `role="alert"`). Utilisé pour : aucun résultat de recherche (retirer les filtres, tous les modes, effacer) et erreur de recherche (Réessayer), listes vides (importer ses favoris, lancer une recherche), collections vides, collections publiques vides ou sans résultat, historique (3 onglets), beatmaps similaires, recommandations, Music DNA.
+**Doit fonctionner ainsi** — tout nouvel écran qui peut être vide utilise `EmptyState` avec au moins une action utile ; les erreurs temporaires proposent de réessayer. Styles `.empty-state*` dans `theme.css`.

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { BarChart } from "~/components/charts";
+import { EmptyState } from "~/components/empty-state";
 import { toTrack } from "~/components/beatmap-card";
 import { MapMatchCard } from "~/components/map-match-card";
 import { useHistory } from "~/lib/history";
@@ -97,18 +98,31 @@ export default function Dna({ loaderData }: Route.ComponentProps) {
       )}
 
       {state.phase === "error" && (
-        <p className="empty">
+        <EmptyState icon="⚠" tone="error" title="Music DNA indisponible">
           {state.limited
             ? "Trop de calculs à la suite : réessaie dans quelques minutes."
-            : "Impossible de calculer ton ADN musical pour le moment."}
-        </p>
+            : "Impossible de calculer ton ADN musical pour le moment : réessaie dans un instant."}
+        </EmptyState>
       )}
 
       {state.phase === "ready" && !dna && (
-        <p className="empty">
-          Pas encore assez de données. Ajoute des beatmaps en favoris ♡, mets des maps en favoris sur osu!, ou ouvre
-          quelques pages de beatmaps : ton ADN se dessine à partir de là. <Link to="/">Lancer une recherche</Link>
-        </p>
+        <EmptyState
+          icon="🧬"
+          title="Pas encore assez de données"
+          actions={
+            <>
+              <Link className="account-btn is-primary" to="/">
+                Lancer une recherche
+              </Link>
+              <Link className="account-btn" to="/lists?list=favorites">
+                Importer mes favoris osu!
+              </Link>
+            </>
+          }
+        >
+          Ton ADN se dessine à partir de tes favoris, de tes beatmaps les plus jouées et de celles que tu consultes.
+          Ajoute-en quelques-unes.
+        </EmptyState>
       )}
 
       {dna && (
@@ -177,7 +191,9 @@ export default function Dna({ loaderData }: Route.ComponentProps) {
 
           <h2 className="section-title">Des morceaux pour ton ADN</h2>
           {dna.matches.length === 0 ? (
-            <p className="empty">Je n'ai pas trouvé de nouvelles beatmaps à te proposer pour le moment.</p>
+            <EmptyState icon="✨" title="Rien de nouveau à te proposer">
+              Tout ce qui colle à ton ADN, tu l'as déjà joué ou gardé. Lance une recherche pour explorer autre chose.
+            </EmptyState>
           ) : (
             <div className="similar-grid">
               {dna.matches.map((item) => (

@@ -1,6 +1,6 @@
 import { isListId, LIST_IDS, type ListId, type ListItem } from "./lists";
 import type { Beatmapset } from "./osu";
-import { getBeatmapset } from "./osu.server";
+import { getBeatmapset, osuGet, toBeatmapset, type RawBeatmapset } from "./osu.server";
 import { hash } from "./store.server";
 
 export class ListFullError extends Error {}
@@ -92,4 +92,58 @@ export { isListId };
 /** Supprime les deux listes du joueur (favoris, à jouer plus tard) : « Supprimer mes données ». */
 export async function clearLists(osuId: number): Promise<void> {
   await Promise.all(LIST_IDS.map((list) => hash.del(keyFor(osuId, list))));
+}
+
+export type ImportResult = {
+  /** Favoris lus chez osu!. */
+  fetched: number;
+  added: number;
+  alreadyThere: number;
+  /** Non ajoutés parce que la liste est pleine (limite du plan). */
+  skippedByLimit: number;
+};
+
+const IMPORT_PAGE = 50;
+const IMPORT_MAX_PAGES = 20; // 1 000 favoris au plus par import
+
+/**
+ * « Importer mes favoris osu! » : copie les beatmaps que le joueur a mises en favori sur osu.ppy.sh dans sa liste « favorites »
+ * (jusqu'à `limit`). Les beatmaps déjà présentes sont ignorées ; la liste d'origine chez osu! n'est jamais modifiée.
+ * Les métadonnées viennent d'osu! (jamais du navigateur) et sont écrites en une seule requête par paquet.
+ */
+export async function importOsuFavourites(osuId: number, limit: number): Promise<ImportResult> {
+  const key = keyFor(osuId, "favorites");
+  const present = new Set(Object.keys(await hash.getAll(key)));
+  const result: ImportResult = { fetched: 0, added: 0, alreadyThere: 0, skippedByLimit: 0 };
+  let batch: Record<string, string> = {};
+  const flush = async () => {
+    await hash.setMany(key, batch);
+    batch = {};
+  };
+
+  for (let page = 0; page < IMPORT_MAX_PAGES; page++) {
+    const sets = await osuGet<RawBeatmapset[]>(`/users/${osuId}/beatmapsets/favourite`, {
+      limit: String(IMPORT_PAGE),
+      offset: String(page * IMPORT_PAGE),
+    });
+    if (sets.length === 0) break;
+    result.fetched += sets.length;
+
+    for (const raw of sets) {
+      const id = String(raw.id);
+      if (present.has(id)) {
+        result.alreadyThere++;
+      } else if (present.size >= limit) {
+        result.skippedByLimit++;
+      } else {
+        present.add(id);
+        batch[id] = JSON.stringify({ ...toBeatmapset(raw), addedAt: Date.now() - result.added });
+        result.added++;
+      }
+    }
+    if (Object.keys(batch).length >= 100) await flush();
+    if (sets.length < IMPORT_PAGE) break;
+  }
+  await flush();
+  return result;
 }

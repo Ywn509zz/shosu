@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { toTrack } from "~/components/beatmap-card";
+import { EmptyState } from "~/components/empty-state";
 import { MapMatchCard } from "~/components/map-match-card";
 import type { Recommendations } from "~/lib/insights";
 import type { Track } from "~/lib/player";
@@ -73,18 +74,17 @@ export function RecommendationsSection() {
       )}
 
       {state.phase === "error" && (
-        <p className="empty">
+        <EmptyState icon="⚠" tone="error" title="Recommandations indisponibles">
           {state.limited
             ? "Trop de recommandations demandées : réessaie dans quelques minutes."
-            : "Les recommandations ne sont pas disponibles pour le moment."}
-        </p>
+            : "osu! ne répond pas pour le moment : réessaie dans un instant."}
+        </EmptyState>
       )}
 
       {state.phase === "ready" && !state.data.habits && (
-        <p className="empty">
-          Pas encore de scores dans ce mode : joue quelques parties pour que je comprenne tes habitudes, ou essaie un
-          autre mode.
-        </p>
+        <EmptyState icon="🎯" title="Pas encore de scores dans ce mode">
+          Joue quelques parties pour que je comprenne tes habitudes, ou essaie un autre mode ci-dessus.
+        </EmptyState>
       )}
 
       {state.phase === "ready" && state.data.habits && (
@@ -103,7 +103,10 @@ export function RecommendationsSection() {
             ))}
           </ul>
           {state.data.items.length === 0 ? (
-            <p className="empty">Je n'ai pas trouvé de nouvelles beatmaps à te proposer pour le moment.</p>
+            <EmptyState icon="✨" title="Rien de nouveau à te proposer">
+              Tu as déjà joué ou gardé tout ce qui correspond à tes habitudes. Lance une recherche pour sortir des
+              sentiers battus.
+            </EmptyState>
           ) : (
             <div className="similar-grid">
               {state.data.items.map((item) => (

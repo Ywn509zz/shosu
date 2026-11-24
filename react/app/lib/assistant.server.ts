@@ -23,6 +23,7 @@ import {
 } from "./account.server";
 import { analyzeDifficulty } from "./analysis.server";
 import { compareSets } from "./compare";
+import { comparePlayers } from "./compare-players";
 import { getMusicDna } from "./dna.server";
 import { analyzePerformance } from "./performance.server";
 import { getProgress, recordSnapshot } from "./progress.server";
@@ -68,6 +69,7 @@ Tes outils :
 - music_dna : l'empreinte musicale (« Music DNA ») du joueur CONNECTÉ, tirée de ses favoris, de ses beatmaps les plus jouées et de ses listes : genres,
   langues, tempo, artistes, ambiance, et des beatmaps jamais jouées qui lui correspondent. Pour « mes goûts », « quel genre j'aime », « des morceaux comme les miens ».
 - similar_sound : beatmaps dont la MUSIQUE est proche d'une autre (même artiste, BPM proche, genre, langue, ambiance), sans tenir compte de la difficulté.
+- compare_players : compare deux joueurs (pp, rang, précision, temps de jeu, style de jeu, modes préférés, beatmaps en commun). Pour « moi contre untel » utilise le pseudo de l'utilisateur connecté si tu le connais (get_my_account) ou son identifiant.
 - compare_beatmaps : compare deux beatmaps (difficulté, BPM, durée, popularité, ressemblance musicale) avec un résumé en phrases.
 - find_similar_maps : beatmaps qui ressemblent à une autre (artiste, tags, BPM, difficulté), avec la raison de la ressemblance.
 - analyze_difficulty : difficulté d'une beatmap avec chaque mod (EZ, HR, HT, DT…), AR/OD/BPM modifiés et décomposition aim/vitesse.
@@ -165,6 +167,20 @@ const TOOLS: GeminiFunctionDeclaration[] = [
       type: "OBJECT",
       properties: { id: { type: "INTEGER", description: "Identifiant du set de beatmaps de référence." } },
       required: ["id"],
+    },
+  },
+  {
+    name: "compare_players",
+    description:
+      "Compare deux joueurs osu! dans un mode : pp, rang, précision, parties, temps de jeu, difficulté et BPM moyens des meilleurs scores, modes préférés, beatmaps en commun, avec un résumé.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        a: { type: "STRING", description: "Pseudo ou identifiant osu! du premier joueur." },
+        b: { type: "STRING", description: "Pseudo ou identifiant osu! du second joueur." },
+        mode: { type: "STRING", enum: MODE_ENUM, description: "Mode de jeu (osu par défaut)." },
+      },
+      required: ["a", "b"],
     },
   },
   {
@@ -388,6 +404,7 @@ const STATUS_TEXT: Record<string, (args: Record<string, unknown>) => string> = {
   get_beatmap: () => "J'examine la beatmap…",
   music_dna: () => "Je lis ton empreinte musicale…",
   similar_sound: () => "Je cherche des musiques proches…",
+  compare_players: () => "Je compare les deux joueurs…",
   compare_beatmaps: () => "Je compare les deux beatmaps…",
   find_similar_maps: () => "Je cherche des maps qui lui ressemblent…",
   analyze_difficulty: () => "J'analyse la difficulté avec chaque mod…",
@@ -564,6 +581,30 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
         found: similar.length,
         beatmaps: similar.map((m) => ({ id: m.id, title: m.title, artist: m.artist, similarity: m.score, reasons: m.reasons })),
         ...(similar.length === 0 ? { hint: "Aucune musique vraiment proche trouvée." } : {}),
+      };
+    }
+
+    case "compare_players": {
+      const refA = parsePlayerRef(clean(args.a, 20));
+      const refB = parsePlayerRef(clean(args.b, 20));
+      if (!refA || !refB) return { error: "Pseudo ou identifiant invalide." };
+      const mode = modeOf(args.mode, "osu");
+      const [pa, pb] = await Promise.all([getPlayerPage(refA.value, mode), getPlayerPage(refB.value, mode)]);
+      if (pa.id === pb.id) return { error: "Il faut deux joueurs différents." };
+      const [ma, mb] = await Promise.all([
+        getProgress(pa.id, mode).then((p) => p.modes).catch(() => undefined),
+        getProgress(pb.id, mode).then((p) => p.modes).catch(() => undefined),
+      ]);
+      ctx.emit({ t: "players", items: [pa, pb] });
+      const comparison = comparePlayers(pa, pb, ma, mb);
+      return {
+        mode,
+        a: pa.username,
+        b: pb.username,
+        verdict: comparison.verdict,
+        rows: comparison.rows.map((r) => ({ criterion: r.label, a: r.a, b: r.b, best: r.better === "a" ? pa.username : r.better === "b" ? pb.username : null })),
+        commonBeatmaps: comparison.common.slice(0, 5).map((c) => ({ title: c.title, artist: c.artist })),
+        page: `/compare/players?a=${pa.id}&b=${pb.id}&mode=${mode}`,
       };
     }
 

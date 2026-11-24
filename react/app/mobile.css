@@ -177,6 +177,32 @@
     min-width: 0;
     min-height: 42px;
   }
+  .adv-panel fieldset {
+    flex: 1 1 100%;
+  }
+  .adv-panel input {
+    flex: 1;
+    width: auto;
+    min-height: 44px;
+  }
+  .adv-panel select {
+    flex: 1;
+    min-height: 44px;
+  }
+  .adv-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .adv-actions .account-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+  }
+  .empty-state-actions .account-btn {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
   .recent-searches {
     justify-content: flex-start;
     flex-wrap: nowrap;

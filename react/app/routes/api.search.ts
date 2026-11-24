@@ -1,6 +1,7 @@
 import { data } from "react-router";
 
 import { MODE_IDS, STATUS_IDS } from "~/lib/osu";
+import { filtersToQuery, hasFilters, parseFilters } from "~/lib/search-filters";
 import { OsuError, searchBeatmapsets } from "~/lib/osu.server";
 import { clientIp, rateLimit } from "~/lib/rate-limit.server";
 
@@ -29,10 +30,13 @@ const IP_LIMIT = { limit: 90, windowMs: 60_000 };
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const q = (url.searchParams.get("q") ?? "").trim();
-  if (!q || q.length > MAX_QUERY_LENGTH) {
+  const text = (url.searchParams.get("q") ?? "").trim();
+  // Filtres avancés (étoiles, BPM, durée) et tri : validés, puis traduits en syntaxe osu! ; sans texte, un filtre suffit.
+  const filters = parseFilters((name) => url.searchParams.get(name));
+  if (text.length > MAX_QUERY_LENGTH || (!text && !hasFilters(filters))) {
     return data({ error: "Query must be 1-200 characters" }, { status: 400, headers });
   }
+  const q = `${text}${filtersToQuery(filters)}`.trim();
 
   const hit = await rateLimit(`search:${clientIp(request)}`, IP_LIMIT.limit, IP_LIMIT.windowMs, false);
   if (!hit.ok) {
@@ -52,6 +56,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       mode: MODE_IDS.includes(mode) ? mode : "all",
       status: STATUS_IDS.includes(status) ? status : "all",
       cursor: rawCursor && CURSOR_PATTERN.test(rawCursor) ? rawCursor : null,
+      sort: filters.sort,
     });
     return data(page, { headers: cacheableHeaders });
   } catch (err) {

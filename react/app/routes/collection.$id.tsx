@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, data, useNavigate } from "react-router";
 
 import { Avatar } from "~/components/avatar";
+import { EmptyState } from "~/components/empty-state";
 import { BeatmapCard } from "~/components/beatmap-card";
 import { ExportMenu } from "~/components/export-menu";
 import { COLLECTION_ID_PATTERN, collectionPath, type Collection } from "~/lib/collections";
@@ -251,15 +252,23 @@ export default function CollectionPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {items.length === 0 ? (
-        <p className="empty">
-          {isOwner ? (
-            <>
-              Cette collection est vide. Ajoute des beatmaps avec le bouton 📁 depuis la <Link to="/">recherche</Link>.
-            </>
-          ) : (
-            "Cette collection est vide."
-          )}
-        </p>
+        <EmptyState
+          icon="📁"
+          title="Cette collection est vide"
+          actions={
+            isOwner ? (
+              <Link className="account-btn is-primary" to="/">
+                Chercher des beatmaps à ajouter
+              </Link>
+            ) : (
+              <Link className="account-btn" to="/collections">
+                Voir d'autres collections
+              </Link>
+            )
+          }
+        >
+          {isOwner ? "Ajoute des beatmaps avec le bouton 📁 des cartes de résultats." : "Son propriétaire n'y a pas encore rangé de beatmap."}
+        </EmptyState>
       ) : (
         <div className="results-grid">
           {items.map((item) => (

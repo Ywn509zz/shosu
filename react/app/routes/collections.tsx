@@ -2,6 +2,7 @@ import { Button } from "@heroui/react";
 import { Form, Link, data, useSearchParams } from "react-router";
 
 import { CollectionTile } from "~/components/collection-tile";
+import { EmptyState } from "~/components/empty-state";
 import { listPublicCollections } from "~/lib/collections.server";
 import { clientIp, rateLimit } from "~/lib/rate-limit.server";
 import { useProgressive } from "~/lib/use-progressive";
@@ -91,10 +92,26 @@ export default function Collections({ loaderData }: Route.ComponentProps) {
         <p className="notice">Les collections sont momentanément indisponibles. Réessaie dans un instant.</p>
       )}
       {!unavailable && collections.length === 0 ? (
-        <p className="empty">
-          {query ? "Aucune collection ne correspond à cette recherche." : "Aucune collection publique pour l'instant."}{" "}
-          Crée la tienne depuis <Link to="/lists?list=collections">Mes collections</Link> et partage-la !
-        </p>
+        <EmptyState
+          icon="🌍"
+          title={query ? "Aucune collection ne correspond" : "Aucune collection publique pour l'instant"}
+          actions={
+            <>
+              <Link className="account-btn is-primary" to="/lists?list=collections">
+                Créer ma collection
+              </Link>
+              {query && (
+                <Link className="account-btn" to="/collections">
+                  Voir toutes les collections
+                </Link>
+              )}
+            </>
+          }
+        >
+          {query
+            ? "Essaie un autre mot, ou retire la recherche."
+            : "Sois le premier : crée une collection, rends-la publique et partage-la."}
+        </EmptyState>
       ) : (
         <div className="tile-grid">
           {collections.slice(0, progressive.count).map((collection) => (

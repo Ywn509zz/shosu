@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 3.5), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 3.6), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -19,7 +19,7 @@ et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour c
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 3.5 » ↔ `3.5.0`).
+temps que `version` dans `package.json` (« bêta 3.6 » ↔ `3.6.0`).
 
 ## Démarrage
 
@@ -180,6 +180,8 @@ pages) fonctionne déjà. Stripe héberge la page de paiement : le site ne voit 
   **Comparer deux beatmaps** (`/compare`) et **partager une beatmap** avec un lien qui s'affiche bien dans Discord. Stack dispose des outils correspondants.
 - **Confidentialité et Mes données** : page `/privacy` (ce que shOsu! lit, garde, partage ; Gemini ; cookies), page `/my-data` pour **télécharger** (JSON) et **supprimer** ses données.
   **Quotas** (`/admin`, administrateurs seulement) : usage de Redis, d'osu! et de Gemini, projection de fin de mois et alerte. **Tests** (`npm test`) et CI GitHub.
+- **Recherche avancée** : filtres étoiles / BPM / durée et tri (appliqués côté osu!), liens profonds partageables. **Importer ses favoris osu!** dans ses listes en un clic.
+  **Comparer deux joueurs** (`/compare/players`) : statistiques, style de jeu, modes préférés, beatmaps en commun. **États vides** avec une action utile partout.
 - **Historique** (`/history`) : recherches, écoutes et beatmaps consultées récentes, gardées **uniquement dans le navigateur** (localStorage, un historique par compte
   osu!) : rien n'est envoyé au serveur. Les dernières recherches s'affichent aussi sous la barre de recherche.
 - **Page d'une beatmap** (`/beatmap/:id`) : cover, BPM, durée, favoris, tags, toutes les difficultés (étoiles, CS/AR/OD/HP,

@@ -1,8 +1,9 @@
 import { Button } from "@heroui/react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { BeatmapCard } from "~/components/beatmap-card";
+import { EmptyState } from "~/components/empty-state";
 import { ExportMenu } from "~/components/export-menu";
 import { callCollections } from "~/lib/collections-client";
 import { collectionPath, type Collection } from "~/lib/collections";
@@ -66,11 +67,59 @@ export default function Lists({ loaderData }: Route.ComponentProps) {
     loaderData;
   const lists = useLists();
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
   const [sharing, setSharing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState("");
+
+  /** Copie les favoris du compte osu! dans la liste « Favoris » de shOsu!. */
+  async function importFavourites() {
+    if (importing) return;
+    setImporting(true);
+    setImportMessage("");
+    try {
+      const response = await fetch("/api/lists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ action: "import_osu_favourites" }),
+      });
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+        fetched: number;
+        added: number;
+        alreadyThere: number;
+        skippedByLimit: number;
+      } | null;
+      if (!response.ok || !body) {
+        setImportMessage(
+          body?.error === "rate_limited"
+            ? "Import déjà lancé plusieurs fois : réessaie dans une heure."
+            : "L'import n'a pas pu aboutir : osu! ou le stockage est momentanément indisponible.",
+        );
+      } else if (body.fetched === 0) {
+        setImportMessage("Tu n'as aucune beatmap en favori sur osu! (ou ton profil les masque).");
+      } else {
+        setImportMessage(
+          `${body.added} beatmap${body.added > 1 ? "s" : ""} importée${body.added > 1 ? "s" : ""}` +
+            (body.alreadyThere ? `, ${body.alreadyThere} déjà présente${body.alreadyThere > 1 ? "s" : ""}` : "") +
+            (body.skippedByLimit
+              ? `, ${body.skippedByLimit} non ajoutée${body.skippedByLimit > 1 ? "s" : ""} (liste pleine)`
+              : "") +
+            ".",
+        );
+        await lists.refresh();
+        await revalidator.revalidate();
+      }
+    } catch {
+      setImportMessage("L'import n'a pas pu aboutir : réessaie dans un instant.");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   /** Copie la liste dans une collection publique (instantané) et ouvre sa page, où se trouve le lien à partager. */
   async function shareList() {
@@ -196,9 +245,22 @@ export default function Lists({ loaderData }: Route.ComponentProps) {
               </form>
               {createError && <p className="notice">{createError}</p>}
               {collections.length === 0 && !unavailable ? (
-                <p className="empty">
-                  Aucune collection pour l'instant. Crée-en une ci-dessus, puis ajoute des beatmaps avec le bouton 📁.
-                </p>
+                <EmptyState
+                  icon="📁"
+                  title="Aucune collection pour l'instant"
+                  actions={
+                    <>
+                      <Link className="account-btn is-primary" to="/">
+                        Chercher des beatmaps
+                      </Link>
+                      <Link className="account-btn" to="/collections">
+                        Voir celles des autres joueurs
+                      </Link>
+                    </>
+                  }
+                >
+                  Crée-en une avec le champ ci-dessus, puis range des beatmaps avec le bouton 📁 des cartes. Une collection peut ensuite se partager par lien.
+                </EmptyState>
               ) : (
                 <div className="collection-grid">
                   {collections.map((collection) => (
@@ -214,9 +276,33 @@ export default function Lists({ loaderData }: Route.ComponentProps) {
               )}
             </>
           ) : visible.length === 0 && !unavailable ? (
-            <p className="empty">
-              Cette liste est vide. Lance une <Link to="/">recherche</Link> et ajoute des beatmaps avec ♡ ou 🕒.
-            </p>
+            <>
+              <EmptyState
+                icon={list === "favorites" ? "♡" : "🕒"}
+                title={list === "favorites" ? "Aucun favori pour l'instant" : "Rien à jouer plus tard pour l'instant"}
+                actions={
+                  <>
+                    {list === "favorites" && (
+                      <Button className="account-btn is-primary" isDisabled={importing} onPress={() => void importFavourites()}>
+                        {importing ? "Import en cours…" : "⬇ Importer mes favoris osu!"}
+                      </Button>
+                    )}
+                    <Link className={`account-btn${list === "favorites" ? "" : " is-primary"}`} to="/">
+                      Lancer une recherche
+                    </Link>
+                  </>
+                }
+              >
+                {list === "favorites"
+                  ? "Ajoute des beatmaps avec ♡ depuis les résultats, ou reprends d'un coup tes favoris du site osu!."
+                  : "Garde sous la main les beatmaps à essayer avec le bouton 🕒 des résultats."}
+              </EmptyState>
+              {importMessage && (
+                <p className="notice" role="status">
+                  {importMessage}
+                </p>
+              )}
+            </>
           ) : (
             <>
               <div className="collection-actions">
@@ -224,8 +310,18 @@ export default function Lists({ loaderData }: Route.ComponentProps) {
                 <Button className="account-btn" isDisabled={sharing} onPress={() => void shareList()}>
                   🔗 Partager cette liste
                 </Button>
+                {list === "favorites" && (
+                  <Button className="account-btn" isDisabled={importing} onPress={() => void importFavourites()}>
+                    {importing ? "Import en cours…" : "⬇ Importer mes favoris osu!"}
+                  </Button>
+                )}
               </div>
               {createError && <p className="notice">{createError}</p>}
+              {importMessage && (
+                <p className="notice" role="status">
+                  {importMessage}
+                </p>
+              )}
               <div className="results-grid">
                 {visible.slice(0, progressive.count).map((item) => (
                   <BeatmapCard key={item.id} mapset={item} queue={visible} />

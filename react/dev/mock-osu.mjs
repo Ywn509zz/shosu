@@ -67,6 +67,8 @@ const USERS = {
   38656812: { id: 38656812, username: "Vinncent", country_code: "FR", modes: { osu: { pp: 4231, rank: 649, plays: 18234 }, mania: { pp: 2900, rank: 486, plays: 4100 } } },
   37954459: { id: 37954459, username: "maybe_unknow", country_code: "FR", modes: {} },
 };
+// Les joueurs des classements (ids 700000+, pseudos « Pro<n> ») existent aussi comme profils, en standard seulement.
+for (let i = 0; i < 50; i++) USERS[700000 + i] = { id: 700000 + i, username: `Pro${i + 1}`, country_code: "KR", modes: { osu: { pp: 20000 - i * 20, rank: i + 1, plays: 100000 } } };
 const userByRef = (ref, key) =>
   Object.values(USERS).find((u) => (key === "username" ? u.username.toLowerCase() === String(ref).toLowerCase() : String(u.id) === String(ref)));
 
@@ -157,9 +159,19 @@ const server = http.createServer(async (req, res) => {
 
   // --- Recherche -----------------------------------------------------------
   if (p === "/beatmapsets/search") {
-    const q = (url.searchParams.get("q") || "").toLowerCase();
+    // Comme osu! : la syntaxe « stars>=5 bpm<=200 length<=180 » est un filtre, pas du texte.
+    const filters = [];
+    const raw = (url.searchParams.get("q") || "").toLowerCase().replace(/(stars|bpm|length)(>=|<=)([0-9.]+)/g, (_, k, op, n) => { filters.push([k, op, Number(n)]); return ""; });
+    const q = raw.trim();
     const m = url.searchParams.get("m");
     let list = sets.filter((s) => !q || `${s.title} ${s.artist} ${s.creator} ${s.tags}`.toLowerCase().includes(q) || q.split(/\s+/).every((w) => `${s.title} ${s.artist} ${s.creator} ${s.tags} ${s.source}`.toLowerCase().includes(w)));
+    for (const [k, op, n] of filters) {
+      list = list.filter((s) => {
+        if (k === "bpm") return op === ">=" ? s.bpm >= n : s.bpm <= n;
+        if (k === "length") return op === "<=" ? Math.max(...s.beatmaps.map((b) => b.total_length)) <= n : true;
+        return op === ">=" ? s.beatmaps.some((b) => b.difficulty_rating >= n) : s.beatmaps.some((b) => b.difficulty_rating <= n);
+      });
+    }
     if (m !== null) list = list.filter((s) => s.beatmaps.some((b) => MODES.indexOf(b.mode) === Number(m)));
     const status = url.searchParams.get("s");
     if (status && status !== "any") list = list.filter((s) => s.status === status);

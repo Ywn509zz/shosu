@@ -32,6 +32,7 @@ export default [
     route("stats", "routes/stats.tsx"),
     route("dna", "routes/dna.tsx"),
     route("compare", "routes/compare.tsx"),
+    route("compare/players", "routes/compare-players.tsx"),
     route("collections", "routes/collections.tsx"),
     route("privacy", "routes/privacy.tsx"),
     route("my-data", "routes/my-data.tsx"),

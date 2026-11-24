@@ -6,6 +6,14 @@ import { ListButtons } from "~/components/list-buttons";
 import { beatmapsetUrl, coverUrl, getStarColor, type Beatmapset } from "~/lib/osu";
 import { usePlayer, type Track } from "~/lib/player";
 
+/** Étoiles affichées : la plage du set (« 1.74–7.90 ») quand ses difficultés diffèrent, sinon la valeur unique. */
+function stars(mapset: Beatmapset): string {
+  const { minStars, maxStars } = mapset;
+  if (minStars !== null && maxStars !== null && Math.abs(maxStars - minStars) >= 0.05)
+    return `${minStars.toFixed(2)}–${maxStars.toFixed(2)}`;
+  return (mapset.stars ?? 0).toFixed(2);
+}
+
 export function toTrack(mapset: Beatmapset): Track | null {
   return mapset.previewFile
     ? { id: mapset.id, title: mapset.title, artist: mapset.artist, previewFile: mapset.previewFile }
@@ -38,8 +46,8 @@ export function BeatmapCard({ mapset, queue, extra }: { mapset: Beatmapset; queu
             </p>
           </div>
           {mapset.stars !== null && (
-            <p className="star-rating" style={{ color: getStarColor(mapset.stars) }}>
-              ⭐ {mapset.stars.toFixed(2)}★
+            <p className="star-rating" style={{ color: getStarColor(mapset.maxStars ?? mapset.stars) }}>
+              ⭐ {stars(mapset)}★
             </p>
           )}
         </div>

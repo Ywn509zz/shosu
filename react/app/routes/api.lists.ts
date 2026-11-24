@@ -1,7 +1,7 @@
 import { data } from "react-router";
 
 import { isListId, type ListId } from "~/lib/lists";
-import { addToList, getListIds, ListFullError, removeFromList } from "~/lib/lists.server";
+import { addToList, getListIds, importOsuFavourites, ListFullError, removeFromList } from "~/lib/lists.server";
 import { OsuError } from "~/lib/osu.server";
 import { PLANS } from "~/lib/plans";
 import { rateLimit } from "~/lib/rate-limit.server";
@@ -46,6 +46,18 @@ export async function action({ request }: Route.ActionArgs) {
     body = JSON.parse(raw);
   } catch {
     return fail("invalid_request", 400);
+  }
+
+  // Importer les favoris osu! : une opération lourde (jusqu'à 20 lectures chez osu!) → 3 par heure et par joueur.
+  if (body.action === "import_osu_favourites") {
+    const imp = await rateLimit(`lists-import:${user.id}`, 3, 60 * 60_000, false);
+    if (!imp.ok) return fail("rate_limited", 429);
+    try {
+      return data({ ok: true, ...(await importOsuFavourites(user.osuId, PLANS[user.plan].listLimit)) }, { headers });
+    } catch (error) {
+      console.error("Import favourites error:", error instanceof Error ? error.name : "Error");
+      return fail(error instanceof OsuError ? "osu_unavailable" : "storage_unavailable", 503);
+    }
   }
 
   const id = body.id;
