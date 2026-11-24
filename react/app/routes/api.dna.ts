@@ -17,6 +17,11 @@ const LIMIT = { limit: 8, windowMs: 10 * 60_000 };
  * `viewed` : jusqu'à 20 identifiants de beatmaps consultées récemment (l'historique est local au navigateur, donc envoyé ici).
  * C'est un POST parce qu'il porte ce corps ; il ne modifie rien.
  */
+/** Cette route n'accepte que POST : un GET reçoit 405 (au lieu d'une erreur de routeur dans les journaux). */
+export function loader() {
+  return data({ error: "method_not_allowed" }, { status: 405, headers: { Allow: "POST", "Cache-Control": "no-store" } });
+}
+
 export async function action({ request }: Route.ActionArgs) {
   const origin = request.headers.get("origin");
   if (!origin || origin !== new URL(request.url).origin) return data({ error: "forbidden" }, { status: 403, headers });
