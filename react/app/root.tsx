@@ -3,15 +3,19 @@ import { isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestora
 import type { Route } from "./+types/root";
 import "./app.css";
 
-export const meta: Route.MetaFunction = () => [{ title: "shOsu!" }];
+export const meta: Route.MetaFunction = () => [
+  { title: "shOsu!" },
+  { name: "description", content: "Recherche, écoute et trouve ton prochain beatmap osu! : recommandations, collections, Music DNA et assistant Stack." },
+];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#0b1020" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
         <link rel="icon" href="/favicon-48.png" sizes="48x48" type="image/png" />

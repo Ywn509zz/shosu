@@ -10,6 +10,8 @@
  * Le reste du code ne doit jamais appeler Redis directement : il passe par ces fonctions.
  */
 
+import { bump, drain } from "./usage-buffer";
+
 const restUrl = () => process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || "";
 const restToken = () => process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "";
 
@@ -18,7 +20,38 @@ export const isPersistent = () => Boolean(restUrl() && restToken());
 
 type Command = (string | number)[];
 
-async function redisPipeline(commands: Command[]): Promise<unknown[]> {
+let lastFlush = Date.now();
+let flushing = false;
+const USAGE_FLUSH_MS = 30_000;
+const usageKey = () => `shosu:usage:${new Date().toISOString().slice(0, 10)}`;
+
+/**
+ * Vide les compteurs d'usage dans Redis (un HINCRBY par compteur, une seule requête). Appelé au fil de l'eau (au plus toutes les 30 s,
+ * quand une commande Redis a lieu) ou de force par le tableau de bord. Les commandes du vidage sont comptées elles aussi.
+ * Approximation assumée : les compteurs d'une instance arrêtée avant son vidage sont perdus.
+ */
+async function flushUsage(force = false): Promise<void> {
+  if (flushing || !isPersistent()) return;
+  if (!force && Date.now() - lastFlush < USAGE_FLUSH_MS) return;
+  const data = drain();
+  if (Object.keys(data).length === 0) return;
+  flushing = true;
+  lastFlush = Date.now();
+  try {
+    const key = usageKey();
+    const commands: Command[] = Object.entries(data).map(([field, amount]) => ["HINCRBY", key, field, amount]);
+    commands.push(["EXPIRE", key, 40 * 86_400]);
+    await redisPipeline(commands, false);
+    bump("redis", commands.length);
+  } catch {
+    /* compteurs perdus : sans gravité */
+  } finally {
+    flushing = false;
+  }
+}
+export const flushUsageNow = () => flushUsage(true);
+
+async function redisPipeline(commands: Command[], track = true): Promise<unknown[]> {
   const response = await fetch(`${restUrl().replace(/\/$/, "")}/pipeline`, {
     method: "POST",
     headers: { Authorization: `Bearer ${restToken()}`, "Content-Type": "application/json" },
@@ -28,6 +61,10 @@ async function redisPipeline(commands: Command[]): Promise<unknown[]> {
   if (!response.ok) throw new Error(`Redis HTTP ${response.status}`);
 
   const results = (await response.json()) as { result?: unknown; error?: string }[];
+  if (track) {
+    bump("redis", commands.length);
+    void flushUsage();
+  }
   return results.map((entry) => {
     if (entry.error) throw new Error("Redis command failed");
     return entry.result;

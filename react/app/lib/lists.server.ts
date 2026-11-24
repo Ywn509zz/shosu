@@ -88,3 +88,8 @@ export async function removeFromList(osuId: number, list: ListId, beatmapsetId: 
 }
 
 export { isListId };
+
+/** Supprime les deux listes du joueur (favoris, à jouer plus tard) : « Supprimer mes données ». */
+export async function clearLists(osuId: number): Promise<void> {
+  await Promise.all(LIST_IDS.map((list) => hash.del(keyFor(osuId, list))));
+}

@@ -16,5 +16,6 @@ export KV_REST_API_URL=http://localhost:4030 KV_REST_API_TOKEN=t
 export CLIENT_ID=x CLIENT_SECRET=y
 export SESSION_SECRET=localtestsecretlocaltestsecret123456
 export OSU_REDIRECT_URI=http://localhost:5173/api/auth/callback BETTER_AUTH_URL=http://localhost:5173
+export ADMIN_USER_IDS=38656812   # accès à /admin (quotas) pour « Vinncent »
 # Pour tester Premium : export PREMIUM_USER_IDS=38656812
 exec npm run dev

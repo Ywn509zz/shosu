@@ -780,3 +780,113 @@ body::after {
 .mobile-nav .is-active .avatar {
   box-shadow: 0 0 0 2px var(--brand-text);
 }
+
+/* ===== Pages de texte (confidentialité), Mes données, quotas ===== */
+.prose {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: left;
+  line-height: 1.7;
+}
+.prose h2 {
+  margin: 32px 0 8px;
+  font-size: 1.15rem;
+}
+.prose p,
+.prose li {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.prose b {
+  color: var(--text);
+}
+.prose a {
+  color: var(--brand-text);
+}
+.data-card {
+  max-width: 760px;
+  margin: 0 auto 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  text-align: left;
+}
+.data-card h2 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+}
+.data-card.is-danger {
+  border-color: rgba(255, 128, 104, 0.4);
+}
+.data-card .rename-form {
+  justify-content: flex-start;
+  margin: 12px 0 0;
+}
+.data-card .collection-actions {
+  justify-content: flex-start;
+}
+.usage-level {
+  max-width: 760px;
+  margin: 0 auto 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  font-size: 0.88rem;
+}
+.usage-level.is-warn {
+  border-color: rgba(255, 162, 60, 0.5);
+  background: rgba(255, 162, 60, 0.08);
+}
+.usage-level.is-crit {
+  border-color: rgba(255, 92, 108, 0.55);
+  background: rgba(255, 92, 108, 0.1);
+}
+.quota-bar {
+  position: relative;
+  max-width: 760px;
+  height: 30px;
+  margin: 0 auto 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+.quota-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), var(--brand-text));
+  transition: width 0.8s var(--ease-out);
+}
+.quota-bar i[data-level="warn"] {
+  background: linear-gradient(90deg, #ffa23c, #ffcf70);
+}
+.quota-bar i[data-level="crit"] {
+  background: linear-gradient(90deg, #ff5c6c, #ff9a8b);
+}
+.quota-bar span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.usage-banner {
+  display: block;
+  padding: 8px 16px;
+  color: #fff;
+  background: #c77d12;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+.usage-banner.is-crit {
+  background: #c93a48;
+}
+.usage-banner span {
+  margin-left: 8px;
+  text-decoration: underline;
+}

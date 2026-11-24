@@ -4,6 +4,7 @@ import { MAX_AUDIO_BYTES, runListen, wavSeconds } from "~/lib/listen.server";
 import { isGeminiConfigured } from "~/lib/gemini.server";
 import { streamEvents } from "~/lib/ndjson.server";
 import { rateLimit } from "~/lib/rate-limit.server";
+import { bump } from "~/lib/usage-buffer";
 import { getUser } from "~/lib/session.server";
 
 import type { Route } from "./+types/api.listen";
@@ -50,5 +51,6 @@ export async function action({ request }: Route.ActionArgs) {
   const seconds = wavSeconds(wav);
   if (seconds === null) return fail("audio_invalid", 400);
 
+  bump("listen");
   return streamEvents((emit) => runListen({ wav, seconds, emit }));
 }

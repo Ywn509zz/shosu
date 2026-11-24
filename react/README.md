@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 3.4), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 3.5), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -19,7 +19,7 @@ et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour c
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 3.4 » ↔ `3.4.0`).
+temps que `version` dans `package.json` (« bêta 3.5 » ↔ `3.5.0`).
 
 ## Démarrage
 
@@ -54,6 +54,8 @@ Mêmes noms que la version HTML/JS : **rien à renommer dans Vercel**.
 | `AUTH_SESSION_VERSION`         |     non     | Incrémenter pour invalider **toutes** les sessions                       |
 | `PREMIUM_USER_IDS`             |     non     | Identifiants osu! (séparés par des virgules) qui ont le plan Premium, sans limite de durée |
 | `ADMIN_TOKEN`                  |     non     | Active `/api/admin/plan` (24 caractères min.) pour attribuer le Premium ; sinon l'endpoint répond 404 |
+| `ADMIN_USER_IDS`               |     non     | Identifiants osu! des administrateurs (séparés par des virgules) : accès à `/admin` (quotas) et alerte de quota |
+| `REDIS_MONTHLY_LIMIT`          |     non     | Quota mensuel de commandes Redis pour les alertes (défaut 500 000, plan gratuit d'Upstash) |
 | `DIAGNOSTICS_TOKEN`            |     non     | Active `/api/auth/check` (16 caractères min.) ; sinon l'endpoint répond 404 |
 | `GEMINI_API_KEY`               |     non     | Clé Gemini pour Stack (sans elle, le panneau indique que Stack n'est pas configuré) |
 | `GEMINI_MODEL`                 |     non     | Modèle principal (défaut `gemini-3.1-flash-lite`, repli automatique)     |
@@ -176,6 +178,8 @@ pages) fonctionne déjà. Stripe héberge la page de paiement : le site ne voit 
 - **Music DNA** (`/dna`) : ton empreinte musicale (genres, langues, tempo, artistes, ambiance) tirée de tes favoris, de tes beatmaps les plus jouées et de tes consultations, avec des
   morceaux jamais joués qui y correspondent. **Similar Sound** : onglet « Musique proche » (même artiste, BPM, genre, langue, ambiance) sur chaque beatmap.
   **Comparer deux beatmaps** (`/compare`) et **partager une beatmap** avec un lien qui s'affiche bien dans Discord. Stack dispose des outils correspondants.
+- **Confidentialité et Mes données** : page `/privacy` (ce que shOsu! lit, garde, partage ; Gemini ; cookies), page `/my-data` pour **télécharger** (JSON) et **supprimer** ses données.
+  **Quotas** (`/admin`, administrateurs seulement) : usage de Redis, d'osu! et de Gemini, projection de fin de mois et alerte. **Tests** (`npm test`) et CI GitHub.
 - **Historique** (`/history`) : recherches, écoutes et beatmaps consultées récentes, gardées **uniquement dans le navigateur** (localStorage, un historique par compte
   osu!) : rien n'est envoyé au serveur. Les dernières recherches s'affichent aussi sous la barre de recherche.
 - **Page d'une beatmap** (`/beatmap/:id`) : cover, BPM, durée, favoris, tags, toutes les difficultés (étoiles, CS/AR/OD/HP,

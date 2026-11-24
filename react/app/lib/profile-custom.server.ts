@@ -61,3 +61,9 @@ export async function saveProfileCustom(osuId: number, input: unknown): Promise<
   forget(`profile-custom:${osuId}`);
   return custom;
 }
+
+/** Efface le profil personnalisé du joueur (retour au profil par défaut). */
+export async function deleteProfileCustom(osuId: number): Promise<void> {
+  await hash.remove(KEY, String(osuId));
+  forget(`profile-custom:${osuId}`);
+}

@@ -266,3 +266,17 @@ export async function createFromList(
   forget("collections:public");
   return collection;
 }
+
+/** Supprime toutes les collections du joueur (métadonnées, beatmaps, index d'identifiants et index public). */
+export async function deleteAllCollections(osuId: number): Promise<number> {
+  const all = await hash.getAll(metaKey(osuId));
+  const ids = Object.keys(all).filter((id) => COLLECTION_ID_PATTERN.test(id));
+  for (const id of ids) {
+    await hash.remove(INDEX_KEY, id);
+    await hash.remove(PUBLIC_KEY, id);
+    await hash.del(itemsKey(id));
+  }
+  await hash.del(metaKey(osuId));
+  forget("collections:public");
+  return ids.length;
+}

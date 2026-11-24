@@ -117,6 +117,16 @@ function AccountMenu({ user }: { user: SessionUser }) {
           <span>Historique</span>
           <small>Recherches et écoutes récentes</small>
         </Link>
+        <Link to="/my-data" onClick={() => setOpen(false)}>
+          <span>Mes données</span>
+          <small>Télécharger ou supprimer</small>
+        </Link>
+        {user.isAdmin && (
+          <Link to="/admin" onClick={() => setOpen(false)}>
+            <span>Quotas</span>
+            <small>Usage de Redis, osu!, Gemini</small>
+          </Link>
+        )}
         <Button type="button" onPress={() => logoutAndRedirect(false)}>
           <span>Déconnexion</span>
           <small>Quitter shOsu!</small>

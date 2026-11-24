@@ -14,11 +14,14 @@ Pour essayer le plan Premium : `PREMIUM_USER_IDS=38656812 ./dev/dev.sh`. Détail
 
 Avec de vrais secrets (rarement utile) : copier `.env.example` vers `.env`. Les secrets de production sont « sensibles » sur Vercel : on ne peut pas les relire.
 
+**Tests automatiques : `npm test`** (Vitest, dossier `tests/`, voir FEATURES § Tests et CI).
+
 Vérifications avant de publier :
 
 ```bash
-npx tsc --noEmit        # types (doit être vide)
-npm run build           # build de production
+npx react-router typegen && npx tsc --noEmit   # types (doit être vide ; typegen après l'ajout d'une route)
+npm test                                       # tests unitaires
+npm run build                                  # build de production
 ```
 
 Formatage : Prettier avec `--print-width 120` sur les fichiers qu'on crée (certains fichiers anciens ne sont pas formatés ; ne pas reformater ce qu'on ne touche pas).

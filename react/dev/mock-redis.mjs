@@ -10,6 +10,7 @@ function run([cmd, ...a]) {
     case "TTL": return kv.has(a[0]) ? 60 : -2;
     case "EXPIRE": return 1;
     case "HSET": hashOf(a[0], true).set(String(a[1]), String(a[2])); return 1;
+    case "HINCRBY": { const h = hashOf(a[0], true); const v = Number(h.get(String(a[1])) ?? 0) + Number(a[2]); h.set(String(a[1]), String(v)); return v; }
     case "HGET": return hashOf(a[0])?.get(String(a[1])) ?? null;
     case "HDEL": return hashOf(a[0])?.delete(String(a[1])) ? 1 : 0;
     case "HEXISTS": return hashOf(a[0])?.has(String(a[1])) ? 1 : 0;

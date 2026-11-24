@@ -1,0 +1,11 @@
+# shOsu! — les pages publiques peuvent être indexées ; les API et les pages personnelles non.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /stats
+Disallow: /dna
+Disallow: /history
+Disallow: /my-data
+Disallow: /admin
+
+Sitemap: https://shosure.vercel.app/sitemap.xml

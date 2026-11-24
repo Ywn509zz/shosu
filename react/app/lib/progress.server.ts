@@ -163,6 +163,26 @@ export async function getProgress(playerId: number, mode: string): Promise<Progr
 
 const lastRecorded = new Map<number, string>();
 
+/** Efface tous les relevés quotidiens du joueur. */
+export async function deleteSnapshots(osuId: number): Promise<void> {
+  await hash.del(snapKey(osuId));
+  lastRecorded.delete(osuId);
+}
+
+/** Relevés bruts du joueur (champ `<mode>:<date>` → valeur), pour l'export de ses données. */
+export async function exportSnapshots(osuId: number): Promise<Record<string, unknown>> {
+  const all = await hash.getAll(snapKey(osuId));
+  const out: Record<string, unknown> = {};
+  for (const [field, raw] of Object.entries(all)) {
+    try {
+      out[field] = JSON.parse(raw);
+    } catch {
+      /* relevé illisible : ignoré */
+    }
+  }
+  return out;
+}
+
 /** Enregistre le relevé du jour pour chaque mode joué. À n'appeler que pour le joueur connecté lui-même. */
 export async function recordSnapshot(osuId: number): Promise<number> {
   const date = today();

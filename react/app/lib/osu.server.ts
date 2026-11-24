@@ -1,4 +1,5 @@
 import { cached } from "./cache.server";
+import { bump } from "./usage-buffer";
 import {
   API_MODE,
   API_STATUS,
@@ -131,6 +132,7 @@ async function searchBeatmapsetsUncached(params: {
     headers: { Authorization: `Bearer ${await accessToken()}`, Accept: "application/json" },
     signal: AbortSignal.timeout(12_000),
   });
+  bump("osu");
 
   if (!response.ok) {
     // Le token a pu être révoqué : on le jette pour forcer un renouvellement.
@@ -173,6 +175,7 @@ export async function osuGet<T>(path: string, params: Record<string, string> = {
     headers: { Authorization: `Bearer ${await accessToken()}`, Accept: "application/json" },
     signal: AbortSignal.timeout(10_000),
   });
+  bump("osu");
   if (response.status === 401) cachedToken = null;
   if (!response.ok) {
     logOsuFailure("GET", path, response.status);
@@ -198,6 +201,7 @@ export async function osuPost<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(10_000),
   });
+  bump("osu");
   if (response.status === 401) cachedToken = null;
   if (!response.ok) {
     logOsuFailure("POST", path, response.status);

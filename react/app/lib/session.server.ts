@@ -1,3 +1,4 @@
+import { isAdminId } from "./admin.server";
 import { auth } from "./auth.server";
 import type { PlanId } from "./plans";
 import { getPlan } from "./plans.server";
@@ -11,6 +12,8 @@ export type SessionUser = {
   osuId: number | null;
   /** Formule du joueur (voir plans.ts) ; « free » par défaut. */
   plan: PlanId;
+  /** Administrateur du site (variable ADMIN_USER_IDS) : accès à /admin. */
+  isAdmin: boolean;
 };
 
 export async function getUser(request: Request): Promise<SessionUser | null> {
@@ -21,5 +24,5 @@ export async function getUser(request: Request): Promise<SessionUser | null> {
   // lu depuis le cookie chiffré : il ne vient jamais d'une saisie utilisateur.
   const osuId = Number(/^(\d+)@users\.osu\.invalid$/.exec(email)?.[1]) || null;
   const plan = osuId ? await getPlan(osuId) : "free";
-  return { id, name, image: image ?? null, osuId, plan };
+  return { id, name, image: image ?? null, osuId, plan, isAdmin: isAdminId(osuId) };
 }

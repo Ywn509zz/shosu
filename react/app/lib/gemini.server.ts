@@ -10,6 +10,8 @@
  * - On ne journalise ni la clé, ni le prompt, ni la réponse : seulement un code.
  */
 
+import { bump } from "./usage-buffer";
+
 /** URL de l'API (surchargeable pour les tests locaux, comme OSU_BASE_URL). */
 const ENDPOINT = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_MODEL = "gemini-3.1-flash-lite";
@@ -133,6 +135,9 @@ export async function* streamContent(params: {
       continue;
     }
 
+    bump("gemini");
+    let tokensIn = 0;
+    let tokensOut = 0;
     const all: GeminiPart[] = [];
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -156,12 +161,18 @@ export async function* streamContent(params: {
             .join("");
           if (!payload) continue;
 
-          let chunk: { candidates?: { content?: GeminiContent; finishReason?: string }[] };
+          let chunk: {
+            candidates?: { content?: GeminiContent; finishReason?: string }[];
+            usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+          };
           try {
             chunk = JSON.parse(payload);
           } catch {
             continue;
           }
+          // Les jetons sont cumulés dans chaque fragment : on garde les dernières valeurs.
+          if (typeof chunk.usageMetadata?.promptTokenCount === "number") tokensIn = chunk.usageMetadata.promptTokenCount;
+          if (typeof chunk.usageMetadata?.candidatesTokenCount === "number") tokensOut = chunk.usageMetadata.candidatesTokenCount;
           const candidate = chunk.candidates?.[0];
           if (candidate?.finishReason === "SAFETY" && all.length === 0) continue;
 
@@ -181,6 +192,8 @@ export async function* streamContent(params: {
       reader.releaseLock?.();
     }
 
+    bump("geminiIn", tokensIn);
+    bump("geminiOut", tokensOut);
     if (all.length === 0) continue;
     yield { type: "end", content: { role: "model", parts: all }, model };
     return;

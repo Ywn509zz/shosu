@@ -12,13 +12,17 @@ import { HistoryProvider } from "~/lib/history";
 import { ListsProvider, useLists } from "~/lib/lists-context";
 import { APP_VERSION } from "~/lib/config";
 import { PlayerProvider, usePlayer } from "~/lib/player";
+import { getUsageSummary } from "~/lib/usage.server";
 import { getUser, type SessionUser } from "~/lib/session.server";
 import { useShortcuts } from "~/lib/use-shortcuts";
 
 import type { Route } from "./+types/layout";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  return { user: await getUser(request) };
+  const user = await getUser(request);
+  // Alerte de quota : seuls les administrateurs la voient (lecture mise en cache 5 min, donc quasi gratuite).
+  const usage = user?.isAdmin ? await getUsageSummary().catch(() => null) : null;
+  return { user, usageAlert: usage && usage.level !== "ok" ? { level: usage.level, message: usage.message } : null };
 }
 
 export default function Layout({ loaderData }: Route.ComponentProps) {
@@ -26,7 +30,7 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
     <PlayerProvider>
       <ListsProvider signedIn={loaderData.user !== null}>
         <HistoryProvider userKey={loaderData.user?.osuId ? String(loaderData.user.osuId) : "guest"}>
-          <Shell user={loaderData.user} />
+          <Shell user={loaderData.user} usageAlert={loaderData.usageAlert} />
         </HistoryProvider>
       </ListsProvider>
     </PlayerProvider>
@@ -63,7 +67,7 @@ const NAV: { to: string; label: string; signedIn?: boolean; extra?: boolean }[] 
 ];
 const isActive = (pathname: string, to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
 
-function Shell({ user }: { user: SessionUser | null }) {
+function Shell({ user, usageAlert }: { user: SessionUser | null; usageAlert: { level: string; message: string } | null }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const player = usePlayer();
@@ -121,6 +125,11 @@ function Shell({ user }: { user: SessionUser | null }) {
 
   return (
     <AssistantContext.Provider value={assistantApi}>
+      {usageAlert && (
+        <Link className={`usage-banner is-${usageAlert.level}`} to="/admin">
+          ⚠ {usageAlert.message} <span>Voir les quotas →</span>
+        </Link>
+      )}
       <header className="site-header">
         <div className="site-header-inner">
           <Link className="brand" to="/" aria-label="Retour à l'accueil">
@@ -157,6 +166,7 @@ function Shell({ user }: { user: SessionUser | null }) {
             <Link to="/compare">Comparer</Link>
             <Link to="/premium">Plans</Link>
             <Link to="/history">Historique</Link>
+            <Link to="/privacy">Confidentialité</Link>
           </nav>
           <span translate="no">shOsu! · {APP_VERSION}</span>
         </footer>

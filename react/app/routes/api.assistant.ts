@@ -6,6 +6,7 @@ import { isGeminiConfigured } from "~/lib/gemini.server";
 import { PLANS } from "~/lib/plans";
 import { streamEvents } from "~/lib/ndjson.server";
 import { rateLimit } from "~/lib/rate-limit.server";
+import { bump } from "~/lib/usage-buffer";
 import { getUser } from "~/lib/session.server";
 
 import type { Route } from "./+types/api.assistant";
@@ -94,6 +95,7 @@ export async function action({ request }: Route.ActionArgs) {
   const history = normalizeHistory(body.messages);
   if (!history) return fail("invalid_request", 400);
 
+  bump("stack");
   return streamEvents((emit) =>
     runAssistant({ history: history.turns, knownIds: history.knownIds, osuId: user.osuId!, userName: user.name, plan: user.plan, emit }),
   );
