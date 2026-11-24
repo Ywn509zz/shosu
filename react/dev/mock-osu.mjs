@@ -87,14 +87,15 @@ function statsFor(u, mode) {
   };
 }
 
-function scoreFor(set, diff, i, mods) {
+function scoreFor(set, diff, i, mods, kind = 'best') {
   return {
     id: 9000 + i,
-    accuracy: 0.97 + (i % 5) / 200,
+    // précision qui baisse avec la difficulté, pour exercer l'analyse des points faibles
+    accuracy: Math.max(0.9, 0.995 - Math.max(0, diff.difficulty_rating - 5) * 0.012 - (i % 5) / 400),
     mods,
     score: 1000000 - i * 777,
     max_combo: diff.max_combo,
-    passed: true,
+    passed: !(kind === 'recent' && diff.difficulty_rating > 6 && i % 3 === 0),
     pp: 320 - i * 2,
     rank: ["SS", "S", "A", "SH"][i % 4],
     created_at: new Date(Date.now() - i * 86400000).toISOString(),
@@ -114,7 +115,7 @@ function userScores(u, mode, kind, limit, offset) {
     const set = sets[(i * 3 + (kind === "recent" ? 1 : 0)) % sets.length];
     const diff = set.beatmaps[set.beatmaps.length - 1 - (i % 2)];
     if (!diff) continue;
-    out.push(scoreFor(set, { ...diff, mode }, i, modPool[i % modPool.length]));
+    out.push(scoreFor(set, { ...diff, mode }, i, modPool[i % modPool.length], kind));
   }
   return out.slice(offset, offset + limit);
 }
@@ -276,8 +277,8 @@ const server = http.createServer(async (req, res) => {
       scores_recent_count: 20,
       beatmap_playcounts_count: 900,
       kudosu: { total: 14, available: 3 },
-      rank_history: { mode, data: [900, 850, 800, 760, 700, 649] },
-      monthly_playcounts: [{ start_date: "2026-09-01", count: 400 }, { start_date: "2026-10-01", count: 520 }],
+      rank_history: { mode, data: Array.from({ length: 90 }, (_, k) => Math.round(1500 - k * 9.5 + Math.sin(k / 6) * 40)) },
+      monthly_playcounts: Array.from({ length: 12 }, (_, k) => ({ start_date: new Date(Date.UTC(2025, 11 + k, 1)).toISOString().slice(0, 10), count: 200 + ((k * 137) % 400) })),
     });
   }
 

@@ -103,6 +103,10 @@ function AccountMenu({ user }: { user: SessionUser }) {
             <small>Statistiques et meilleurs scores</small>
           </Link>
         )}
+        <Link to="/stats" onClick={() => setOpen(false)}>
+          <span>Mes statistiques</span>
+          <small>Progression et points faibles</small>
+        </Link>
         <Link to="/history" onClick={() => setOpen(false)}>
           <span>Historique</span>
           <small>Recherches et écoutes récentes</small>

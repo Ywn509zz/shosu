@@ -84,6 +84,30 @@ function Shell({ user }: { user: SessionUser | null }) {
 
   useShortcuts({ focusSearch, toggleAssistant, player });
 
+  // Relevé quotidien des statistiques du joueur connecté (une fois par jour, par navigateur) : c'est ce qui construit les
+  // courbes de pp et de précision de « Suivi de progression » (osu! ne fournit pas cet historique).
+  useEffect(() => {
+    if (!user?.osuId) return;
+    const day = new Date().toISOString().slice(0, 10);
+    const key = `shosu-snapshot:${user.osuId}`;
+    try {
+      if (localStorage.getItem(key) === day) return;
+    } catch {
+      return;
+    }
+    fetch("/api/progress", { method: "POST", headers: { Accept: "application/json" } })
+      .then((response) => {
+        if (response.ok) {
+          try {
+            localStorage.setItem(key, day);
+          } catch {
+            /* ignoré */
+          }
+        }
+      })
+      .catch(() => {});
+  }, [user?.osuId]);
+
   return (
     <AssistantContext.Provider value={assistantApi}>
       <div className="page-shell">

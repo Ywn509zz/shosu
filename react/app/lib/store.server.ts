@@ -84,6 +84,18 @@ export const hash = {
     hashes.get(key)!.set(field, value);
   },
 
+  /** Écrit plusieurs champs d'un coup (une seule requête réseau). */
+  async setMany(key: string, entries: Record<string, string>): Promise<void> {
+    const fields = Object.entries(entries);
+    if (fields.length === 0) return;
+    if (isPersistent()) {
+      await redisPipeline(fields.map(([field, value]) => ["HSET", key, field, value]));
+      return;
+    }
+    if (!hashes.has(key)) hashes.set(key, new Map());
+    for (const [field, value] of fields) hashes.get(key)!.set(field, value);
+  },
+
   async remove(key: string, field: string): Promise<void> {
     if (isPersistent()) {
       await redisPipeline([["HDEL", key, field]]);

@@ -25,6 +25,7 @@
 13. [Profil joueur](#profil-joueur) · 14. [Recommandations « Pour toi »](#recommandations-pour-toi) · 15. [Historique](#historique) · 16. [Lecteur audio](#lecteur-audio) · 17. [Raccourcis clavier](#raccourcis-clavier)
 18. [Navigation et mouvement](#navigation-et-mouvement) · 19. [Icône et identité](#icône-et-identité) · 20. [Caches et limites de débit](#caches-et-limites-de-débit)
 21. [Mobile](#mobile-téléphone) · 22. [Chargement progressif](#chargement-progressif-des-résultats)
+23. [Suivi de progression (Progress Tracker)](#suivi-de-progression-progress-tracker) · 24. [Analyse des performances](#analyse-des-performances-et-points-faibles) · 25. [Mes statistiques](#mes-statistiques)
 
 ---
 
@@ -166,6 +167,7 @@ AR/OD/CS/HP/BPM/durée sont **calculés** par `lib/mods.ts#applyMods` (formules 
 **But** — page publique d'un joueur : rangs, pp, précision, niveau, temps de jeu, grades, 25 meilleurs scores, par mode.
 **Comment ça marche** — `routes/player.$id.tsx` (id numérique ou pseudo, `parsePlayerRef`) → `getPlayerPage(ref, mode)` (cache 5 min). Onglets de mode via `?mode=`.
 **Doit fonctionner ainsi** — un mode sans partie **n'est pas une erreur** : `hasStats` est faux (aucune partie, pp nul, pas de rang) → carte « Pas encore de statistiques en <mode> » au lieu de zéros ; si osu! refuse la variante par mode (404) on lit le profil général ; un échec de lecture des scores laisse la page s'afficher sans la liste. 404 si le joueur n'existe pas.
+**Contenu (de haut en bas)** — héros, onglets de mode, tuiles de stats, **Suivi de progression**, **Analyse des performances** (ces deux sections n'apparaissent que si `hasStats`), 25 meilleurs scores.
 **Fichiers** — `routes/player.$id.tsx`, `lib/osu.server.ts#getPlayerPage`, `lib/osu.ts` (types `PlayerPage`, `TopPlay`).
 
 ## Recommandations « Pour toi »
@@ -243,3 +245,34 @@ Limites de débit (`lib/rate-limit.server.ts`, fenêtre fixe) : partagées via R
 **Comment ça marche** — `lib/use-progressive.ts#useProgressive(total, step, resetKey, onEnd)` : montre `step` éléments (18 sur l'accueil, 24 sur `/lists`), en ajoute autant quand une **sentinelle** (`.load-more`, placée après la grille, `IntersectionObserver` avec 700 px d'avance) approche de l'écran ; au bout de la liste appelle `onEnd` (accueil : demander la page osu! suivante avec le curseur ; `loadMore` ajoute à `allResults`). Pendant l'attente, 2 squelettes (`.card-skeleton`) ; le bouton « Charger plus » reste affiché en secours (accessibilité, navigateurs sans IntersectionObserver).
 **Doit fonctionner ainsi** — une nouvelle recherche/écoute remet le compteur à zéro (`resetKey`) ; `loadMore` ne tourne jamais en parallèle (`loadingMore`) ; plus de boutons Précédent/Suivant ; la file du lecteur = les cartes visibles.
 **Fichiers** — `lib/use-progressive.ts`, `routes/home.tsx`, `routes/lists.tsx`, styles dans `mobile.css` (.load-more, .load-more-btn, .card-skeleton), `.skeleton` dans `pages.css`.
+
+## Suivi de progression (Progress Tracker)
+
+**But** — suivre l'évolution d'un joueur : pp, rang, précision, parties, par mode (demandé « dans le profil »).
+**Comment ça marche** — `components/progress-tracker.tsx` (sur le profil de **n'importe quel joueur** et sur `/stats`) appelle `GET /api/progress?player=<id osu!>&mode=<mode>` → `lib/progress.server.ts#getProgress` :
+- lit `/users/{id}/{mode}` pour les 4 modes (cache 5 min) : stats actuelles, **`rank_history`** (rang mondial des ~90 derniers jours), **`monthly_playcounts`** (parties par mois) ;
+- lit les **relevés shOsu!** dans Redis ;
+- calcule les variations : rang 7/30 j (depuis `rank_history`, négatif = a progressé), pp/parties/précision 7/30 j (depuis les relevés, avec un recul toléré de 10 jours).
+Affichage : tuiles de variation (vert = progrès), courbe du rang (axe inversé : un meilleur rang est plus haut), barres des parties par mois, courbes **pp** et **précision** (si ≥ 2 relevés), **« Modes préférés »** (part des parties par mode).
+**Relevés shOsu! (pourquoi)** — osu! ne fournit pas l'historique des pp ni de la précision : on le construit jour après jour. Un relevé = `{pp, rank, accuracy, plays}` par mode joué, écrit dans `shosu:snap:<osuId>` (champ `<mode>:<AAAA-MM-JJ>`) par `recordSnapshot(osuId)`.
+Déclencheurs : (1) `layout.tsx` fait `POST /api/progress` **au plus une fois par jour et par navigateur** (clé `localStorage` `shosu-snapshot:<osuId>`) pour le joueur connecté ; (2) l'outil Stack `get_my_account`. Ménage : ~10 % des écritures suppriment les relevés de plus de 120 jours.
+**Doit fonctionner ainsi** — **jamais d'écriture déclenchée par une consultation anonyme** : `recordSnapshot` n'est appelé que pour le joueur connecté lui-même (origine vérifiée, 6/h) ; un joueur jamais connecté à shOsu! n'a pas de courbes pp/précision (message explicatif) mais garde rang 90 j et parties/mois ;
+Redis indisponible → le reste du suivi s'affiche quand même ; le rang `0` d'osu! (non classé) devient `null` (trou dans la courbe).
+**Limites** — GET : 40/min/IP par instance, CDN 5 min ; POST : 6/h/joueur. Coût Redis : 1 lecture (HGETALL) par appel non servi par le CDN ; ~4 écritures par jour et par joueur connecté.
+**Fichiers** — `lib/progress.server.ts`, `routes/api.progress.ts`, `components/progress-tracker.tsx`, `components/charts.tsx` (`LineChart`, `BarChart` SVG sans dépendance, animés, `role="img"` + résumé), `lib/insights.ts` (types `ProgressData`…), `lib/store.server.ts` (`hash.setMany`).
+**Outil Stack** — `get_my_progress`. **Tester** — local : ouvrir `/stats` (rang et parties viennent du faux osu!) ; `fetch('/api/progress',{method:'POST'})` crée un relevé (clé `shosu:snap:38656812` visible via `localhost:4030/stats`).
+
+## Analyse des performances et points faibles
+
+**But** — dire au joueur où il perd des points et comment progresser.
+**Comment ça marche** — `components/performance-analysis.tsx` appelle `GET /api/performance?player=&mode=` → `lib/performance.server.ts#analyzePerformance` : lit les 100 meilleurs scores et les 100 derniers (échecs compris), les range par tranche de difficulté, de BPM et par groupe de mods, puis des **règles** (pas un modèle) produisent des constats (`PerformanceFinding`, `strength|weakness`, avec `advice` pour les faiblesses) :
+précision en baisse dans une tranche (≥ 1,2 pt sous la moyenne, ≥ 4 scores) · forte tranche (+0,8) · échecs récents ≥ 35 % dans une tranche (≥ 5 parties) · BPM le moins précis (−1 pt) · DT très rentable / sans mod peu rentable · précision HD ≥ 1,5 pt sous le sans mod · misses moyens ≥ 3 (ou ≤ 0,6 : jeu propre) · jeu récent < médiane − 1★. Maximum 8 constats ; moins de 10 scores → message « pas assez de scores ».
+**Doit fonctionner ainsi** — calcul déterministe et explicable : toute nouvelle règle précise son seuil dans le détail affiché ; aucune donnée privée (scores publics) ; cache serveur 10 min, CDN 10 min.
+**Limites** — 20/min/IP par instance. **Fichiers** — `lib/performance.server.ts`, `routes/api.performance.ts`, `components/performance-analysis.tsx`, types `PerformanceAnalysis` dans `lib/insights.ts`. **Outil Stack** — `analyze_performance`.
+
+## Mes statistiques
+
+**But** — tableau de bord personnel (`/stats`, menu du compte « Mes statistiques »).
+**Contenu** — onglets de mode ; **Suivi de progression** (voir plus haut, `isMe`) ; **Analyse des performances** ; **Mon activité sur shOsu!** : nombre de favoris, « à jouer plus tard » (`lists.count`), collections (dont partagées, via `GET /api/collections`), recherches et écoutes (historique local).
+**Doit fonctionner ainsi** — hors connexion : invitation à se connecter ; les compteurs de recherches/écoutes sont locaux au navigateur (le dire) ; lien vers le profil public.
+**Fichiers** — `routes/stats.tsx`, `lib/lists-context.tsx` (`count`), `components/account.tsx`.

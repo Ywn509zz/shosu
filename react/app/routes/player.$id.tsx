@@ -1,8 +1,12 @@
-import { Link, data } from "react-router";
+import { Link, data, useRouteLoaderData } from "react-router";
+
+import { PerformanceAnalysisSection } from "~/components/performance-analysis";
+import { ProgressTracker } from "~/components/progress-tracker";
 
 import { avatarUrl, coverUrl, countryFlag, formatNumber, getStarColor, parsePlayerRef, playerUrl } from "~/lib/osu";
 import { OsuError, getPlayerPage } from "~/lib/osu.server";
 
+import type { loader as layoutLoader } from "./layout";
 import type { Route } from "./+types/player.$id";
 
 const MODES = [
@@ -35,6 +39,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 export default function PlayerProfile({ loaderData }: Route.ComponentProps) {
   const { player } = loaderData;
   const flag = countryFlag(player.country);
+  const isMe = useRouteLoaderData<typeof layoutLoader>("routes/layout")?.user?.osuId === player.id;
   const modeLabel = MODES.find((m) => m.id === player.mode)?.label ?? player.mode;
 
   return (
@@ -119,7 +124,10 @@ export default function PlayerProfile({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
 
-          <h2 className="section-title">Meilleurs scores</h2>
+          <ProgressTracker playerId={player.id} mode={player.mode} isMe={isMe} />
+      <PerformanceAnalysisSection playerId={player.id} mode={player.mode} />
+
+      <h2 className="section-title">Meilleurs scores</h2>
           {player.topPlays.length === 0 ? (
             <p className="empty">Aucun score public pour ce mode.</p>
           ) : (

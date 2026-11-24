@@ -22,6 +22,8 @@ import {
   type ScoreType,
 } from "./account.server";
 import { analyzeDifficulty } from "./analysis.server";
+import { analyzePerformance } from "./performance.server";
+import { getProgress, recordSnapshot } from "./progress.server";
 import {
   CollectionFullError,
   CollectionLimitError,
@@ -71,6 +73,9 @@ Tes outils :
 - get_my_account : toutes les données PUBLIQUES du compte osu! du joueur connecté : statistiques des quatre modes, évolution du rang
   sur 90 jours, badges, succès, groupes, compteurs de beatmaps créées/favorites, kudosu, parties par mois, profil. Pour « résume mon
   compte », « où j'en suis », « ma progression », « mes stats en mania ».
+- get_my_progress : suivi de progression du joueur connecté (variations du rang et des pp sur 7/30 jours, parties par mois, modes préférés).
+- analyze_performance : ses forces et POINTS FAIBLES (précision par difficulté et par BPM, échecs récents, mods, misses) avec une piste
+  pour progresser. Utilise-le pour « quels sont mes points faibles », « pourquoi je bloque », « comment progresser ».
 - get_my_scores : ses scores (best = meilleurs, recent = derniers, firsts = premières places, pinned = épinglés), par mode.
 - get_my_beatmaps : ses beatmaps (favourite, most_played, ranked/loved/pending/graveyard = celles qu'il a créées, guest, nominated).
 - get_my_activity : son activité récente (rangs obtenus, succès, mises en ligne…).
@@ -202,6 +207,24 @@ const TOOLS: GeminiFunctionDeclaration[] = [
     description:
       "Données publiques complètes du compte osu! du joueur connecté : identité, statistiques des 4 modes (pp, rang, précision, temps de jeu, grades…), évolution du rang sur 90 jours, badges, succès, groupes, beatmaps créées/favorites, kudosu, parties par mois.",
     parameters: { type: "OBJECT", properties: {} },
+  },
+  {
+    name: "get_my_progress",
+    description:
+      "Progression du joueur connecté : variations du rang (7 et 30 jours), des pp et des parties, rang sur 90 jours, parties par mois, part de chaque mode (modes préférés). Les pp et la précision dans le temps n'existent que depuis que le joueur utilise shOsu!.",
+    parameters: {
+      type: "OBJECT",
+      properties: { mode: { type: "STRING", enum: MODE_ENUM, description: "Mode de jeu (osu par défaut)." } },
+    },
+  },
+  {
+    name: "analyze_performance",
+    description:
+      "Analyse les performances du joueur connecté : points forts et points faibles calculés d'après ses 100 meilleurs scores et ses 100 dernières parties (précision par tranche de difficulté et de BPM, taux d'échec, mods, misses), avec une piste pour progresser.",
+    parameters: {
+      type: "OBJECT",
+      properties: { mode: { type: "STRING", enum: MODE_ENUM, description: "Mode de jeu (osu par défaut)." } },
+    },
   },
   {
     name: "get_my_scores",
@@ -336,6 +359,8 @@ const STATUS_TEXT: Record<string, (args: Record<string, unknown>) => string> = {
   create_collection: () => "Je crée la collection…",
   add_to_collection: () => "Je range la beatmap…",
   get_my_account: () => "Je consulte ton compte osu!…",
+  get_my_progress: () => "J'analyse ta progression…",
+  analyze_performance: () => "J'analyse tes points forts et faibles…",
   get_my_scores: () => "Je regarde tes scores…",
   get_my_beatmaps: () => "Je regarde tes beatmaps…",
   get_my_activity: () => "Je regarde ton activité récente…",
@@ -595,8 +620,31 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
       }
     }
 
-    case "get_my_account":
+    case "get_my_account": {
+      // Lire son compte est l'occasion de faire le relevé du jour (historique des pp et de la précision).
+      void recordSnapshot(ctx.osuId).catch(() => {});
       return { ...(await getAccountOverview(ctx.osuId)) };
+    }
+
+    case "get_my_progress": {
+      const progress = await getProgress(ctx.osuId, modeOf(args.mode, "osu"));
+      return {
+        mode: progress.mode,
+        current: progress.current,
+        modes: progress.modes,
+        deltas: progress.deltas,
+        rankHistory90Days: progress.rankHistory.filter((r): r is number => r !== null).filter((_, i, all) => i % 10 === 0 || i === all.length - 1),
+        monthlyPlays: progress.monthly,
+        shosuTracking: { since: progress.tracking.since, points: progress.tracking.points },
+        snapshots: progress.snapshots.slice(-30),
+      };
+    }
+
+    case "analyze_performance": {
+      const analysis = await analyzePerformance(ctx.osuId, modeOf(args.mode, "osu"));
+      if (analysis.sample.best < 10) return { error: "Pas assez de scores dans ce mode pour une analyse fiable." };
+      return { ...analysis };
+    }
 
     case "get_my_scores": {
       const type = SCORE_TYPES.includes(args.type as ScoreType) ? (args.type as ScoreType) : "best";

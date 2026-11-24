@@ -1387,3 +1387,227 @@ button.pop-item:hover {
     animation: none;
   }
 }
+
+/* ===== Graphiques (courbes et barres) ===== */
+.chart {
+  margin: 0;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  text-align: left;
+}
+.chart figcaption {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.chart .grid {
+  stroke: var(--line);
+  stroke-dasharray: 3 5;
+}
+.chart .line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chart-draw 1.4s var(--ease-out) 0.15s forwards;
+}
+.chart .area {
+  opacity: 0;
+  animation: chart-fade 0.9s ease 0.7s forwards;
+}
+.chart .dot {
+  opacity: 0;
+  filter: drop-shadow(0 0 8px currentColor);
+  animation: chart-fade 0.4s ease 1.3s forwards;
+}
+@keyframes chart-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes chart-fade {
+  to {
+    opacity: 1;
+  }
+}
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.chart-axis b {
+  font-size: 0.9rem;
+}
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 150px;
+}
+.bar-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 100%;
+  min-width: 0;
+}
+.bar-col i {
+  display: block;
+  width: 100%;
+  max-width: 28px;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  opacity: 0.75;
+  transform-origin: bottom;
+  animation: bar-grow 0.9s var(--ease-out) both;
+  transition: opacity 0.2s;
+}
+.bar-col.is-peak i,
+.bar-col:hover i {
+  opacity: 1;
+}
+.bar-col span {
+  color: var(--muted);
+  font-size: 0.6rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart .line,
+  .chart .area,
+  .chart .dot,
+  .bar-col i {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+/* ===== Suivi de progression, analyse des performances ===== */
+.progress,
+.performance {
+  margin: 30px 0 0;
+  text-align: left;
+}
+.progress-skeleton {
+  height: 220px;
+}
+.delta-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.delta {
+  margin-left: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.delta.is-good {
+  color: #6bdc8f;
+}
+.delta.is-bad {
+  color: #ff8f6b;
+}
+.chart-grid,
+.perf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+}
+.mode-share {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+}
+.mode-share h3,
+.chart-title {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mode-row,
+.performance .skill-row {
+  grid-template-columns: 110px minmax(0, 1fr) 58px;
+}
+.mods-row {
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+}
+.mods-row small {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.findings {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.finding {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 12px;
+  background: var(--panel);
+  animation: rise 0.5s var(--ease-out) both;
+}
+.finding.is-weakness {
+  border-left-color: #ff8f6b;
+}
+.finding.is-strength {
+  border-left-color: #6bdc8f;
+}
+.finding h3 {
+  margin: 0 0 4px;
+  font-size: 0.88rem;
+}
+.finding p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+.finding .advice {
+  color: var(--text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .finding {
+    animation: none;
+  }
+}
+
+a.stat-tile {
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.3s var(--ease-out), border-color 0.25s;
+}
+a.stat-tile:hover {
+  transform: translateY(-3px);
+  border-color: rgba(195, 173, 255, 0.5);
+}
+.activity {
+  margin: 30px 0 0;
+  text-align: left;
+}

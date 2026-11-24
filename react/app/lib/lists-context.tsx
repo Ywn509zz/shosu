@@ -12,6 +12,8 @@ type ListsApi = {
   /** Dernier message d'erreur à afficher (liste pleine, réseau…), puis effacé. */
   error: string;
   has: (list: ListId, id: number) => boolean;
+  /** Nombre de beatmaps dans une liste. */
+  count: (list: ListId) => number;
   toggle: (list: ListId, id: number) => Promise<void>;
   refresh: () => Promise<void>;
   clearError: () => void;
@@ -25,6 +27,7 @@ const ListsContext = createContext<ListsApi>({
   persistent: true,
   error: "",
   has: () => false,
+  count: () => 0,
   toggle: async () => {},
   refresh: async () => {},
   clearError: () => {},
@@ -104,6 +107,7 @@ export function ListsProvider({ signedIn, children }: { signedIn: boolean; child
       persistent,
       error,
       has: (list, id) => ids[list].has(id),
+      count: (list) => ids[list].size,
       toggle,
       refresh,
       clearError: () => setError(""),
