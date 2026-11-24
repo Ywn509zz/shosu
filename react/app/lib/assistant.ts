@@ -34,7 +34,9 @@ export type StreamEvent =
   | { t: "error"; code: string };
 
 export const SUGGESTIONS = [
-  "Que me conseilles-tu selon mon profil ?",
+  "Résume mon compte osu!",
+  "Que me conseilles-tu selon mes habitudes ?",
+  "Montre mes derniers scores",
   "Trouve-moi des maps de stream autour de 6★",
   "Qui sont les 5 meilleurs joueurs français ?",
   "Des maps mania pour débuter",

@@ -421,8 +421,9 @@ export function Assistant({
             {messages.length === 0 && (
               <p className="assistant-welcome">
                 Salut, je suis <strong translate="no">{ASSISTANT_NAME}</strong> ! Dis-moi ce que tu veux jouer : je lance les
-                recherches pour toi, je regarde ton profil pour te proposer des maps à ton niveau, et je peux aussi t'expliquer une
-                beatmap, retrouver un joueur ou gérer tes listes.
+                recherches pour toi, je consulte ton compte osu! (stats, scores, beatmaps, activité) pour te proposer des maps à ton
+                niveau, et je peux aussi t'expliquer une beatmap, comparer ses difficultés par mod, retrouver un joueur ou gérer tes listes et
+                collections.
               </p>
             )}
 
@@ -574,8 +575,8 @@ export function Assistant({
               </Button>
             </div>
             <p className="assistant-note">
-              Propulsé par Gemini (Google). {ASSISTANT_NAME} lit ton profil osu! public pour t'aider, ne retient rien côté serveur et
-              peut se tromper.
+              Propulsé par Gemini (Google). {ASSISTANT_NAME} lit les données <b>publiques</b> de ton compte osu! (profil, scores, beatmaps,
+              activité) pour t'aider, jamais tes messages, tes amis ni ton e-mail. Il ne retient rien côté serveur et peut se tromper.
             </p>
           </form>
         </>

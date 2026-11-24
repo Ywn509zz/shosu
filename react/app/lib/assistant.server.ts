@@ -11,6 +11,16 @@ import {
   type GeminiPart,
 } from "./gemini.server";
 import { isListId, LIST_IDS, type ListId } from "./lists";
+import {
+  BEATMAP_TYPES,
+  SCORE_TYPES,
+  getAccountActivity,
+  getAccountBeatmaps,
+  getAccountOverview,
+  getAccountScores,
+  type BeatmapType,
+  type ScoreType,
+} from "./account.server";
 import { analyzeDifficulty } from "./analysis.server";
 import {
   CollectionFullError,
@@ -58,6 +68,14 @@ Tes outils :
   et tags favoris), déjà jouées exclues. Utilise-le pour « que me conseilles-tu », « des maps pour moi », « selon mes habitudes ».
 - get_my_collections / create_collection / add_to_collection : les collections nommées du joueur (listes personnalisées partageables).
   Tu peux en créer une et y ranger des beatmaps ; le partage par lien se règle sur la page de la collection, pas par toi.
+- get_my_account : toutes les données PUBLIQUES du compte osu! du joueur connecté : statistiques des quatre modes, évolution du rang
+  sur 90 jours, badges, succès, groupes, compteurs de beatmaps créées/favorites, kudosu, parties par mois, profil. Pour « résume mon
+  compte », « où j'en suis », « ma progression », « mes stats en mania ».
+- get_my_scores : ses scores (best = meilleurs, recent = derniers, firsts = premières places, pinned = épinglés), par mode.
+- get_my_beatmaps : ses beatmaps (favourite, most_played, ranked/loved/pending/graveyard = celles qu'il a créées, guest, nominated).
+- get_my_activity : son activité récente (rangs obtenus, succès, mises en ligne…).
+  Ces quatre outils lisent uniquement ce que montre son profil public sur osu.ppy.sh : tu n'as accès ni à ses amis, ni à ses messages,
+  ni à son e-mail, ni à rien de privé (la connexion ne demande que « identify »). Dis-le franchement si on te demande ces données.
 - find_player : retrouve un joueur par son pseudo (rang, pp, précision). get_rankings : classement mondial ou d'un pays.
 - get_my_lists / add_to_list / remove_from_list : les listes « favorites » et « later » (à jouer plus tard) du joueur.
 - show_in_search, open_beatmap, open_player : agissent sur la page du joueur (ouvrir la recherche déjà remplie, la page d'une beatmap,
@@ -180,6 +198,47 @@ const TOOLS: GeminiFunctionDeclaration[] = [
     },
   },
   {
+    name: "get_my_account",
+    description:
+      "Données publiques complètes du compte osu! du joueur connecté : identité, statistiques des 4 modes (pp, rang, précision, temps de jeu, grades…), évolution du rang sur 90 jours, badges, succès, groupes, beatmaps créées/favorites, kudosu, parties par mois.",
+    parameters: { type: "OBJECT", properties: {} },
+  },
+  {
+    name: "get_my_scores",
+    description: "Scores du joueur connecté (pp, précision, mods, rang, combo, erreurs, date), 15 au maximum par appel.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        type: { type: "STRING", enum: [...SCORE_TYPES], description: "best (meilleurs, défaut), recent (derniers), firsts (premières places), pinned (épinglés)." },
+        mode: { type: "STRING", enum: MODE_ENUM, description: "Mode de jeu (son mode principal si absent)." },
+        limit: { type: "INTEGER", description: "Nombre de scores (1 à 15, 8 par défaut)." },
+        offset: { type: "INTEGER", description: "Nombre de scores à sauter (pagination), 0 par défaut." },
+        include_fails: { type: "BOOLEAN", description: "Pour recent : inclure les parties ratées." },
+      },
+    },
+  },
+  {
+    name: "get_my_beatmaps",
+    description:
+      "Beatmaps liées au compte du joueur connecté : favourite (favorites sur osu!), most_played (les plus jouées), ranked / loved / pending / graveyard (celles qu'il a créées), guest (difficultés invitées), nominated.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        type: { type: "STRING", enum: [...BEATMAP_TYPES], description: "Catégorie de beatmaps (favourite par défaut)." },
+        limit: { type: "INTEGER", description: "Nombre de beatmaps (1 à 15, 8 par défaut)." },
+        offset: { type: "INTEGER", description: "Nombre de beatmaps à sauter (pagination), 0 par défaut." },
+      },
+    },
+  },
+  {
+    name: "get_my_activity",
+    description: "Activité récente du joueur connecté sur osu! (rangs obtenus, succès, mises en ligne de beatmaps…).",
+    parameters: {
+      type: "OBJECT",
+      properties: { limit: { type: "INTEGER", description: "Nombre d'événements (1 à 20, 10 par défaut)." } },
+    },
+  },
+  {
     name: "find_player",
     description: "Retrouve un joueur osu! par son pseudo exact : rang mondial et national, pp, précision, parties jouées.",
     parameters: {
@@ -276,6 +335,10 @@ const STATUS_TEXT: Record<string, (args: Record<string, unknown>) => string> = {
   get_my_collections: () => "Je regarde tes collections…",
   create_collection: () => "Je crée la collection…",
   add_to_collection: () => "Je range la beatmap…",
+  get_my_account: () => "Je consulte ton compte osu!…",
+  get_my_scores: () => "Je regarde tes scores…",
+  get_my_beatmaps: () => "Je regarde tes beatmaps…",
+  get_my_activity: () => "Je regarde ton activité récente…",
   find_player: (a) => `Je cherche ${clean(a.username, 24)}…`,
   get_rankings: () => "Je consulte le classement…",
   get_my_lists: () => "Je regarde tes listes…",
@@ -300,6 +363,10 @@ function num(value: unknown): number | null {
 function intId(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 1_000_000_000 ? value : null;
 }
+
+/** Entier borné (pagination et tailles de page des outils du compte). */
+const boundedInt = (value: unknown, min: number, max: number, fallback: number) =>
+  typeof value === "number" && Number.isFinite(value) ? Math.min(Math.max(Math.floor(value), min), max) : fallback;
 
 const modeOf = (value: unknown, fallback: string) =>
   typeof value === "string" && PLAYER_MODES.includes(value) ? value : fallback;
@@ -526,6 +593,39 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
         if (error instanceof CollectionFullError) return { error: "Cette collection est pleine." };
         throw error;
       }
+    }
+
+    case "get_my_account":
+      return { ...(await getAccountOverview(ctx.osuId)) };
+
+    case "get_my_scores": {
+      const type = SCORE_TYPES.includes(args.type as ScoreType) ? (args.type as ScoreType) : "best";
+      const mode = modeOf(args.mode, "osu");
+      const { items, sets } = await getAccountScores(ctx.osuId, {
+        type,
+        mode,
+        limit: boundedInt(args.limit, 1, 15, 8),
+        offset: boundedInt(args.offset, 0, 500, 0),
+        includeFails: args.include_fails === true,
+      });
+      showCards(ctx, sets.slice(0, RESULTS_PER_SEARCH));
+      return { type, mode, count: items.length, scores: items, ...(items.length === 0 ? { hint: "Aucun score trouvé pour ce mode." } : {}) };
+    }
+
+    case "get_my_beatmaps": {
+      const type = BEATMAP_TYPES.includes(args.type as BeatmapType) ? (args.type as BeatmapType) : "favourite";
+      const { items, sets } = await getAccountBeatmaps(ctx.osuId, {
+        type,
+        limit: boundedInt(args.limit, 1, 15, 8),
+        offset: boundedInt(args.offset, 0, 500, 0),
+      });
+      showCards(ctx, sets.slice(0, RESULTS_PER_SEARCH));
+      return { type, count: items.length, beatmaps: items, ...(items.length === 0 ? { hint: "Aucune beatmap dans cette catégorie." } : {}) };
+    }
+
+    case "get_my_activity": {
+      const events = await getAccountActivity(ctx.osuId, boundedInt(args.limit, 1, 20, 10));
+      return { count: events.length, events };
     }
 
     case "find_player": {

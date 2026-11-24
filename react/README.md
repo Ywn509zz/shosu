@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 2.3), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 2.4), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -13,7 +13,7 @@ d'origine est reprise telle quelle et le balisage est le même.
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 2.3 » ↔ `2.3.0`).
+temps que `version` dans `package.json` (« bêta 2.4 » ↔ `2.4.0`).
 
 ## Démarrage
 
@@ -197,6 +197,16 @@ les recherches**, lit ton profil osu! pour proposer des maps à ton niveau et **
 **Ce qu'il sait faire.** Des outils, exécutés par le serveur (Gemini ne touche à rien directement) :
 - `search_beatmaps` : de vraies beatmaps (mots-clés, mode, statut, fourchette d'étoiles), en cartes avec aperçu audio.
 - `get_player_profile` : profil **public** du joueur connecté (pp, rang, précision, 25 meilleurs scores), envoyé sans pseudo ni identifiant.
+- **Ton compte osu!** (`get_my_account`, `get_my_scores`, `get_my_beatmaps`, `get_my_activity`) : Stack consulte **toutes les données publiques** de ton
+  compte, celles que montre ton profil sur osu.ppy.sh : identité et profil, statistiques des quatre modes (pp, rang mondial et national, précision, temps
+  de jeu, grades, niveau…), évolution du rang sur 90 jours, badges, succès, groupes, kudosu, parties par mois, scores (meilleurs, récents, premières
+  places, épinglés, avec mods, pp, précision, erreurs), beatmaps (favorites, les plus jouées, celles que tu as créées, invitées, nominées) et activité
+  récente. **Rien de privé** : la connexion ne demande que la permission `identify`, donc ni amis, ni messages, ni e-mail (Stack le dit si on lui
+  demande). Ces données passent par Gemini comme le reste de la conversation ; elles ne sont pas conservées côté serveur (cache mémoire de 2 à 5 min).
+- `get_recommendations` : recommandations d'après tes habitudes (voir « Pour toi »), avec la raison de chaque conseil.
+- `find_similar_maps` et `analyze_difficulty` : beatmaps proches d'une autre, et difficulté avec chaque mod (EZ, HR, HT, DT…) et décomposition aim / vitesse.
+- `get_my_collections`, `create_collection`, `add_to_collection` : créer une collection et y ranger des beatmaps affichées (3 modifications de listes
+  au plus par message).
 - `get_beatmap` : BPM, durée, tags, difficultés avec CS/AR/OD/HP et nombre d'objets, pour **expliquer** une map à partir de ses chiffres.
 - `find_player` et `get_rankings` : retrouver un joueur par pseudo, ou consulter le classement mondial ou d'un pays (cartes de joueurs).
 - `get_my_lists`, `add_to_list`, `remove_from_list` : gérer tes listes, sur demande explicite et seulement pour des beatmaps déjà affichées.
