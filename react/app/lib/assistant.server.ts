@@ -11,6 +11,7 @@ import {
   type GeminiPart,
 } from "./gemini.server";
 import { isListId, LIST_IDS, type ListId } from "./lists";
+import { analyzeDifficulty } from "./analysis.server";
 import { addToList, getListItems, ListFullError, removeFromList } from "./lists.server";
 import { API_STATUS, MODE_IDS, parsePlayerRef, type Beatmapset, type PlayerSummary } from "./osu";
 import { PLANS, type PlanId } from "./plans";
@@ -21,6 +22,7 @@ import {
   getRankings,
   searchBeatmapsets,
 } from "./osu.server";
+import { findSimilar } from "./similar.server";
 
 const PLAYER_MODES = ["osu", "taiko", "fruits", "mania"];
 const MAX_MODEL_TURNS = 5;
@@ -38,6 +40,9 @@ Tes outils :
 - get_player_profile : profil public du joueur CONNECTÉ (pp, rang, précision, meilleurs scores). Utilise-le dès qu'il parle de lui,
   de son niveau, de progresser ou demande « selon mon profil ».
 - get_beatmap : détails d'une beatmap (BPM, durée, difficultés avec CS/AR/OD/HP, nombre d'objets, tags) pour l'expliquer.
+- find_similar_maps : beatmaps qui ressemblent à une autre (artiste, tags, BPM, difficulté), avec la raison de la ressemblance.
+- analyze_difficulty : difficulté d'une beatmap avec chaque mod (EZ, HR, HT, DT…), AR/OD/BPM modifiés et décomposition aim/vitesse.
+  Utilise-le pour « est-ce jouable en DT ? », « quelle est la difficulté avec HR ? », « aim ou vitesse ? ».
 - find_player : retrouve un joueur par son pseudo (rang, pp, précision). get_rankings : classement mondial ou d'un pays.
 - get_my_lists / add_to_list / remove_from_list : les listes « favorites » et « later » (à jouer plus tard) du joueur.
 - show_in_search, open_beatmap, open_player : agissent sur la page du joueur (ouvrir la recherche déjà remplie, la page d'une beatmap,
@@ -99,6 +104,28 @@ const TOOLS: GeminiFunctionDeclaration[] = [
     parameters: {
       type: "OBJECT",
       properties: { id: { type: "INTEGER", description: "Identifiant du set de beatmaps." } },
+      required: ["id"],
+    },
+  },
+  {
+    name: "find_similar_maps",
+    description: "Trouve des beatmaps qui ressemblent à une beatmap donnée (même artiste, tags communs, BPM et difficulté proches).",
+    parameters: {
+      type: "OBJECT",
+      properties: { id: { type: "INTEGER", description: "Identifiant du set de beatmaps de référence." } },
+      required: ["id"],
+    },
+  },
+  {
+    name: "analyze_difficulty",
+    description:
+      "Analyse la difficulté d'une beatmap avec chaque mod (NM, EZ, HR, HT, DT, DT+HR, FL) : étoiles, AR, OD, CS, HP, BPM, durée, et décomposition aim / vitesse.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        id: { type: "INTEGER", description: "Identifiant du set de beatmaps." },
+        version: { type: "STRING", description: "Nom de la difficulté (ex. « Insane »). Absent = la plus difficile du set." },
+      },
       required: ["id"],
     },
   },
@@ -193,6 +220,8 @@ const STATUS_TEXT: Record<string, (args: Record<string, unknown>) => string> = {
   search_beatmaps: (a) => `Je cherche « ${clean(a.query, 40)} »…`,
   get_player_profile: () => "Je regarde ton profil…",
   get_beatmap: () => "J'examine la beatmap…",
+  find_similar_maps: () => "Je cherche des maps qui lui ressemblent…",
+  analyze_difficulty: () => "J'analyse la difficulté avec chaque mod…",
   find_player: (a) => `Je cherche ${clean(a.username, 24)}…`,
   get_rankings: () => "Je consulte le classement…",
   get_my_lists: () => "Je regarde tes listes…",
@@ -322,6 +351,58 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
           objects: d.circles !== null && d.sliders !== null ? d.circles + d.sliders + (d.spinners ?? 0) : null,
           sliders: d.sliders,
         })),
+      };
+    }
+
+    case "find_similar_maps": {
+      const id = intId(args.id);
+      if (!id) return { error: "Identifiant de beatmap invalide." };
+      const similar = (await findSimilar(id)).slice(0, RESULTS_PER_SEARCH);
+      showCards(ctx, similar);
+      return {
+        found: similar.length,
+        beatmaps: similar.map((m) => ({
+          id: m.id,
+          title: m.title,
+          artist: m.artist,
+          creator: m.creator,
+          similarity: m.score,
+          reasons: m.reasons,
+          stars: [m.minStars, m.maxStars].map((s) => (s === null ? null : Math.round(s * 10) / 10)),
+        })),
+        ...(similar.length === 0 ? { hint: "Aucune beatmap vraiment proche trouvée." } : {}),
+      };
+    }
+
+    case "analyze_difficulty": {
+      const id = intId(args.id);
+      if (!id) return { error: "Identifiant de beatmap invalide." };
+      const set = await getBeatmapset(id);
+      const wanted = clean(args.version, 60).toLowerCase();
+      const diff =
+        (wanted && set.difficulties.find((d) => d.version.toLowerCase() === wanted)) ||
+        [...set.difficulties].sort((a, b) => b.stars - a.stars)[0];
+      if (!diff) return { error: "Cette beatmap n'a aucune difficulté." };
+
+      showCards(ctx, [set]);
+      const analysis = await analyzeDifficulty(diff.id);
+      return {
+        title: set.title,
+        version: analysis.version,
+        mode: analysis.mode,
+        withMods: analysis.rows.map((r) => ({
+          mods: r.label,
+          stars: r.stars,
+          ar: r.ar,
+          od: r.od,
+          cs: r.cs,
+          hp: r.hp,
+          bpm: r.bpm,
+          lengthSeconds: r.lengthSeconds,
+        })),
+        skills: analysis.skills,
+        orientation: analysis.profile,
+        ...(analysis.mode !== "osu" ? { note: "AR/OD/CS/HP ne sont recalculés que pour le mode standard." } : {}),
       };
     }
 

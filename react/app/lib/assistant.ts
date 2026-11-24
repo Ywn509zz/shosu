@@ -39,3 +39,11 @@ export const SUGGESTIONS = [
   "Qui sont les 5 meilleurs joueurs français ?",
   "Des maps mania pour débuter",
 ];
+
+/** Lien vers l'accueil avec une recherche déjà lancée (utilisé par Stack et l'historique). */
+export function searchHref(link: SearchLink): string {
+  const params = new URLSearchParams({ q: link.q });
+  if (link.mode !== "all") params.set("mode", link.mode);
+  if (link.status !== "all") params.set("status", link.status);
+  return `/?${params}`;
+}

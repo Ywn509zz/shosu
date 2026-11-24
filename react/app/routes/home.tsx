@@ -1,10 +1,11 @@
 import { Button, Input } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
-import { useRouteLoaderData, useSearchParams } from "react-router";
+import { Link, useRouteLoaderData, useSearchParams } from "react-router";
 
 import { BeatmapCard } from "~/components/beatmap-card";
 import { Discovery } from "~/components/discovery";
 import { ListenPanel, type AudioClip } from "~/components/listen-panel";
+import { searchHref } from "~/lib/assistant";
 import { ThemeToggle } from "~/components/theme-toggle";
 import {
   MODE_IDS,
@@ -16,6 +17,7 @@ import {
   type SearchResponse,
 } from "~/lib/osu";
 import { getDiscovery } from "~/lib/discover.server";
+import { useHistory } from "~/lib/history";
 import { errorMessage, readEvents } from "~/lib/stream-client";
 import { useRipple } from "~/lib/use-ripple";
 import { useSpeechRecognition } from "~/lib/use-speech-recognition";
@@ -50,6 +52,7 @@ function matchesFilters(mapset: Beatmapset, mode: string, status: string) {
 export default function Home({ loaderData }: Route.ComponentProps) {
   useRipple();
   const signedIn = Boolean(useRouteLoaderData<typeof layoutLoader>("routes/layout")?.user);
+  const history = useHistory();
 
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState("all");
@@ -107,6 +110,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       }
 
       searchedRef.current = { q, mode: searchMode, status: searchStatus };
+      history.addSearch({ q, mode: searchMode, status: searchStatus });
       setAllResults(filtered);
       setCursor(data.cursor);
       setPage(1);
@@ -196,6 +200,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     }
 
     searchedRef.current = { q: "", mode: "all", status: "all" };
+    history.addListen({ summary: text.trim(), items: cards.slice(0, 4).map((c) => ({ id: c.id, title: c.title, artist: c.artist })) });
     setAllResults(cards);
     setCursor(null);
     setPage(1);
@@ -388,6 +393,20 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </>
         )}
       </div>
+
+      {phase === "idle" && history.searches.length > 0 && (
+        <nav className="recent-searches" aria-label="Recherches récentes">
+          <span>Récent</span>
+          {history.searches.slice(0, 6).map((entry) => (
+            <Link key={entry.at} className="chip" to={searchHref(entry)}>
+              {entry.q}
+            </Link>
+          ))}
+          <Link className="recent-more" to="/history">
+            Tout l'historique →
+          </Link>
+        </nav>
+      )}
 
       {phase === "idle" && loaderData.lenses.length > 0 && <Discovery lenses={loaderData.lenses} />}
     </>

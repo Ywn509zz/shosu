@@ -103,6 +103,10 @@ function AccountMenu({ user }: { user: SessionUser }) {
             <small>Statistiques et meilleurs scores</small>
           </Link>
         )}
+        <Link to="/history" onClick={() => setOpen(false)}>
+          <span>Historique</span>
+          <small>Recherches et écoutes récentes</small>
+        </Link>
         <Button type="button" onPress={() => logoutAndRedirect(false)}>
           <span>Déconnexion</span>
           <small>Quitter shOsu!</small>

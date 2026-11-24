@@ -69,7 +69,7 @@ async function accessToken(): Promise<string> {
   return cachedToken;
 }
 
-type RawBeatmapset = {
+export type RawBeatmapset = {
   id: number;
   title: string;
   artist: string;
@@ -81,7 +81,7 @@ type RawBeatmapset = {
   beatmaps?: { mode: string; difficulty_rating: number }[];
 };
 
-function toBeatmapset(raw: RawBeatmapset): Beatmapset {
+export function toBeatmapset(raw: RawBeatmapset): Beatmapset {
   const maps = raw.beatmaps;
   // Même règle que script.js : modes des difficultés, sinon `mode` du set.
   const modes = maps
@@ -165,12 +165,27 @@ export function searchBeatmapsets(params: {
 // Profil d'un joueur (données publiques) — utilisé par le conseiller IA.
 // ---------------------------------------------------------------------------
 
-async function osuGet<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+export async function osuGet<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(`${osuBase()}/api/v2${path}`);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
 
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${await accessToken()}`, Accept: "application/json" },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status === 401) cachedToken = null;
+  if (!response.ok) {
+    throw new OsuError(`osu! API ${path} HTTP ${response.status}`, response.status === 404 ? 404 : 502);
+  }
+  return (await response.json()) as T;
+}
+
+/** Appel POST authentifié (ex. attributs de difficulté avec des mods). */
+export async function osuPost<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${osuBase()}/api/v2${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await accessToken()}`, Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(10_000),
   });
   if (response.status === 401) cachedToken = null;
@@ -503,4 +518,45 @@ export async function getRankings(params: {
   });
 
   return { players: players.slice(offset, offset + 10), total };
+}
+
+// ---------------------------------------------------------------------------
+// Une difficulté (par son identifiant de beatmap, pas de set)
+// ---------------------------------------------------------------------------
+
+export type DifficultyInfo = {
+  id: number;
+  setId: number;
+  mode: string;
+  version: string;
+  title: string;
+  stars: number;
+  cs: number | null;
+  ar: number | null;
+  od: number | null;
+  hp: number | null;
+  bpm: number | null;
+  lengthSeconds: number | null;
+  maxCombo: number | null;
+};
+
+export function getDifficulty(id: number): Promise<DifficultyInfo> {
+  return cached(`diff:${id}`, 10 * 60_000, async () => {
+    const raw = await osuGet<RawDifficulty & { beatmapset_id?: number; beatmapset?: { title?: string } }>(`/beatmaps/${id}`);
+    return {
+      id: raw.id,
+      setId: raw.beatmapset_id ?? 0,
+      mode: raw.mode,
+      version: String(raw.version ?? "").slice(0, 80),
+      title: String(raw.beatmapset?.title ?? "").slice(0, 120),
+      stars: Math.round(raw.difficulty_rating * 100) / 100,
+      cs: numOrNull(raw.cs),
+      ar: numOrNull(raw.ar),
+      od: numOrNull(raw.accuracy),
+      hp: numOrNull(raw.drain),
+      bpm: numOrNull(raw.bpm),
+      lengthSeconds: numOrNull(raw.total_length),
+      maxCombo: numOrNull(raw.max_combo),
+    };
+  });
 }

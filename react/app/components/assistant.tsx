@@ -9,11 +9,13 @@ import {
   ASSISTANT_NAME,
   ASSISTANT_TAGLINE,
   MAX_MESSAGE_LENGTH,
+  searchHref,
   SUGGESTIONS,
   type SearchLink,
   type StreamEvent,
   type UiAction,
 } from "~/lib/assistant";
+import { useHistory } from "~/lib/history";
 import { useLists } from "~/lib/lists-context";
 import {
   avatarUrl,
@@ -61,13 +63,6 @@ function StreamedText({ text }: { text: string }) {
 
 const STORAGE_KEY = "stack-chat-v2";
 const MAX_STORED = 30;
-
-function searchHref(link: SearchLink) {
-  const params = new URLSearchParams({ q: link.q });
-  if (link.mode !== "all") params.set("mode", link.mode);
-  if (link.status !== "all") params.set("status", link.status);
-  return `/?${params}`;
-}
 
 /** Les actions viennent du serveur mais sont revalidées ici : on ne navigue que vers nos propres pages. */
 function actionUrl(action: UiAction): string | null {
@@ -124,6 +119,7 @@ export function Assistant({
   const navigate = useNavigate();
   const player = usePlayer();
   const lists = useLists();
+  const history = useHistory();
 
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -329,6 +325,7 @@ export function Assistant({
     async (clip: AudioClip) => {
       if (sendingRef.current) return;
       setListenOpen(false);
+      listenPendingRef.current = true;
       await converse(`🎧 Extrait audio (${Math.round(clip.seconds)} s)`, (signal) =>
         fetch("/api/listen", {
           method: "POST",
@@ -340,6 +337,20 @@ export function Assistant({
     },
     [converse],
   );
+
+  // Une écoute terminée entre dans l'historique (une fois la réponse complète reçue).
+  const listenPendingRef = useRef(false);
+  useEffect(() => {
+    if (sending || !listenPendingRef.current) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant" || last.streaming) return;
+    listenPendingRef.current = false;
+    if (last.error) return;
+    history.addListen({
+      summary: last.text,
+      items: (last.cards ?? []).slice(0, 4).map((c) => ({ id: c.id, title: c.title, artist: c.artist })),
+    });
+  }, [messages, sending, history]);
 
   // Question posée depuis une autre page : envoyée dès que le panneau est prêt.
   const sendRef = useRef(send);

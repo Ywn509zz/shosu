@@ -1,7 +1,10 @@
 import { Button } from "@heroui/react";
+import { useState } from "react";
 import { data } from "react-router";
 
+import { DifficultyAnalysisPanel } from "~/components/difficulty-analysis";
 import { ListButtons } from "~/components/list-buttons";
+import { SimilarMaps } from "~/components/similar-maps";
 import { toTrack } from "~/components/beatmap-card";
 import { useAssistant } from "~/lib/assistant-context";
 import {
@@ -40,6 +43,9 @@ export default function BeatmapDetail({ loaderData }: Route.ComponentProps) {
   const { ask } = useAssistant();
   const track = toTrack(set);
   const playing = player.isPlaying(set.id);
+  // Une seule analyse ouverte à la fois (chaque analyse interroge osu! plusieurs fois).
+  const [openDiff, setOpenDiff] = useState<number | null>(null);
+  const maxStars = Math.max(...set.difficulties.map((d) => d.stars), 1);
 
   return (
     <>
@@ -129,6 +135,17 @@ export default function BeatmapDetail({ loaderData }: Route.ComponentProps) {
       )}
 
       <h2 className="section-title">Difficultés</h2>
+      {set.difficulties.length > 1 && (
+        <div className="diff-curve" role="img" aria-label="Progression des difficultés du set">
+          {set.difficulties.map((d) => (
+            <div className="diff-curve-col" key={d.id} title={`${d.version} : ${d.stars.toFixed(2)}★`}>
+              <i style={{ height: `${Math.max(8, (d.stars / maxStars) * 100)}%`, background: getStarColor(d.stars) }} />
+              <span>{d.stars.toFixed(1)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="hint">Clique sur une difficulté pour voir son analyse avec chaque mod.</p>
       <div className="diff-list">
         <div className="diff-row diff-head" aria-hidden>
           <span>Difficulté</span>
@@ -139,37 +156,65 @@ export default function BeatmapDetail({ loaderData }: Route.ComponentProps) {
           <span>HP</span>
           <span>Combo</span>
         </div>
-        {set.difficulties.map((d) => (
-          <div className="diff-row" key={d.id}>
-            <div className="name">
-              {d.version}
-              <small>
-                {d.mode}
-                {d.circles !== null && d.sliders !== null ? ` · ${d.circles + d.sliders + (d.spinners ?? 0)} objets` : ""}
-                {d.bpm ? ` · ${Math.round(d.bpm)} BPM` : ""}
-              </small>
+        {set.difficulties.map((d) => {
+          const open = openDiff === d.id;
+          return (
+            <div className={`diff-item${open ? " is-open" : ""}`} key={d.id}>
+              <div
+                className="diff-row is-clickable"
+                role="button"
+                tabIndex={0}
+                aria-expanded={open}
+                aria-controls={`analysis-${d.id}`}
+                onClick={() => setOpenDiff(open ? null : d.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setOpenDiff(open ? null : d.id);
+                  }
+                }}
+              >
+                <div className="name">
+                  <span className="chevron" aria-hidden>
+                    ›
+                  </span>
+                  {d.version}
+                  <small>
+                    {d.mode}
+                    {d.circles !== null && d.sliders !== null ? ` · ${d.circles + d.sliders + (d.spinners ?? 0)} objets` : ""}
+                    {d.bpm ? ` · ${Math.round(d.bpm)} BPM` : ""}
+                  </small>
+                </div>
+                <div className="stars" style={{ color: getStarColor(d.stars) }}>
+                  ⭐ {d.stars.toFixed(2)}
+                </div>
+                <div className="attr">
+                  <b>{d.cs ?? "—"}</b>CS
+                </div>
+                <div className="attr">
+                  <b>{d.ar ?? "—"}</b>AR
+                </div>
+                <div className="attr">
+                  <b>{d.od ?? "—"}</b>OD
+                </div>
+                <div className="attr">
+                  <b>{d.hp ?? "—"}</b>HP
+                </div>
+                <div className="attr">
+                  <b>{d.maxCombo ? formatNumber(d.maxCombo) : "—"}</b>combo
+                </div>
+              </div>
+              {open && (
+                <div id={`analysis-${d.id}`}>
+                  <DifficultyAnalysisPanel beatmapId={d.id} />
+                </div>
+              )}
             </div>
-            <div className="stars" style={{ color: getStarColor(d.stars) }}>
-              ⭐ {d.stars.toFixed(2)}
-            </div>
-            <div className="attr">
-              <b>{d.cs ?? "—"}</b>CS
-            </div>
-            <div className="attr">
-              <b>{d.ar ?? "—"}</b>AR
-            </div>
-            <div className="attr">
-              <b>{d.od ?? "—"}</b>OD
-            </div>
-            <div className="attr">
-              <b>{d.hp ?? "—"}</b>HP
-            </div>
-            <div className="attr">
-              <b>{d.maxCombo ? formatNumber(d.maxCombo) : "—"}</b>combo
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      <SimilarMaps setId={set.id} />
     </>
   );
 }

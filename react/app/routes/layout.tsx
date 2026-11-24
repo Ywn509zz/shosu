@@ -7,6 +7,7 @@ import { BackButton } from "~/components/back-button";
 import { LoginNotice } from "~/components/login-notice";
 import { PlayerBar } from "~/components/player-bar";
 import { AssistantContext } from "~/lib/assistant-context";
+import { HistoryProvider } from "~/lib/history";
 import { ListsProvider, useLists } from "~/lib/lists-context";
 import { APP_VERSION } from "~/lib/config";
 import { PlayerProvider, usePlayer } from "~/lib/player";
@@ -23,7 +24,9 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
   return (
     <PlayerProvider>
       <ListsProvider signedIn={loaderData.user !== null}>
-        <Shell user={loaderData.user} />
+        <HistoryProvider userKey={loaderData.user?.osuId ? String(loaderData.user.osuId) : "guest"}>
+          <Shell user={loaderData.user} />
+        </HistoryProvider>
       </ListsProvider>
     </PlayerProvider>
   );
