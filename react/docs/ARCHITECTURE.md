@@ -90,8 +90,8 @@ navigateur ──fetch──▶ routes/api.*.ts ──▶ lib/*.server.ts ──
 
 ## Mise en page et CSS
 
-- `legacy.css` : feuille d'origine du propriétaire (structure des cartes, du header, de la recherche), recolorée en bleu iptron ; ses variables (`--text`, `--muted`, `--line`, `--panel`, `--accent`…) sont **redéfinies par `theme.css`**. Thème clair via `body.light-mode`.
-- `theme.css` : **identité visuelle iptron.one** (palette, polices Newsreader + Plus Jakarta Sans auto-hébergées via `@fontsource-variable`, cadre de page, en-tête de verre, boutons, cartes, Stack violet). Importé après `motion.css` et avant `mobile.css`.
+- `legacy.css` : feuille d'origine du propriétaire (structure des cartes, du header, de la recherche), couleurs d'origine ; ses variables (`--text`, `--muted`, `--line`, `--panel`, `--accent`…) sont **redéfinies par `theme.css`**. Thème clair via `body.light-mode`.
+- `theme.css` : **structure visuelle iptron.one** (cadre de page, en-tête de verre, boutons, cartes, compositeur de Stack) avec **les couleurs et la police d'origine de shOsu!**. Importé après `motion.css` et avant `mobile.css`.
 - `pages.css` : pages et composants nouveaux (lecteur, listes, détail, profil, collections, similaires, analyse, historique…).
 - `motion.css` : courbes `--ease-out` / `--ease-spring`, animations d'entrée, états actifs ; tout est coupé sous `prefers-reduced-motion`.
 - `assistant.css` : panneau Stack et ses animations.

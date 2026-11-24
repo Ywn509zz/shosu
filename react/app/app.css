@@ -23,10 +23,6 @@
 @import "@heroui/styles/utilities";
 @import "@heroui/styles/variants";
 
-/* Polices auto-hébergées (même paire que iptron.one : Plus Jakarta Sans pour l'interface, Newsreader pour les titres). */
-@import "@fontsource-variable/plus-jakarta-sans/wght.css";
-@import "@fontsource-variable/newsreader/wght.css";
-
 /* Votre feuille de style d'origine, reprise telle quelle (voir legacy.css). */
 @import "./legacy.css";
 
@@ -42,7 +38,7 @@
 /* Mouvement : entrées de page, cartes en cascade, réactions au toucher. */
 @import "./motion.css";
 
-/* Thème « iptron » : palette, typographie, en-tête, boutons, cartes, Stack (après les feuilles précédentes, avant mobile.css). */
+/* Thème « iptron » (structure : cadre, en-tête, boutons, cartes, Stack ; couleurs et police d'origine) (après les feuilles précédentes, avant mobile.css). */
 @import "./theme.css";
 
 /* Téléphone : navigation du bas, cartes compactes, lecteur, Stack en feuille (en dernier pour l'emporter). */

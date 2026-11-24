@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 3.2), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 3.3), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -19,7 +19,7 @@ et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour c
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 3.2 » ↔ `3.2.0`).
+temps que `version` dans `package.json` (« bêta 3.3 » ↔ `3.3.0`).
 
 ## Démarrage
 
@@ -61,7 +61,7 @@ Mêmes noms que la version HTML/JS : **rien à renommer dans Vercel**.
 
 ## Identité visuelle
 
-Depuis la bêta 3.1 le site reprend l'identité visuelle de [iptron.one](https://iptron.one) : fond quasi noir, titres en serif (Newsreader), interface en Plus Jakarta Sans, accent bleu, violet pour Stack, en-tête de verre, thèmes sombre et clair. Tout est centralisé dans [`app/theme.css`](app/theme.css) (voir `docs/FEATURES.md` § Thème visuel).
+Depuis la bêta 3.1 le site reprend la **structure** visuelle de [iptron.one](https://iptron.one) (cadre de page, en-tête de verre, boutons et cartes sobres, compositeur de Stack en carte) avec les **couleurs violettes et la police d'origine** de shOsu! (bêta 3.3). Tout est centralisé dans [`app/theme.css`](app/theme.css) (voir `docs/FEATURES.md` § Thème visuel).
 
 ## Fidélité au design (historique)
 
