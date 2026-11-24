@@ -1,11 +1,12 @@
 import { Button } from "@heroui/react";
-import { useState } from "react";
-import { data } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, data } from "react-router";
 
 import { DifficultyAnalysisPanel } from "~/components/difficulty-analysis";
 import { ListButtons } from "~/components/list-buttons";
 import { SimilarMaps } from "~/components/similar-maps";
 import { toTrack } from "~/components/beatmap-card";
+import { ShareButton } from "~/components/share-button";
 import { useAssistant } from "~/lib/assistant-context";
 import {
   beatmapsetUrl,
@@ -17,6 +18,7 @@ import {
   OSU_BASE_URL,
 } from "~/lib/osu";
 import { OsuError, getBeatmapset } from "~/lib/osu.server";
+import { useHistory } from "~/lib/history";
 import { usePlayer } from "~/lib/player";
 
 import type { Route } from "./+types/beatmap.$id";
@@ -32,15 +34,35 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 }
 
-export const meta: Route.MetaFunction = ({ loaderData }) =>
-  loaderData
-    ? [{ title: `${loaderData.set.title} — shOsu!` }, { name: "description", content: `${loaderData.set.artist} · mappé par ${loaderData.set.creator}` }]
-    : [{ title: "Beatmap — shOsu!" }];
+/** Titre, description et couverture : c'est ce que montre un aperçu de lien (Discord, messageries, réseaux). */
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData) return [{ title: "Beatmap — shOsu!" }];
+  const { set } = loaderData;
+  const stars = set.maxStars !== null ? ` · jusqu'à ${set.maxStars.toFixed(1)}★` : "";
+  const description = `${set.artist} · mappé par ${set.creator}${set.bpm ? ` · ${Math.round(set.bpm)} BPM` : ""}${stars}`;
+  return [
+    { title: `${set.title} — shOsu!` },
+    { name: "description", content: description },
+    { property: "og:type", content: "website" },
+    { property: "og:site_name", content: "shOsu!" },
+    { property: "og:title", content: `${set.title} — ${set.artist}` },
+    { property: "og:description", content: description },
+    { property: "og:image", content: coverUrl(set.id) },
+    { name: "twitter:card", content: "summary_large_image" },
+  ];
+};
 
 export default function BeatmapDetail({ loaderData }: Route.ComponentProps) {
   const { set } = loaderData;
   const player = usePlayer();
   const { ask } = useAssistant();
+  const history = useHistory();
+  // Historique des beatmaps consultées (local au navigateur).
+  useEffect(() => {
+    if (history.loaded) history.addView({ id: set.id, title: set.title, artist: set.artist });
+    // Une consultation par ouverture de page (et quand l'historique vient d'être lu).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [set.id, history.loaded]);
   const track = toTrack(set);
   const playing = player.isPlaying(set.id);
   // Une seule analyse ouverte à la fois (chaque analyse interroge osu! plusieurs fois).
@@ -82,6 +104,10 @@ export default function BeatmapDetail({ loaderData }: Route.ComponentProps) {
           Voir sur osu.ppy.sh ↗
         </a>
         <ListButtons id={set.id} />
+        <ShareButton path={`/beatmap/${set.id}`} title={set.title} text={`${set.title} — ${set.artist} sur shOsu!`} />
+        <Link className="account-btn" to={`/compare?a=${set.id}`}>
+          ⚖ Comparer
+        </Link>
         <Button
           className="account-btn"
           onPress={() =>

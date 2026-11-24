@@ -120,6 +120,10 @@ export default function Stats({ loaderData }: Route.ComponentProps) {
               )}
             </strong>
           </Link>
+          <Link className="stat-tile" to="/history?tab=views">
+            <span>Beatmaps consultées</span>
+            <strong>{history.views.length}</strong>
+          </Link>
           <Link className="stat-tile" to="/history">
             <span>Recherches</span>
             <strong>{history.searches.length}</strong>
@@ -129,7 +133,10 @@ export default function Stats({ loaderData }: Route.ComponentProps) {
             <strong>{history.listens.length}</strong>
           </Link>
         </div>
-        <p className="hint">Les recherches et écoutes sont comptées dans ce navigateur (l'historique reste local).</p>
+        <p className="hint">
+          Les recherches, écoutes et consultations sont comptées dans ce navigateur (l'historique reste local). Découvre aussi ton{" "}
+          <Link to="/dna">Music DNA</Link> : genres, langues et tempo que tu préfères.
+        </p>
       </section>
     </>
   );

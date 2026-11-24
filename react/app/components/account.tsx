@@ -107,6 +107,10 @@ function AccountMenu({ user }: { user: SessionUser }) {
           <span>Mes statistiques</span>
           <small>Progression et points faibles</small>
         </Link>
+        <Link to="/dna" onClick={() => setOpen(false)}>
+          <span>Music DNA</span>
+          <small>Ton empreinte musicale</small>
+        </Link>
         <Link to="/history" onClick={() => setOpen(false)}>
           <span>Historique</span>
           <small>Recherches et écoutes récentes</small>

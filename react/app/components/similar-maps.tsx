@@ -10,11 +10,15 @@ type State = { phase: "loading" } | { phase: "error" } | { phase: "ready"; items
 /** Beatmaps qui ressemblent à celle-ci (artiste, tags, BPM, difficulté) : chargées après l'affichage de la page. */
 export function SimilarMaps({ setId }: { setId: number }) {
   const [state, setState] = useState<State>({ phase: "loading" });
+  const [focus, setFocus] = useState<"mix" | "sound">("mix");
 
   useEffect(() => {
     const controller = new AbortController();
     setState({ phase: "loading" });
-    fetch(`/api/similar?id=${setId}`, { signal: controller.signal, headers: { Accept: "application/json" } })
+    fetch(`/api/similar?id=${setId}${focus === "sound" ? "&focus=sound" : ""}`, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    })
       .then(async (response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const body = (await response.json()) as { items?: SimilarMap[] };
@@ -24,7 +28,7 @@ export function SimilarMaps({ setId }: { setId: number }) {
         if (error.name !== "AbortError") setState({ phase: "error" });
       });
     return () => controller.abort();
-  }, [setId]);
+  }, [setId, focus]);
 
   const queue =
     state.phase === "ready" ? state.items.map(toTrack).filter((track): track is Track => track !== null) : [];
@@ -34,6 +38,24 @@ export function SimilarMaps({ setId }: { setId: number }) {
       <h2 className="section-title" id="similar-title">
         Beatmaps similaires
       </h2>
+      <div className="tabs similar-tabs" role="group" aria-label="Type de ressemblance">
+        <button
+          type="button"
+          className={`tab${focus === "mix" ? " is-active" : ""}`}
+          aria-pressed={focus === "mix"}
+          onClick={() => setFocus("mix")}
+        >
+          Globale
+        </button>
+        <button
+          type="button"
+          className={`tab${focus === "sound" ? " is-active" : ""}`}
+          aria-pressed={focus === "sound"}
+          onClick={() => setFocus("sound")}
+        >
+          🎵 Musique proche
+        </button>
+      </div>
 
       {state.phase === "loading" && (
         <div className="similar-grid" aria-busy="true" aria-label="Recherche de beatmaps similaires">

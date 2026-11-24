@@ -1611,3 +1611,219 @@ a.stat-tile:hover {
   margin: 30px 0 0;
   text-align: left;
 }
+
+.history-cover {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: #20263a;
+  object-fit: cover;
+}
+
+.similar-tabs {
+  justify-content: flex-start;
+  margin-bottom: 14px;
+}
+
+/* ===== Music DNA ===== */
+.dna-signature {
+  max-width: 640px;
+  margin-right: auto;
+  margin-left: auto;
+  color: var(--text);
+  font-size: 1.02rem;
+}
+.dna-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.dna-grid .skill-row {
+  grid-template-columns: 96px minmax(0, 1fr) 44px;
+}
+.dna-sub {
+  margin-top: 16px;
+}
+.dna-sample {
+  margin: 0 0 22px;
+  text-align: center;
+}
+.dna-grid .chips {
+  margin: 0 0 10px;
+}
+.dna-grid .chip {
+  color: var(--text);
+  text-decoration: none;
+}
+.dna-grid .chip:hover {
+  border-color: rgba(195, 173, 255, 0.55);
+}
+
+/* ===== Comparaison de deux beatmaps ===== */
+.compare-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 900px;
+  margin: 0 auto 18px;
+}
+.compare-form input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  outline: 0;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  font: inherit;
+  font-size: 0.86rem;
+  transition: border-color 0.2s, box-shadow 0.25s;
+}
+.compare-form input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(156, 124, 255, 0.18);
+}
+.compare-form .account-btn {
+  width: auto;
+  height: auto;
+  padding: 10px 16px;
+}
+.compare-sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.compare-side {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  text-align: left;
+  animation: pop-in 0.5s var(--ease-out) both;
+}
+.compare-side.is-b {
+  animation-delay: 0.08s;
+}
+.compare-side.is-empty {
+  justify-content: center;
+  min-height: 120px;
+  border-style: dashed;
+  color: var(--muted);
+}
+.compare-side img {
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  background: #20263a;
+  object-fit: cover;
+}
+.compare-side a:first-child {
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+.compare-side p {
+  margin: 2px 0 6px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.compare-side small {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.compare-side small a {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+.compare-suggestions {
+  align-items: center;
+  margin-bottom: 16px;
+}
+.compare-suggestions .chip {
+  color: var(--text);
+  text-decoration: none;
+}
+.compare-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border: 1px solid rgba(195, 173, 255, 0.3);
+  border-radius: 16px;
+  background: rgba(156, 124, 255, 0.08);
+  text-align: left;
+}
+.compare-score {
+  display: grid;
+  justify-items: center;
+  min-width: 110px;
+}
+.compare-score strong {
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+.compare-score span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  text-align: center;
+}
+.compare-verdict ul {
+  flex: 1 1 280px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+.compare-table {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.compare-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 0.82rem;
+  text-align: left;
+}
+.compare-row > span:not(.compare-label) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.compare-head {
+  background: none;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.compare-label {
+  color: var(--muted);
+}
+.compare-row .is-higher {
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+@media (prefers-reduced-motion: reduce) {
+  .compare-side {
+    animation: none;
+  }
+}

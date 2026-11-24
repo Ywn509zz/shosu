@@ -13,9 +13,11 @@ const cacheableHeaders = { "Cache-Control": "public, s-maxage=300, stale-while-r
 /** 40 demandes par minute et par IP, compteur par instance (aucune commande Redis consommée). */
 const IP_LIMIT = { limit: 40, windowMs: 60_000 };
 
-/** GET /api/similar?id=<set> — beatmaps qui ressemblent à celle-ci. */
+/** GET /api/similar?id=<set>[&focus=sound] — beatmaps qui ressemblent à celle-ci (focus=sound : la musique seulement). */
 export async function loader({ request }: Route.LoaderArgs) {
-  const id = new URL(request.url).searchParams.get("id") ?? "";
+  const params = new URL(request.url).searchParams;
+  const id = params.get("id") ?? "";
+  const focus = params.get("focus") === "sound" ? "sound" : "mix";
   if (!/^\d{1,10}$/.test(id)) return data({ error: "Invalid id" }, { status: 400, headers });
 
   const hit = await rateLimit(`similar:${clientIp(request)}`, IP_LIMIT.limit, IP_LIMIT.windowMs, false);
@@ -24,7 +26,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    return data({ items: await findSimilar(Number(id)) }, { headers: cacheableHeaders });
+    return data({ items: await findSimilar(Number(id), focus) }, { headers: cacheableHeaders });
   } catch (error) {
     if (error instanceof OsuError && error.status === 404) return data({ error: "Not found" }, { status: 404, headers });
     console.error("Similar maps error:", error instanceof Error ? error.name : "Error");

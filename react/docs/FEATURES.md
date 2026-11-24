@@ -25,6 +25,7 @@
 13. [Profil joueur](#profil-joueur) · 14. [Recommandations « Pour toi »](#recommandations-pour-toi) · 15. [Historique](#historique) · 16. [Lecteur audio](#lecteur-audio) · 17. [Raccourcis clavier](#raccourcis-clavier)
 18. [Navigation et mouvement](#navigation-et-mouvement) · 19. [Icône et identité](#icône-et-identité) · 20. [Caches et limites de débit](#caches-et-limites-de-débit)
 21. [Mobile](#mobile-téléphone) · 22. [Chargement progressif](#chargement-progressif-des-résultats)
+26. [Music DNA](#music-dna) · 27. [Similar Sound](#similar-sound-musique-proche) · 28. [Comparer deux beatmaps](#comparer-deux-beatmaps) · 29. [Partager une beatmap](#partager-une-beatmap-aperçus-de-liens)
 23. [Suivi de progression (Progress Tracker)](#suivi-de-progression-progress-tracker) · 24. [Analyse des performances](#analyse-des-performances-et-points-faibles) · 25. [Mes statistiques](#mes-statistiques)
 
 ---
@@ -159,6 +160,7 @@ AR/OD/CS/HP/BPM/durée sont **calculés** par `lib/mods.ts#applyMods` (formules 
 **But** — trouver des maps proches d'une beatmap.
 **Comment ça marche** — `components/similar-maps.tsx` appelle `GET /api/similar?id=<set>` → `lib/similar.server.ts#findSimilar` : recherches osu! autour de l'artiste, de la source et de 2 tags distinctifs (`usefulTags`), candidats classés par `lib/similar.ts#scoreSimilarity`
 (même artiste 34, source 12, tags communs ≤ 26, BPM ≤ 14, difficulté ≤ 14, mappeur 5, genre 4, langue 3 ; modes en commun obligatoires ; seuil 22/100) avec raisons lisibles. Carte commune : `components/map-match-card.tsx`.
+**Deux modes** (`focus`, onglets « Globale » / « 🎵 Musique proche » sur la page) : voir la fiche *Similar Sound*.
 **Doit fonctionner ainsi** — résultats publics (CDN 5 min), ≤ 12, jamais la beatmap elle-même ; échec de certaines recherches tolérée.
 **Limites** — 40/min/IP par instance. **Outil Stack** — `find_similar_maps`.
 
@@ -181,9 +183,9 @@ score = difficulté (≤ 40) + artiste (≤ 28) + tags (≤ 18) + BPM (≤ 12) +
 
 ## Historique
 
-**But** — retrouver ses recherches et écoutes récentes.
-**Comment ça marche** — `lib/history.tsx` (`HistoryProvider` dans `layout.tsx`, clé `localStorage` `shosu-history-v1:<osuId|guest>`) : ≤ 30 recherches (dédoublonnées), ≤ 15 écoutes (résumé + 4 beatmaps). `home.tsx` enregistre chaque recherche réussie et chaque écoute ; Stack enregistre ses écoutes une fois la réponse complète.
-Affichage : puces « Récent » sous la barre de recherche (accueil au repos), page `/history` (onglets, « Tout effacer », suppression unitaire), lien dans le menu du compte.
+**But** — retrouver ses recherches, écoutes et beatmaps consultées récentes.
+**Comment ça marche** — `lib/history.tsx` (`HistoryProvider` dans `layout.tsx`, clé `localStorage` `shosu-history-v1:<osuId|guest>`) : ≤ 30 recherches (dédoublonnées), ≤ 15 écoutes (résumé + 4 beatmaps), ≤ 40 **beatmaps consultées** (`views`, dédoublonnées, la dernière en tête ; enregistrées à l'ouverture de `/beatmap/:id`, une fois l'historique lu). `home.tsx` enregistre chaque recherche réussie et chaque écoute ; Stack enregistre ses écoutes une fois la réponse complète.
+Affichage : puces « Récent » sous la barre de recherche (accueil au repos), page `/history` (onglets Recherches / Consultées / Écoutes, « Tout effacer », suppression unitaire), lien dans le menu du compte. Les consultations alimentent **Music DNA** (le navigateur en envoie jusqu'à 20 identifiants).
 **Doit fonctionner ainsi** — **100 % local** : rien n'est envoyé au serveur ni stocké dans Redis (0 commande) ; un historique par compte osu! ; synchronisation entre onglets via l'événement `storage` ; les écritures avant la première lecture ne doivent jamais écraser l'existant.
 **Fichiers** — `lib/history.tsx`, `routes/history.tsx`, `routes/home.tsx`, `components/assistant.tsx`.
 
@@ -276,3 +278,35 @@ précision en baisse dans une tranche (≥ 1,2 pt sous la moyenne, ≥ 4 scores)
 **Contenu** — onglets de mode ; **Suivi de progression** (voir plus haut, `isMe`) ; **Analyse des performances** ; **Mon activité sur shOsu!** : nombre de favoris, « à jouer plus tard » (`lists.count`), collections (dont partagées, via `GET /api/collections`), recherches et écoutes (historique local).
 **Doit fonctionner ainsi** — hors connexion : invitation à se connecter ; les compteurs de recherches/écoutes sont locaux au navigateur (le dire) ; lien vers le profil public.
 **Fichiers** — `routes/stats.tsx`, `lib/lists-context.tsx` (`count`), `components/account.tsx`.
+
+## Music DNA
+
+**But** — créer l'**empreinte musicale** du joueur à partir des beatmaps qu'il aime, joue et consulte, puis trouver des morceaux qui lui correspondent (page `/dna`, menu du compte, outil Stack `music_dna`).
+**Comment ça marche** — `routes/dna.tsx` envoie `POST /api/dna {viewed: [≤ 20 ids]}` (les consultations viennent de l'historique **local**, donc c'est le navigateur qui les fournit) → `lib/dna.server.ts#getMusicDna(osuId, viewed)` :
+1. rassemble des beatmaps avec un **poids** : favoris osu! (3), favoris shOsu! (3), « à jouer plus tard » shOsu! (1,5), consultées (2), les plus jouées osu! (1 à 3 selon le nombre de parties) ;
+2. garde les 40 plus pesantes, lit leurs détails (`getBeatmapset`, 8 à la fois) : genre, langue, BPM, tags, artiste, durée ;
+3. agrège (pondéré) en **signature** : genres et langues (parts), histogramme de BPM (classes de 20), BPM moyen et mot de tempo (lent < 120 · médium · rapide ≥ 160 · très rapide ≥ 200), artistes et tags dominants, phrase de résumé en français ;
+4. cherche autour des 2 premiers artistes, 3 premiers tags et du genre principal, **exclut tout ce que le joueur connaît déjà**, et classe les candidats (genre ≤ 22, langue ≤ 10, tempo ≤ 22, tags ≤ 28, artiste de l'ADN 14, popularité ≤ 4 ; seuil 25 ; ≤ 2 par artiste ; 12 résultats).
+**Doit fonctionner ainsi** — propre au joueur connecté : `private, no-store`, POST vérifié (origine, auth, corps ≤ 600 o), 8 calculs / 10 min / joueur **par instance** (0 Redis hors lecture des listes), cache serveur 15 min par (joueur, consultations) ; aucune donnée → `dna: null` + message ; les sources qui échouent sont ignorées (le calcul continue avec le reste).
+**Fichiers** — `lib/dna.server.ts`, `routes/api.dna.ts`, `routes/dna.tsx`, `lib/insights.ts` (`MusicDna`), `components/map-match-card.tsx`, `components/charts.tsx`. **Genres favoris / modes préférés** : barres « Genres » et « Langues » de cette page ; « Modes préférés » dans le Suivi de progression.
+**Tester** — local : `/dna` (faux favoris et parties les plus jouées).
+
+## Similar Sound (musique proche)
+
+**But** — trouver des beatmaps dont la **musique** est proche (même artiste, BPM similaire, genre, langue, ambiance), sans tenir compte de la difficulté.
+**Comment ça marche** — `scoreSimilarity(base, other, "sound")` dans `lib/similar.ts` : artiste 38, source 14, tags ≤ 30, **BPM ≤ 22 avec tolérance 12 %**, genre 12, langue 8 ; ni difficulté ni mappeur ; seuil 26. `findSimilar(setId, focus)` (`similar.server.ts`) cherche autour de l'artiste, de la source et de 3 tags ; `GET /api/similar?id=&focus=sound` ; onglets sur la page d'une beatmap ; outil Stack `similar_sound`. Genre et langue des candidats : noms fournis par osu! ou déduits de `genre_id`/`language_id` (tables `GENRES`/`LANGUAGES`).
+**Doit fonctionner ainsi** — le mode « mix » (défaut) reste inchangé ; les raisons affichées expliquent chaque score ; mêmes limites que les similaires (40/min/IP par instance, CDN 5 min, clé de cache `similar:<id>:<focus>`).
+
+## Comparer deux beatmaps
+
+**But** — comparer deux sets côte à côte (difficulté, tempo, durée, popularité, ressemblance musicale).
+**Comment ça marche** — `/compare?a=<set>&b=<set>` (`routes/compare.tsx`, bouton « ⚖ Comparer » sur la page d'une beatmap) : le loader lit les deux sets (`getBeatmapset`, cache 5 min) et `lib/compare.ts#compareSets` (fonction **pure**, partagée avec Stack) produit : tableau (difficulté max/min, nombre de difficultés, BPM, durée, combo/AR/OD/CS/HP de la plus dure, favoris, parties, genre, langue, statut, mappeur — la valeur la plus haute est mise en avant, sans jugement « mieux »), % de ressemblance musicale, et un **verdict** en phrases.
+Avec seulement `a`, la page propose 6 beatmaps proches à comparer ; les champs acceptent un identifiant **ou** un lien `osu.ppy.sh/beatmapsets/…` ; bouton « Inverser ».
+**Doit fonctionner ainsi** — identifiants validés (`^\d{1,10}$`), erreurs affichées dans la page (set inexistant, osu! indisponible) sans planter ; 40 requêtes/min/IP par instance. **Outil Stack** — `compare_beatmaps`.
+**Fichiers** — `lib/compare.ts`, `routes/compare.tsx`, styles `compare-*` dans `pages.css`.
+
+## Partager une beatmap (aperçus de liens)
+
+**But** — envoyer un lien shOsu! vers une beatmap (ou une collection, un profil) qui s'affiche bien dans Discord, messageries, réseaux.
+**Comment ça marche** — `components/share-button.tsx` (« 🔗 Partager » sur `/beatmap/:id`) : sur appareil tactile ouvre la feuille de partage du système (`navigator.share`), sinon copie `<origine>/beatmap/<id>` ; message de confirmation « ✓ Lien copié ». Les `meta` de `beatmap.$id.tsx`, `collection.$id.tsx` et `player.$id.tsx` fournissent `og:title`, `og:description`, `og:image` (cover de la beatmap, première cover d'une collection, avatar du joueur) et `twitter:card`.
+**Doit fonctionner ainsi** — le lien est toujours `window.location.origin + chemin du site` (jamais une URL fournie par un tiers) ; les collections privées n'ont aucune méta (404).

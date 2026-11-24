@@ -34,23 +34,42 @@ export function usefulTags(tags: string[], artist: string): string[] {
 const mid = (input: SimilarityInput) =>
   input.minStars !== null && input.maxStars !== null ? (input.minStars + input.maxStars) / 2 : null;
 
+export type SimilarityFocus = "mix" | "sound";
+
+/** Noms des genres et langues d'osu! (les résultats de recherche n'en donnent parfois que l'identifiant). */
+export const GENRES: Record<number, string> = {
+  2: "Video Game", 3: "Anime", 4: "Rock", 5: "Pop", 6: "Other", 7: "Novelty", 9: "Hip Hop", 10: "Electronic", 11: "Metal",
+  12: "Classical", 13: "Folk", 14: "Jazz",
+};
+export const LANGUAGES: Record<number, string> = {
+  2: "English", 3: "Japanese", 4: "Chinese", 5: "Instrumental", 6: "Korean", 7: "French", 8: "German", 9: "Swedish",
+  10: "Spanish", 11: "Italian", 12: "Russian", 13: "Polish", 14: "Other",
+};
+
 /**
- * Note de 0 à 100 et raisons. Renvoie null si les deux beatmaps n'ont aucun mode en commun
+ * Note de 0 à 100 et raisons.
+ * `focus: "mix"` (défaut) mêle musique et difficulté ; `focus: "sound"` ne regarde que la **musique** (artiste, source, tags, BPM,
+ * genre, langue) : ni difficulté ni mappeur, pour trouver des morceaux qui sonnent pareil. Renvoie null si les deux beatmaps n'ont aucun mode en commun
  * (comparer du taiko à du mania n'aurait pas de sens).
  */
-export function scoreSimilarity(base: SimilarityInput, other: SimilarityInput): { score: number; reasons: string[] } | null {
+export function scoreSimilarity(
+  base: SimilarityInput,
+  other: SimilarityInput,
+  focus: SimilarityFocus = "mix",
+): { score: number; reasons: string[] } | null {
   if (base.id === other.id) return null;
   if (!base.modes.some((m) => other.modes.includes(m))) return null;
 
+  const sound = focus === "sound";
   const reasons: string[] = [];
   let score = 0;
 
   if (base.artist && norm(base.artist) === norm(other.artist)) {
-    score += 34;
+    score += sound ? 38 : 34;
     reasons.push("Même artiste");
   }
   if (base.source && norm(base.source) === norm(other.source)) {
-    score += 12;
+    score += sound ? 14 : 12;
     reasons.push(`Même source (${other.source})`);
   }
 
@@ -59,22 +78,23 @@ export function scoreSimilarity(base: SimilarityInput, other: SimilarityInput): 
   const shared = a.filter((tag) => b.has(tag));
   if (a.length > 0 && b.size > 0 && shared.length > 0) {
     const jaccard = shared.length / (a.length + b.size - shared.length);
-    score += Math.min(26, Math.round(jaccard * 60));
+    score += Math.min(sound ? 30 : 26, Math.round(jaccard * (sound ? 70 : 60)));
     reasons.push(`Tags communs : ${shared.slice(0, 3).join(", ")}`);
   }
 
   if (base.bpm !== null && other.bpm !== null && base.bpm > 0) {
     const gap = Math.abs(base.bpm - other.bpm);
     const ratio = gap / base.bpm;
-    if (ratio <= 0.2) {
-      score += Math.round(14 * (1 - ratio / 0.2));
-      if (ratio <= 0.08) reasons.push(`BPM proche (${Math.round(other.bpm)} contre ${Math.round(base.bpm)})`);
+    const tolerance = sound ? 0.12 : 0.2;
+    if (ratio <= tolerance) {
+      score += Math.round((sound ? 22 : 14) * (1 - ratio / tolerance));
+      if (ratio <= 0.08) reasons.push(`BPM ${sound ? "très " : ""}proche (${Math.round(other.bpm)} contre ${Math.round(base.bpm)})`);
     }
   }
 
   const baseMid = mid(base);
   const otherMid = mid(other);
-  if (baseMid !== null && otherMid !== null) {
+  if (!sound && baseMid !== null && otherMid !== null) {
     const gap = Math.abs(baseMid - otherMid);
     if (gap <= 1.5) {
       score += Math.round(14 * (1 - gap / 1.5));
@@ -82,12 +102,18 @@ export function scoreSimilarity(base: SimilarityInput, other: SimilarityInput): 
     }
   }
 
-  if (base.creator && norm(base.creator) === norm(other.creator)) {
+  if (!sound && base.creator && norm(base.creator) === norm(other.creator)) {
     score += 5;
     reasons.push("Même mappeur");
   }
-  if (base.genre && other.genre && base.genre === other.genre) score += 4;
-  if (base.language && other.language && base.language === other.language) score += 3;
+  if (base.genre && other.genre && base.genre === other.genre) {
+    score += sound ? 12 : 4;
+    if (sound) reasons.push(`Même genre : ${other.genre}`);
+  }
+  if (base.language && other.language && base.language === other.language) {
+    score += sound ? 8 : 3;
+    if (sound && base.language !== "Instrumental") reasons.push(`Même langue : ${other.language}`);
+  }
 
   return { score: Math.min(100, score), reasons: reasons.slice(0, 4) };
 }

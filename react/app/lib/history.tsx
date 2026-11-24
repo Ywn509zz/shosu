@@ -8,12 +8,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 export type SearchEntry = { q: string; mode: string; status: string; at: number };
 export type ListenItem = { id: number; title: string; artist: string };
 export type ListenEntry = { summary: string; items: ListenItem[]; at: number };
+export type ViewEntry = { id: number; title: string; artist: string; at: number };
 
 const MAX_SEARCHES = 30;
 const MAX_LISTENS = 15;
+const MAX_VIEWS = 40;
 
-type Stored = { searches: SearchEntry[]; listens: ListenEntry[] };
-const EMPTY: Stored = { searches: [], listens: [] };
+type Stored = { searches: SearchEntry[]; listens: ListenEntry[]; views: ViewEntry[] };
+const EMPTY: Stored = { searches: [], listens: [], views: [] };
 
 const storageKey = (userKey: string) => `shosu-history-v1:${userKey}`;
 
@@ -36,7 +38,11 @@ function parse(raw: string | null): Stored {
           .map((i) => ({ id: i.id, title: String(i.title ?? "").slice(0, 100), artist: String(i.artist ?? "").slice(0, 80) })),
       }))
       .slice(0, MAX_LISTENS);
-    return { searches, listens };
+    const views = (Array.isArray(data.views) ? data.views : [])
+      .filter((e): e is ViewEntry => Number.isInteger(e?.id) && typeof e.at === "number")
+      .map((e) => ({ id: e.id, title: String(e.title ?? "").slice(0, 100), artist: String(e.artist ?? "").slice(0, 80), at: e.at }))
+      .slice(0, MAX_VIEWS);
+    return { searches, listens, views };
   } catch {
     return EMPTY;
   }
@@ -46,6 +52,10 @@ type HistoryApi = {
   loaded: boolean;
   searches: SearchEntry[];
   listens: ListenEntry[];
+  views: ViewEntry[];
+  addView: (entry: { id: number; title: string; artist: string }) => void;
+  removeView: (id: number) => void;
+  clearViews: () => void;
   addSearch: (entry: { q: string; mode: string; status: string }) => void;
   removeSearch: (at: number) => void;
   clearSearches: () => void;
@@ -59,6 +69,10 @@ const HistoryContext = createContext<HistoryApi>({
   loaded: false,
   searches: [],
   listens: [],
+  views: [],
+  addView: noop,
+  removeView: noop,
+  clearViews: noop,
   addSearch: noop,
   removeSearch: noop,
   clearSearches: noop,
@@ -120,6 +134,14 @@ export function HistoryProvider({ userKey, children }: { userKey: string; childr
       loaded,
       searches: data.searches,
       listens: data.listens,
+      views: data.views,
+      addView: ({ id, title, artist }) =>
+        update((c) => ({
+          ...c,
+          views: [{ id, title: title.slice(0, 100), artist: artist.slice(0, 80), at: Date.now() }, ...c.views.filter((v) => v.id !== id)].slice(0, MAX_VIEWS),
+        })),
+      removeView: (id) => update((c) => ({ ...c, views: c.views.filter((v) => v.id !== id) })),
+      clearViews: () => update((c) => ({ ...c, views: [] })),
       addSearch: ({ q, mode, status }) => {
         const text = q.trim().slice(0, 200);
         if (text.length < 2) return;

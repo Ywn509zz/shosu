@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router";
 
 import { searchHref } from "~/lib/assistant";
 import { timeAgo, useHistory } from "~/lib/history";
-import { MODE_OPTIONS, STATUS_OPTIONS } from "~/lib/osu";
+import { coverUrl, MODE_OPTIONS, STATUS_OPTIONS } from "~/lib/osu";
 
 import type { Route } from "./+types/history";
 
@@ -15,7 +15,8 @@ const label = (options: readonly { value: string; label: string }[], value: stri
 export default function History() {
   const history = useHistory();
   const [params] = useSearchParams();
-  const tab = params.get("tab") === "listens" ? "listens" : "searches";
+  const requested = params.get("tab");
+  const tab = requested === "listens" ? "listens" : requested === "views" ? "views" : "searches";
 
   return (
     <>
@@ -29,12 +30,46 @@ export default function History() {
         <Link className={`tab${tab === "searches" ? " is-active" : ""}`} to="?tab=searches" aria-current={tab === "searches" ? "page" : undefined}>
           ⌕ Recherches ({history.searches.length})
         </Link>
+        <Link className={`tab${tab === "views" ? " is-active" : ""}`} to="?tab=views" aria-current={tab === "views" ? "page" : undefined}>
+          👁 Consultées ({history.views.length})
+        </Link>
         <Link className={`tab${tab === "listens" ? " is-active" : ""}`} to="?tab=listens" aria-current={tab === "listens" ? "page" : undefined}>
           🎧 Écoutes ({history.listens.length})
         </Link>
       </nav>
 
-      {tab === "searches" ? (
+      {tab === "views" ? (
+        history.views.length === 0 ? (
+          <p className="empty">
+            Aucune beatmap consultée pour l'instant. Ouvre la page d'une beatmap depuis une <Link to="/">recherche</Link> : elle apparaîtra ici.
+          </p>
+        ) : (
+          <>
+            <div className="history-actions">
+              <Button className="account-btn" onPress={history.clearViews}>
+                Tout effacer
+              </Button>
+            </div>
+            <ul className="history-list">
+              {history.views.map((entry) => (
+                <li key={entry.id} className="history-row">
+                  <img className="history-cover" src={coverUrl(entry.id)} alt="" loading="lazy" width={48} height={48} />
+                  <Link to={`/beatmap/${entry.id}`} className="history-main">
+                    <strong>{entry.title || `Beatmap ${entry.id}`}</strong>
+                    <small>
+                      {entry.artist ? `${entry.artist} · ` : ""}
+                      {timeAgo(entry.at)}
+                    </small>
+                  </Link>
+                  <Button className="icon-btn" aria-label={`Retirer ${entry.title} de l'historique`} onPress={() => history.removeView(entry.id)}>
+                    ✕
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+      ) : tab === "searches" ? (
         history.searches.length === 0 ? (
           <p className="empty">
             Aucune recherche pour l'instant. Lance une <Link to="/">recherche</Link> : elle apparaîtra ici.

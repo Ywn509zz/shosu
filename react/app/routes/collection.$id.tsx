@@ -8,6 +8,7 @@ import { COLLECTION_ID_PATTERN, collectionPath, type Collection } from "~/lib/co
 import { callCollections } from "~/lib/collections-client";
 import { getCollection, getCollectionItems } from "~/lib/collections.server";
 import type { ListItem } from "~/lib/lists";
+import { coverUrl } from "~/lib/osu";
 import { clientIp, rateLimit } from "~/lib/rate-limit.server";
 import { getUser } from "~/lib/session.server";
 
@@ -43,6 +44,15 @@ export const meta: Route.MetaFunction = ({ loaderData }) =>
           name: "description",
           content: `Collection de ${loaderData.collection.ownerName || "un joueur"} : ${loaderData.collection.count} beatmap(s).`,
         },
+        { property: "og:type", content: "website" },
+        { property: "og:site_name", content: "shOsu!" },
+        { property: "og:title", content: `${loaderData.collection.name} — collection shOsu!` },
+        {
+          property: "og:description",
+          content: `Collection de ${loaderData.collection.ownerName || "un joueur"} : ${loaderData.collection.count} beatmap(s).`,
+        },
+        ...(loaderData.items[0] ? [{ property: "og:image", content: coverUrl(loaderData.items[0].id) }] : []),
+        { name: "twitter:card", content: "summary_large_image" },
       ]
     : [{ title: "Collection — shOsu!" }];
 

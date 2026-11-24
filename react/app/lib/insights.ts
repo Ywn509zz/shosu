@@ -141,3 +141,22 @@ export type PerformanceAnalysis = {
   byMods: { label: string; count: number; averagePp: number | null; accuracy: number | null }[];
   findings: PerformanceFinding[];
 };
+
+// ---------------------------------------------------------------------------
+// Music DNA
+// ---------------------------------------------------------------------------
+
+/** Empreinte musicale d'un joueur, tirée des beatmaps qu'il aime, joue souvent et consulte. */
+export type MusicDna = {
+  sample: { sets: number; osuFavourites: number; mostPlayed: number; shosuLists: number; viewed: number };
+  /** Résumé en une phrase (« électro rapide, surtout japonais… »). */
+  signature: string;
+  genres: { name: string; share: number }[];
+  languages: { name: string; share: number }[];
+  bpm: { average: number | null; tempo: string; histogram: { label: string; value: number }[] };
+  artists: string[];
+  tags: string[];
+  averageLengthSeconds: number | null;
+  /** Beatmaps jamais jouées qui collent à cette empreinte. */
+  matches: SimilarMap[];
+};

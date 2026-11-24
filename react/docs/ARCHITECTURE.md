@@ -34,11 +34,11 @@ Les types partagés vivent dans des modules neutres (`osu.ts`, `insights.ts`, `c
 ## Routes
 
 Pages (toutes dans `routes/layout.tsx`, qui fournit le header, le lecteur, Stack, le contexte des listes et de l'historique) :
-`/` accueil · `/beatmap/:id` · `/player/:id` · `/lists` · `/collection/:id` · `/history` · `/stats` · `/premium` · `*` (404).
+`/` accueil · `/beatmap/:id` · `/player/:id` · `/lists` · `/collection/:id` · `/history` · `/stats` · `/dna` · `/compare` · `/premium` · `*` (404).
 
 API (JSON, dans `routes/api.*.ts`) :
 `/api/search` · `/api/assistant` (flux NDJSON) · `/api/listen` (flux NDJSON, audio) · `/api/lists` · `/api/collections` · `/api/similar` ·
-`/api/analysis` · `/api/recommendations` · `/api/progress` (GET public, POST = relevé du jour) · `/api/performance` · `/api/admin/plan` · `/api/auth/*` (login, callback, check, Better Auth).
+`/api/analysis` · `/api/recommendations` · `/api/progress` (GET public, POST = relevé du jour) · `/api/performance` · `/api/dna` (POST, privé) · `/api/admin/plan` · `/api/auth/*` (login, callback, check, Better Auth).
 
 ## Flux de données
 

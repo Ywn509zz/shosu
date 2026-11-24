@@ -32,9 +32,23 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   }
 }
 
-export const meta: Route.MetaFunction = ({ loaderData }) => [
-  { title: loaderData ? `${loaderData.player.username} — shOsu!` : "Joueur — shOsu!" },
-];
+export const meta: Route.MetaFunction = ({ loaderData }) =>
+  loaderData
+    ? [
+        { title: `${loaderData.player.username} — shOsu!` },
+        { property: "og:type", content: "profile" },
+        { property: "og:site_name", content: "shOsu!" },
+        { property: "og:title", content: `${loaderData.player.username} sur shOsu!` },
+        {
+          property: "og:description",
+          content: loaderData.player.globalRank
+            ? `Rang mondial #${loaderData.player.globalRank} · ${loaderData.player.pp ?? "—"} pp`
+            : "Profil osu! sur shOsu!",
+        },
+        { property: "og:image", content: avatarUrl(loaderData.player.id) },
+        { name: "twitter:card", content: "summary" },
+      ]
+    : [{ title: "Joueur — shOsu!" }];
 
 export default function PlayerProfile({ loaderData }: Route.ComponentProps) {
   const { player } = loaderData;

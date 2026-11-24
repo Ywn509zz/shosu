@@ -22,6 +22,8 @@ import {
   type ScoreType,
 } from "./account.server";
 import { analyzeDifficulty } from "./analysis.server";
+import { compareSets } from "./compare";
+import { getMusicDna } from "./dna.server";
 import { analyzePerformance } from "./performance.server";
 import { getProgress, recordSnapshot } from "./progress.server";
 import {
@@ -63,6 +65,10 @@ Tes outils :
 - get_player_profile : profil public du joueur CONNECTÉ (pp, rang, précision, meilleurs scores). Utilise-le dès qu'il parle de lui,
   de son niveau, de progresser ou demande « selon mon profil ».
 - get_beatmap : détails d'une beatmap (BPM, durée, difficultés avec CS/AR/OD/HP, nombre d'objets, tags) pour l'expliquer.
+- music_dna : l'empreinte musicale (« Music DNA ») du joueur CONNECTÉ, tirée de ses favoris, de ses beatmaps les plus jouées et de ses listes : genres,
+  langues, tempo, artistes, ambiance, et des beatmaps jamais jouées qui lui correspondent. Pour « mes goûts », « quel genre j'aime », « des morceaux comme les miens ».
+- similar_sound : beatmaps dont la MUSIQUE est proche d'une autre (même artiste, BPM proche, genre, langue, ambiance), sans tenir compte de la difficulté.
+- compare_beatmaps : compare deux beatmaps (difficulté, BPM, durée, popularité, ressemblance musicale) avec un résumé en phrases.
 - find_similar_maps : beatmaps qui ressemblent à une autre (artiste, tags, BPM, difficulté), avec la raison de la ressemblance.
 - analyze_difficulty : difficulté d'une beatmap avec chaque mod (EZ, HR, HT, DT…), AR/OD/BPM modifiés et décomposition aim/vitesse.
   Utilise-le pour « est-ce jouable en DT ? », « quelle est la difficulté avec HR ? », « aim ou vitesse ? ».
@@ -143,6 +149,34 @@ const TOOLS: GeminiFunctionDeclaration[] = [
       type: "OBJECT",
       properties: { id: { type: "INTEGER", description: "Identifiant du set de beatmaps." } },
       required: ["id"],
+    },
+  },
+  {
+    name: "music_dna",
+    description:
+      "Music DNA du joueur connecté : empreinte musicale (genres, langues, tempo, artistes, tags) tirée de ses favoris osu! et shOsu!, de ses beatmaps les plus jouées, avec des beatmaps jamais jouées qui lui correspondent.",
+    parameters: { type: "OBJECT", properties: {} },
+  },
+  {
+    name: "similar_sound",
+    description:
+      "Trouve des beatmaps dont la musique est proche d'une beatmap donnée : même artiste, BPM similaire, même genre ou langue, ambiance (tags). Ignore la difficulté.",
+    parameters: {
+      type: "OBJECT",
+      properties: { id: { type: "INTEGER", description: "Identifiant du set de beatmaps de référence." } },
+      required: ["id"],
+    },
+  },
+  {
+    name: "compare_beatmaps",
+    description: "Compare deux beatmaps (sets) : difficulté, BPM, durée, AR/OD/CS/HP de la plus dure, popularité, ressemblance musicale, avec un résumé.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        a: { type: "INTEGER", description: "Identifiant du premier set de beatmaps." },
+        b: { type: "INTEGER", description: "Identifiant du second set de beatmaps." },
+      },
+      required: ["a", "b"],
     },
   },
   {
@@ -352,6 +386,9 @@ const STATUS_TEXT: Record<string, (args: Record<string, unknown>) => string> = {
   search_beatmaps: (a) => `Je cherche « ${clean(a.query, 40)} »…`,
   get_player_profile: () => "Je regarde ton profil…",
   get_beatmap: () => "J'examine la beatmap…",
+  music_dna: () => "Je lis ton empreinte musicale…",
+  similar_sound: () => "Je cherche des musiques proches…",
+  compare_beatmaps: () => "Je compare les deux beatmaps…",
   find_similar_maps: () => "Je cherche des maps qui lui ressemblent…",
   analyze_difficulty: () => "J'analyse la difficulté avec chaque mod…",
   get_recommendations: () => "Je regarde tes habitudes de jeu…",
@@ -498,6 +535,52 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
           objects: d.circles !== null && d.sliders !== null ? d.circles + d.sliders + (d.spinners ?? 0) : null,
           sliders: d.sliders,
         })),
+      };
+    }
+
+    case "music_dna": {
+      const dna = await getMusicDna(ctx.osuId, []);
+      if (!dna) return { error: "Pas encore assez de données (favoris, beatmaps jouées) pour dessiner son empreinte musicale." };
+      const top = dna.matches.slice(0, RESULTS_PER_SEARCH);
+      showCards(ctx, top);
+      return {
+        signature: dna.signature,
+        genres: dna.genres,
+        languages: dna.languages,
+        bpm: { average: dna.bpm.average, tempo: dna.bpm.tempo },
+        artists: dna.artists,
+        tags: dna.tags,
+        basedOn: dna.sample,
+        matches: top.map((m) => ({ id: m.id, title: m.title, artist: m.artist, match: m.score, reasons: m.reasons })),
+      };
+    }
+
+    case "similar_sound": {
+      const id = intId(args.id);
+      if (!id) return { error: "Identifiant de beatmap invalide." };
+      const similar = (await findSimilar(id, "sound")).slice(0, RESULTS_PER_SEARCH);
+      showCards(ctx, similar);
+      return {
+        found: similar.length,
+        beatmaps: similar.map((m) => ({ id: m.id, title: m.title, artist: m.artist, similarity: m.score, reasons: m.reasons })),
+        ...(similar.length === 0 ? { hint: "Aucune musique vraiment proche trouvée." } : {}),
+      };
+    }
+
+    case "compare_beatmaps": {
+      const a = intId(args.a);
+      const b = intId(args.b);
+      if (!a || !b || a === b) return { error: "Il faut deux identifiants de beatmaps différents." };
+      const [setA, setB] = await Promise.all([getBeatmapset(a), getBeatmapset(b)]);
+      showCards(ctx, [setA, setB]);
+      const comparison = compareSets(setA, setB);
+      return {
+        a: { id: setA.id, title: setA.title, artist: setA.artist },
+        b: { id: setB.id, title: setB.title, artist: setB.artist },
+        verdict: comparison.verdict,
+        rows: comparison.rows.map((r) => ({ criterion: r.label, a: r.a, b: r.b })),
+        musicalSimilarityPercent: comparison.similarity.sound,
+        page: `/compare?a=${a}&b=${b}`,
       };
     }
 

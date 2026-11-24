@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 2.6), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 2.7), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -19,7 +19,7 @@ et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour c
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 2.6 » ↔ `2.6.0`).
+temps que `version` dans `package.json` (« bêta 2.7 » ↔ `2.7.0`).
 
 ## Démarrage
 
@@ -165,7 +165,10 @@ pages) fonctionne déjà. Stripe héberge la page de paiement : le site ne voit 
 - **Suivi de progression** (profil de tout joueur et `/stats`) : variations du rang et des pp, rang sur 90 jours, parties par mois, courbes de pp et de précision (relevés quotidiens
   pour les joueurs connectés à shOsu!), modes préférés. **Analyse des performances** : points forts et faibles (précision par difficulté/BPM, échecs récents, mods) avec des pistes.
   **Mes statistiques** (`/stats`) regroupe tout cela avec ton activité sur shOsu!. Détails dans [`docs/FEATURES.md`](docs/FEATURES.md).
-- **Historique** (`/history`) : recherches et écoutes récentes, gardées **uniquement dans le navigateur** (localStorage, un historique par compte
+- **Music DNA** (`/dna`) : ton empreinte musicale (genres, langues, tempo, artistes, ambiance) tirée de tes favoris, de tes beatmaps les plus jouées et de tes consultations, avec des
+  morceaux jamais joués qui y correspondent. **Similar Sound** : onglet « Musique proche » (même artiste, BPM, genre, langue, ambiance) sur chaque beatmap.
+  **Comparer deux beatmaps** (`/compare`) et **partager une beatmap** avec un lien qui s'affiche bien dans Discord. Stack dispose des outils correspondants.
+- **Historique** (`/history`) : recherches, écoutes et beatmaps consultées récentes, gardées **uniquement dans le navigateur** (localStorage, un historique par compte
   osu!) : rien n'est envoyé au serveur. Les dernières recherches s'affichent aussi sous la barre de recherche.
 - **Page d'une beatmap** (`/beatmap/:id`) : cover, BPM, durée, favoris, tags, toutes les difficultés (étoiles, CS/AR/OD/HP,
   combo), « Ouvrir dans osu! » (`osu://`), et « ✨ Expliquer avec Stack ».
