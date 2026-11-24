@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { ASSISTANT_LOGO, ASSISTANT_NAME } from "~/lib/assistant";
 import { authClient } from "~/lib/auth-client";
 import { PLANS } from "~/lib/plans";
+import { ThemeToggle } from "~/components/theme-toggle";
 import type { SessionUser } from "~/lib/session.server";
 
 /** Zone de compte du header : lien de connexion, ou menu une fois connecté. */
@@ -19,14 +20,7 @@ export function Account({
 }) {
   return (
     <div id="account" className="account">
-      <Link className="account-btn account-lists" to="/collections">
-        <span aria-hidden>🌍</span> Collections
-      </Link>
-      {user && (
-        <Link className="account-btn account-lists" to="/lists">
-          <span aria-hidden>♥</span> Listes
-        </Link>
-      )}
+      <ThemeToggle />
       <Button
         id="assistant-toggle"
         className="assistant-toggle"
@@ -41,7 +35,7 @@ export function Account({
       {user ? (
         <AccountMenu user={user} />
       ) : (
-        <a className="account-btn" href="/api/auth/login">
+        <a className="account-btn is-primary" href="/api/auth/login">
           Se connecter avec osu!
         </a>
       )}

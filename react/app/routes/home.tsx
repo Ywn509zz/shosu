@@ -7,7 +7,6 @@ import { Discovery } from "~/components/discovery";
 import { RecommendationsSection } from "~/components/recommendations";
 import { ListenPanel, type AudioClip } from "~/components/listen-panel";
 import { searchHref } from "~/lib/assistant";
-import { ThemeToggle } from "~/components/theme-toggle";
 import {
   MODE_IDS,
   MODE_OPTIONS,
@@ -251,7 +250,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     <>
       <section className="hero">
         <p className="eyebrow">BEATMAP DISCOVERY</p>
-        <h1>La prochaine musique à jouer est ici.</h1>
+        <h1>
+          La prochaine musique à jouer <span className="accent-word">est ici.</span>
+        </h1>
         <p className="hero-copy">
           Recherche, écoute et trouve rapidement ton prochain beatmap favori.
         </p>
@@ -282,7 +283,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               aria-label="Rechercher"
               onPress={() => void searchBeatmap()}
             />
-            <ThemeToggle />
             {voice.supported !== false && (
               <Button id="micButton" aria-label="Recherche vocale" onPress={voice.toggle}>
                 🎙️

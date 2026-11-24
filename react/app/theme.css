@@ -1,0 +1,619 @@
+/*
+ * Thème « iptron » — identité visuelle reprise de https://iptron.one (jetons lus sur le site) :
+ * fond quasi noir, filets fins et cadre de page, titres en serif, accent bleu de marque, violet réservé à l'IA (Stack, comme
+ * Génie sur iptron.one), en-tête de verre, boutons bleus glacés, cartes sobres. Clair et sombre.
+ *
+ * Importé APRÈS legacy/overrides/assistant/pages/motion (il les surcharge) et AVANT mobile.css (qui surcharge le thème).
+ * Les couleurs de marque se changent ICI (variables) ; ne pas écrire de couleurs en dur ailleurs.
+ */
+
+:root {
+  --font-serif: "Newsreader Variable", "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --bg: #08090c;
+  --bg-alt: #0b0d12;
+  --surface-1: #0e1117;
+  --surface-2: #131720;
+  --surface-3: #171c26;
+  --surface-4: #1d2330;
+  --line: #1c2230;
+  --line-strong: #2a3242;
+  --text: #f2f4f8;
+  --muted: #8a93a5;
+  --subtle: #5f687c;
+
+  --brand: #0077ff;
+  --brand-hi: #2084ff;
+  --brand-lo: #0067e6;
+  --brand-text: #3395ff;
+  --brand-soft: rgba(0, 119, 255, 0.12);
+  --brand-ring: rgba(51, 149, 255, 0.45);
+  --genie: #8b5cf6;
+  --genie-text: #a78bfa;
+  --genie-soft: rgba(139, 92, 246, 0.12);
+  --genie-ring: rgba(167, 139, 250, 0.35);
+
+  --glass: rgba(14, 17, 23, 0.72);
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-float: 0 30px 80px -30px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  /* Les variables historiques de legacy.css pointent vers la nouvelle palette. */
+  --panel: var(--surface-1);
+  --panel-solid: var(--surface-1);
+  --accent: var(--brand);
+  --accent-strong: var(--brand-text);
+  --cyan: var(--brand-text);
+  --shadow: var(--shadow-float);
+
+  --frame-w: min(1240px, calc(100vw - 32px));
+}
+
+body.light-mode {
+  --bg: #f5f6f8;
+  --bg-alt: #eef0f4;
+  --surface-1: #ffffff;
+  --surface-2: #f1f3f6;
+  --surface-3: #eceff3;
+  --surface-4: #e6e9ee;
+  --line: #e3e7ed;
+  --line-strong: #cbd2dc;
+  --text: #10141b;
+  --muted: #5a6375;
+  --subtle: #848d9f;
+  --brand-text: #0068e6;
+  --brand-soft: rgba(0, 119, 255, 0.08);
+  --brand-ring: rgba(0, 104, 230, 0.35);
+  --genie-text: #6d28d9;
+  --glass: rgba(255, 255, 255, 0.72);
+  --shadow-card: 0 1px 2px rgba(16, 20, 27, 0.04);
+  --shadow-float: 0 30px 70px -30px rgba(16, 20, 27, 0.28), 0 0 0 1px rgba(16, 20, 27, 0.06);
+  background: var(--bg);
+}
+
+/* ===== Base ===== */
+body {
+  font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg);
+}
+body.light-mode {
+  background: var(--bg);
+}
+
+/* Cadre de page : deux filets verticaux, comme sur iptron.one. */
+body::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0 auto 0 50%;
+  width: var(--frame-w);
+  border-inline: 1px solid var(--line);
+  background: none;
+  content: "";
+  mask-image: none;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+/* Points demi-teinte en haut de page (halftone), qui s'estompent. */
+body::after {
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 520px;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1.4px);
+  background-size: 16px 16px;
+  content: "";
+  mask-image: radial-gradient(ellipse 55% 85% at 50% 0%, #000 0%, transparent 100%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+body.light-mode::after {
+  background-image: radial-gradient(circle, rgba(16, 20, 27, 0.22) 1px, transparent 1.4px);
+  opacity: 0.4;
+}
+
+/* ===== Gabarit : l'en-tête est hors de .page-shell ===== */
+.page-shell {
+  width: min(1120px, calc(var(--frame-w) - 80px));
+  padding-top: 0;
+}
+main {
+  padding-top: 52px;
+}
+
+/* ===== Titres : serif, graisse normale ===== */
+.hero h1,
+.page-head h1,
+.detail-title,
+.player-hero h1,
+.section-title,
+.reco h2,
+.mode-empty h2,
+.plan-card h2,
+.compare-score strong {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+}
+.hero h1 {
+  font-size: clamp(2.5rem, 6.2vw, 4.7rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+.page-head h1 {
+  font-size: clamp(2rem, 4.6vw, 3.2rem);
+  line-height: 1.04;
+}
+.section-title {
+  font-size: 1.55rem;
+  line-height: 1.15;
+}
+.detail-title,
+.player-hero h1 {
+  line-height: 1.05;
+}
+.accent-word {
+  color: var(--brand-text);
+}
+
+/* Étiquettes de section : petites capitales espacées, précédées d'un carré de marque. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.eyebrow::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--brand-text);
+  box-shadow: 0 0 12px var(--brand-ring);
+  content: "";
+}
+.hero-copy,
+.page-head p {
+  color: var(--muted);
+}
+
+/* ===== En-tête de verre ===== */
+.site-header {
+  position: sticky;
+  z-index: 2500;
+  top: 0;
+  display: block;
+  min-height: 0;
+  height: 64px;
+  border-bottom: 1px solid var(--line);
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(1.3);
+  animation: none;
+}
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: var(--frame-w);
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.brand {
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.site-nav {
+  display: flex;
+  gap: 2px;
+  margin: 0 auto;
+}
+.site-nav a {
+  position: relative;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+}
+.site-nav a:hover {
+  color: var(--text);
+  background: var(--highlight, rgba(255, 255, 255, 0.04));
+}
+.site-nav a.is-active {
+  color: var(--text);
+}
+.site-nav a.is-active::after {
+  position: absolute;
+  right: 12px;
+  bottom: -12px;
+  left: 12px;
+  height: 2px;
+  background: var(--brand);
+  content: "";
+}
+.account {
+  gap: 8px;
+  margin-left: auto;
+}
+.site-nav + .account {
+  margin-left: 0;
+}
+
+/* ===== Boutons ===== */
+.account-btn,
+.account button {
+  padding: 9px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-card);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.account-btn:hover,
+.account button:hover {
+  border-color: var(--subtle);
+  background: var(--surface-3);
+  transform: none;
+}
+.account-btn.is-primary,
+.account-btn.is-primary:hover,
+button.search-btn,
+button.search-btn:hover {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  background-color: var(--brand);
+  background-image: linear-gradient(180deg, var(--brand-hi), var(--brand-lo));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 8px 24px -10px rgba(0, 119, 255, 0.7);
+}
+.account-btn.is-primary:hover,
+button.search-btn:hover {
+  filter: brightness(1.1);
+}
+button.search-btn {
+  background-image: url("/shosu.png"), linear-gradient(180deg, var(--brand-hi), var(--brand-lo));
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+  background-size: 23px, auto;
+}
+button.theme-toggle {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+button.theme-toggle:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+button.assistant-toggle {
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+}
+button.assistant-toggle[aria-expanded="true"] {
+  border-color: var(--genie-ring);
+  background: var(--genie-soft);
+}
+.account-trigger {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.account-avatar {
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--brand-hi), var(--brand-lo));
+}
+.account-dropdown {
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-float);
+}
+
+/* ===== Recherche ===== */
+.search-panel {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: none;
+}
+.search-panel:focus-within {
+  border-color: var(--brand-ring);
+  box-shadow: var(--shadow-float), 0 0 0 4px var(--brand-soft);
+}
+.search-icon {
+  color: var(--brand-text);
+}
+.buttons button {
+  border-radius: var(--radius-sm);
+}
+#filters {
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+}
+#filters select {
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+input[type="text"]::placeholder {
+  color: var(--subtle);
+}
+
+/* ===== Cartes et panneaux ===== */
+.beatmap-card,
+.similar-card,
+.collection-tile,
+.collection-card,
+.stat-tile,
+.chart,
+.mode-share,
+.finding,
+.compare-side,
+.compare-row,
+.plan-card,
+.diff-row,
+.play-row,
+.history-row,
+.analysis,
+.assistant-card {
+  border-color: var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: none;
+}
+.diff-head,
+.compare-head,
+.mod-head {
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.beatmap-card:hover,
+.collection-tile:hover,
+.collection-card:hover,
+.similar-card:hover,
+.assistant-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-card), 0 18px 40px -22px rgba(0, 0, 0, 0.7);
+}
+.beatmap-card:hover,
+.collection-tile:hover,
+.collection-card:hover {
+  transform: translateY(-2px);
+}
+.card-footer a,
+.card-links a {
+  color: var(--brand-text);
+}
+.status-badge {
+  border-radius: 6px;
+  font-weight: 700;
+}
+.tab,
+.chip,
+.back-btn {
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+}
+.tab.is-active {
+  border-color: var(--brand-ring);
+  color: var(--text);
+  background: var(--brand-soft);
+}
+.chip {
+  border-radius: 6px;
+}
+.notice {
+  border-color: var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+.plan-card.is-premium {
+  border-color: var(--brand-ring);
+}
+.pop-menu,
+.collection-pop {
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.player-bar {
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  backdrop-filter: blur(16px) saturate(1.3);
+}
+.skill-row .bar i,
+.bar i {
+  background: linear-gradient(90deg, var(--brand), var(--brand-text));
+}
+button.player-btn.player-main,
+button.icon-btn.is-on {
+  border-color: var(--brand-ring);
+}
+button.player-btn.player-main {
+  background: linear-gradient(180deg, var(--brand-hi), var(--brand-lo));
+}
+
+/* Pied de page */
+#version-info {
+  margin-top: 56px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--subtle);
+}
+
+/* ===== Stack (Génie sur iptron.one) : violet, compositeur en carte, texte sans bulle ===== */
+.assistant-panel {
+  --accent: var(--genie);
+  --accent-strong: var(--genie-text);
+  border-left: 1px solid var(--line-strong);
+  background: var(--bg-alt);
+  box-shadow: var(--shadow-float);
+}
+.assistant-head {
+  border-bottom: 1px solid var(--line);
+}
+.assistant-avatar {
+  border-radius: 10px;
+}
+.assistant-title strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.assistant-msg {
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+.assistant-msg.is-user {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-3);
+}
+.assistant-msg.is-assistant {
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.assistant-msg.is-error {
+  padding: 10px 13px;
+  border: 1px solid rgba(251, 113, 133, 0.4);
+  border-radius: 12px;
+  background: rgba(218, 55, 60, 0.12);
+}
+.assistant-typing {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding-left: 2px;
+}
+.assistant-welcome strong {
+  color: var(--genie-text);
+}
+button.assistant-chip {
+  border-color: var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+}
+button.assistant-chip:hover {
+  border-color: var(--genie-ring);
+  background: var(--genie-soft);
+}
+
+/* Compositeur : une seule carte, le texte au-dessus, les actions en dessous (le bouton d'envoi à droite). */
+.assistant-form {
+  border-top: 0;
+}
+.assistant-input-row {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 10px 8px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  transition: border-color 0.2s, box-shadow 0.25s;
+}
+.assistant-input-row:focus-within {
+  border-color: var(--genie-ring);
+  box-shadow: 0 0 0 4px var(--genie-soft);
+}
+.assistant-form textarea {
+  flex: 1 1 100%;
+  min-height: 44px;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.assistant-form textarea:focus {
+  background: none;
+  box-shadow: none;
+}
+button.assistant-mic {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+}
+.assistant-model {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding-right: 6px;
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.assistant-model i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: conic-gradient(from 200deg, var(--genie-text), var(--brand-text), var(--genie-text));
+}
+button.assistant-send {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  color: #fff;
+  background: linear-gradient(180deg, #9d78f8, #6d28d9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 20px -10px rgba(139, 92, 246, 0.8);
+}
+button.assistant-send:hover {
+  background: linear-gradient(180deg, #ab8bfa, #7c3aed);
+}
+.assistant-note {
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .site-nav .nav-extra {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .site-nav {
+    display: none;
+  }
+  .account,
+  .site-nav + .account {
+    margin-left: auto;
+  }
+}
+@media (max-width: 700px) {
+  body::before {
+    display: none;
+  }
+  .site-header {
+    height: 58px;
+  }
+  .site-header-inner {
+    gap: 10px;
+    padding: 0 14px;
+  }
+  .account {
+    gap: 4px;
+  }
+}

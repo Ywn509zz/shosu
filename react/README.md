@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 3.0), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 3.1), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -19,7 +19,7 @@ et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour c
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 3.0 » ↔ `3.0.0`).
+temps que `version` dans `package.json` (« bêta 3.1 » ↔ `3.1.0`).
 
 ## Démarrage
 
@@ -59,7 +59,13 @@ Mêmes noms que la version HTML/JS : **rien à renommer dans Vercel**.
 | `GEMINI_MODEL`                 |     non     | Modèle principal (défaut `gemini-3.1-flash-lite`, repli automatique)     |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | non | Base Redis : listes persistantes et limites de débit partagées (`KV_REST_API_URL` / `KV_REST_API_TOKEN` acceptées) |
 
-## Fidélité au design
+## Identité visuelle
+
+Depuis la bêta 3.1 le site reprend l'identité visuelle de [iptron.one](https://iptron.one) : fond quasi noir, titres en serif (Newsreader), interface en Plus Jakarta Sans, accent bleu, violet pour Stack, en-tête de verre, thèmes sombre et clair. Tout est centralisé dans [`app/theme.css`](app/theme.css) (voir `docs/FEATURES.md` § Thème visuel).
+
+## Fidélité au design (historique)
+
+*Jusqu'à la bêta 3.0 le site reprenait strictement le design d'origine ; depuis la 3.1, `theme.css` recolore et re-type cette base (voir « Identité visuelle »). La structure (balisage, cartes, header, filtres) reste celle d'origine.*
 
 - [`app/legacy.css`](app/legacy.css) est votre `style.css` **sans aucune modification**, hormis le chemin
   du logo (`url("shosu.png")` → `url("/shosu.png")`, car l'image est servie depuis `public/`).

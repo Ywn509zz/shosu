@@ -52,6 +52,17 @@ function ListsToast() {
   );
 }
 
+/** Liens de la barre de navigation (affichée au-dessus de 700 px, liens secondaires masqués sous 1000 px ; sur téléphone, la barre du bas prend le relais). */
+const NAV: { to: string; label: string; signedIn?: boolean; extra?: boolean }[] = [
+  { to: "/", label: "Découvrir" },
+  { to: "/collections", label: "Collections" },
+  { to: "/dna", label: "Music DNA", signedIn: true, extra: true },
+  { to: "/compare", label: "Comparer", extra: true },
+  { to: "/lists", label: "Listes", signedIn: true },
+  { to: "/stats", label: "Statistiques", signedIn: true, extra: true },
+];
+const isActive = (pathname: string, to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+
 function Shell({ user }: { user: SessionUser | null }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -110,14 +121,29 @@ function Shell({ user }: { user: SessionUser | null }) {
 
   return (
     <AssistantContext.Provider value={assistantApi}>
-      <div className="page-shell">
-        <header className="site-header">
+      <header className="site-header">
+        <div className="site-header-inner">
           <Link className="brand" to="/" aria-label="Retour à l'accueil">
             <img className="brand-mark" src="/icon.svg" alt="" width={40} height={40} />
             <span translate="no">shOsu!</span>
           </Link>
+          <nav className="site-nav" aria-label="Navigation principale">
+            {NAV.filter((item) => !item.signedIn || user).map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={[isActive(pathname, item.to) ? "is-active" : "", item.extra ? "nav-extra" : ""].filter(Boolean).join(" ") || undefined}
+                aria-current={isActive(pathname, item.to) ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
           <Account user={user} assistantOpen={assistantOpen} onToggleAssistant={toggleAssistant} />
-        </header>
+        </div>
+      </header>
+
+      <div className="page-shell">
 
         {/* Le changement de page rejoue l'animation d'entrée (voir .page-enter dans motion.css). */}
         <main key={pathname} className="page-enter">

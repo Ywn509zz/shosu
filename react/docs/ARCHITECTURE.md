@@ -22,7 +22,7 @@ app/
   components/                                    composants React (cartes, panneau Stack, lecteur, menus…)
   lib/                                           logique. *.server.ts = serveur uniquement ; le reste est partagé serveur + navigateur
   legacy.css                                     feuille d'origine du propriétaire, NE PAS MODIFIER
-  overrides.css, pages.css, motion.css, assistant.css, mobile.css, app.css   ajouts (app.css les assemble ; mobile.css en dernier)
+  overrides.css, pages.css, motion.css, assistant.css, theme.css, mobile.css, app.css   ajouts (app.css les assemble : … motion, theme, puis mobile en dernier)
 public/                                          icônes, logo de Stack, manifeste
 dev/                                             faux services pour tester en local (voir dev/README.md)
 docs/                                            cette documentation
@@ -90,7 +90,8 @@ navigateur ──fetch──▶ routes/api.*.ts ──▶ lib/*.server.ts ──
 
 ## Mise en page et CSS
 
-- `legacy.css` : design d'origine (variables `--text`, `--muted`, `--line`, `--panel`, `--accent`, `--accent-strong`, `--cyan`…). Thème clair via `body.light-mode`.
+- `legacy.css` : feuille d'origine du propriétaire (structure des cartes, du header, de la recherche), recolorée en bleu iptron ; ses variables (`--text`, `--muted`, `--line`, `--panel`, `--accent`…) sont **redéfinies par `theme.css`**. Thème clair via `body.light-mode`.
+- `theme.css` : **identité visuelle iptron.one** (palette, polices Newsreader + Plus Jakarta Sans auto-hébergées via `@fontsource-variable`, cadre de page, en-tête de verre, boutons, cartes, Stack violet). Importé après `motion.css` et avant `mobile.css`.
 - `pages.css` : pages et composants nouveaux (lecteur, listes, détail, profil, collections, similaires, analyse, historique…).
 - `motion.css` : courbes `--ease-out` / `--ease-spring`, animations d'entrée, états actifs ; tout est coupé sous `prefers-reduced-motion`.
 - `assistant.css` : panneau Stack et ses animations.

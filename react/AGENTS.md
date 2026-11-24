@@ -21,7 +21,7 @@ Le dossier `react/` est **le site en production**. Les fichiers HTML/CSS/JS à l
 2. **Changer la version à chaque modification du site** : « bêta X.Y » dans `app/lib/config.ts` (`APP_VERSION`, affichée en pied de page) **et** `version` (`X.Y.0`) dans
    `package.json` + `package-lock.json`, plus la mention dans `README.md`. Détails dans le guide.
 3. **Le site reste entièrement gratuit** : aucun paiement ni Stripe. Le plan Premium est attribué à la main (voir `docs/FEATURES.md` § Plans).
-4. **Conserver le design d'origine** (`app/legacy.css` est repris tel quel ; les ajouts vont dans `pages.css`, `motion.css`, `assistant.css`). Pas de refonte visuelle non demandée.
+4. **Identité visuelle = celle de https://iptron.one** (demandée par le propriétaire le 2026-11-24) : palette, polices et composants sont définis dans `app/theme.css` (voir `docs/FEATURES.md` § Thème visuel). Changer les couleurs/polices **là**, jamais en dur ailleurs. `legacy.css` est l'ancienne feuille d'origine, désormais recolorée par le thème ; les fichiers HTML/CSS/JS de la racine du dépôt restent intacts. Pas de refonte visuelle non demandée en dehors de ce thème.
 5. **Stack est masculin** (« il »), l'assistant s'appelle Stack, son logo est `public/stack.jpeg`.
 6. **Sécurité d'abord** : aucun secret côté client, entrées validées, origines vérifiées sur les POST, données privées jamais mises en cache partagé (voir ARCHITECTURE § Sécurité).
 7. **Économiser le quota Redis gratuit** (500 000 commandes/mois chez Upstash) : pas de commande Redis sur les routes très fréquentes (voir ARCHITECTURE § Redis).

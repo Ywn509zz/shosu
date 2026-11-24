@@ -30,7 +30,7 @@ button {
 /* Repère de focus clavier conservé, à l'échelle du panneau (même couleur que
    les bordures au survol du design d'origine). */
 .search-panel:focus-within {
-  border-color: rgba(195, 173, 255, 0.6);
+  border-color: rgba(51, 149, 255, 0.6);
 }
 
 /* HeroUI retire l'anneau de focus natif des boutons : on garde un repère

@@ -595,6 +595,10 @@ export function Assistant({
                   🎙️
                 </Button>
               )}
+              <span className="assistant-model" aria-hidden>
+                <i />
+                Gemini
+              </span>
               <Button
                 type="submit"
                 className="assistant-send"

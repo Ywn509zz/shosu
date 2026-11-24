@@ -44,6 +44,7 @@
 @media (max-width: 700px) {
   /* ===== Gabarit ===== */
   .page-shell {
+    width: calc(100% - 24px);
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
   main {
@@ -69,9 +70,7 @@
     padding: 4px;
   }
   .account-dropdown {
-    position: fixed;
-    top: 64px;
-    right: 12px;
+    top: calc(100% + 10px);
     width: min(260px, calc(100vw - 24px));
   }
   .brand {
@@ -113,10 +112,8 @@
     text-decoration: none;
     transition: color 0.2s, transform 0.25s var(--ease-spring);
   }
-  .mobile-nav a span,
-  .mobile-nav button span:first-child {
-    font-size: 1.2rem;
-    line-height: 1;
+  .mobile-nav svg {
+    display: block;
   }
   .mobile-nav img {
     width: 24px;
