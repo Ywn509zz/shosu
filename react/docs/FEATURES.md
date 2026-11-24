@@ -443,3 +443,7 @@ Utilisé dans : menu du compte (header), onglet « Profil » de la barre du bas 
 **Limites / invariants** — aucune commande Redis (limite par instance : `rateLimit("players:<ip>", 60/min, …, false)`) ; les noms sont affichés par React (pas de HTML brut) ; l'API n'expose que les 10 000 premiers joueurs ; la page est dans le menu (« Joueurs »), le pied de page et `sitemap.xml`.
 **Tests** — `tests/rankings.test.ts` (analyse des paramètres, adresses). En local, le faux osu! (`dev/mock-osu.mjs`) renvoie Pro1…Pro50 quel que soit le pays/la page.
 **Fichiers** — `app/routes/players.tsx`, `app/lib/rankings.ts`, `getRankings` (`osu.server.ts`), styles `.players-*` (`theme.css`, `mobile.css`).
+
+### Diagnostic des erreurs Gemini (Stack « IA indisponible »)
+
+`gemini.server.ts#logGeminiFailure` journalise, pour **chaque tentative de modèle** refusée, `Gemini attempt failed: model=… http=… reason=<état Google> <message ≤ 160 car.>` (ex. `RESOURCE_EXHAUSTED` = quota gratuit atteint, `NOT_FOUND` = nom de modèle retiré, `API_KEY_INVALID`), ou `no response (timeout or network)`. Jamais la clé (masquée), le prompt ni la réponse. À lire avec `npx vercel@latest logs --environment production --since 30m` juste après un essai (le plan Hobby ne garde que 30 min). Le message affiché à l'utilisateur reste « L'IA est momentanément indisponible ».

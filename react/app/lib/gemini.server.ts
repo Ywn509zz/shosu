@@ -27,6 +27,22 @@ export class GeminiError extends Error {
   }
 }
 
+/**
+ * Journalise pourquoi Gemini a refusé une tentative : modèle, code HTTP et état renvoyé par Google
+ * (RESOURCE_EXHAUSTED, NOT_FOUND, API_KEY_INVALID…). Jamais la clé, le prompt ni la réponse.
+ */
+async function logGeminiFailure(model: string, response: Response): Promise<void> {
+  let reason = "";
+  try {
+    const body = (await response.clone().json()) as { error?: { status?: string; message?: string } };
+    const detail = String(body.error?.message ?? "").replace(/AIza[\w-]+/g, "[clé]").slice(0, 160);
+    reason = ` reason=${body.error?.status ?? "?"} ${detail}`;
+  } catch {
+    /* corps absent ou illisible */
+  }
+  console.error(`Gemini attempt failed: model=${model} http=${response.status}${reason}`);
+}
+
 export const isGeminiConfigured = () => Boolean(process.env.GEMINI_API_KEY);
 
 /** Sous-ensemble du schéma OpenAPI accepté par Gemini. */
@@ -118,10 +134,12 @@ export async function* streamContent(params: {
     } catch {
       clearTimeout(firstChunkTimer);
       lastStatus = 0;
+      console.error(`Gemini attempt failed: model=${model} no response (timeout or network)`);
       continue;
     }
 
     lastStatus = response.status;
+    if (!response.ok) await logGeminiFailure(model, response);
     if (response.status === 401 || response.status === 403) {
       clearTimeout(firstChunkTimer);
       throw new GeminiError("rejected", `Gemini rejected the API key (HTTP ${response.status})`);
