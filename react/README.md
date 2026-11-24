@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 3.10), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 3.11), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -19,7 +19,7 @@ et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour c
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 3.10 » ↔ `3.10.0`).
+temps que `version` dans `package.json` (« bêta 3.11 » ↔ `3.11.0`).
 
 ## Démarrage
 
@@ -56,6 +56,7 @@ Mêmes noms que la version HTML/JS : **rien à renommer dans Vercel**.
 | `ADMIN_TOKEN`                  |     non     | Active `/api/admin/plan` (24 caractères min.) pour attribuer le Premium ; sinon l'endpoint répond 404 |
 | `ADMIN_USER_IDS`               |     non     | Identifiants osu! des administrateurs (séparés par des virgules) : accès à `/admin` (quotas) et alerte de quota |
 | `REDIS_MONTHLY_LIMIT`          |     non     | Quota mensuel de commandes Redis pour les alertes (défaut 500 000, plan gratuit d'Upstash) |
+| `GEMINI_DAILY_LIMIT`          |     non     | Plafond de requêtes Gemini par jour affiché sur /admin (défaut 1 000, indicatif) |
 | `DIAGNOSTICS_TOKEN`            |     non     | Active `/api/auth/check` (16 caractères min.) ; sinon l'endpoint répond 404 |
 | `GEMINI_API_KEY`               |     non     | Clé Gemini pour Stack (sans elle, le panneau indique que Stack n'est pas configuré) |
 | `GEMINI_MODEL`                 |     non     | Modèle principal (défaut `gemini-3.1-flash-lite`, repli automatique)     |

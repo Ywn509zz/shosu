@@ -8,12 +8,13 @@ import { bump } from "~/lib/usage-buffer";
 import { getUser } from "~/lib/session.server";
 
 import type { Route } from "./+types/api.listen";
+import { LISTEN_GLOBAL_LIMIT, LISTEN_USER_LIMIT } from "~/lib/quotas";
 
 const headers = { "Cache-Control": "no-store" };
 
 /** Écouter coûte plus cher qu'un message : 6 extraits / 10 min par joueur, 60 / heure au total. */
-const USER_LIMIT = { limit: 6, windowMs: 10 * 60_000 };
-const GLOBAL_LIMIT = { limit: 60, windowMs: 60 * 60_000 };
+const USER_LIMIT = LISTEN_USER_LIMIT;
+const GLOBAL_LIMIT = LISTEN_GLOBAL_LIMIT;
 
 const fail = (code: string, status: number, extra: HeadersInit = {}) =>
   data({ error: code }, { status, headers: { ...headers, ...extra } });

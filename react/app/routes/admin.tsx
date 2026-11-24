@@ -1,6 +1,7 @@
 import { Link, data } from "react-router";
 
 import { BarChart } from "~/components/charts";
+import { percentOf } from "~/lib/quotas";
 import { getUsageSummary, type UsageDay } from "~/lib/usage.server";
 import { getUser } from "~/lib/session.server";
 
@@ -53,6 +54,49 @@ export default function Admin({ loaderData }: Route.ComponentProps) {
         </span>
       </div>
 
+      <h2 className="section-title">Limites maximales</h2>
+      <div className="limit-list">
+        {usage.quotas.map((row) => {
+          const ratio = percentOf(row.used, row.limit);
+          const level = ratio === null ? "ok" : ratio >= 0.9 ? "crit" : ratio >= 0.7 ? "warn" : "ok";
+          return (
+            <article className="limit-card" key={row.id}>
+              <header>
+                <h3>{row.service}</h3>
+                <span className={`limit-tag is-${row.reliability}`}>limite {row.reliability}</span>
+              </header>
+              <p className="limit-figures">
+                {row.used !== null ? <strong>{nf(row.used)}</strong> : <strong>—</strong>}
+                <span>
+                  {" "}
+                  {row.limitText
+                    ? `maximum : ${row.limitText}`
+                    : `/ ${row.limit !== null ? nf(row.limit) : "inconnue"} ${row.what} ${row.period}`}
+                </span>
+                {ratio !== null && <b>{Math.round(ratio * 100)} %</b>}
+              </p>
+              {ratio !== null && (
+                <div className="limit-bar" aria-hidden>
+                  <i style={{ width: `${Math.min(100, ratio * 100)}%` }} data-level={level} />
+                </div>
+              )}
+              <small className="hint">{row.note}</small>
+            </article>
+          );
+        })}
+      </div>
+
+      <h2 className="section-title">Limites que shOsu! s'impose</h2>
+      <dl className="limit-app">
+        {usage.appLimits.map((row) => (
+          <div key={row.label}>
+            <dt>{row.label}</dt>
+            <dd>{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <h2 className="section-title">Consommation</h2>
       <div className="stat-tiles">
         {tile("Redis (commandes)", usage.today.redis, usage.month.redis, `projection ${nf(usage.redisProjection)}`)}
         {tile("API osu! (appels)", usage.today.osu, usage.month.osu)}
@@ -81,7 +125,7 @@ export default function Admin({ loaderData }: Route.ComponentProps) {
       <p className="notice">
         Ces chiffres sont des <b>estimations</b> : seules les commandes envoyées par le code de shOsu! sont comptées, et
         les compteurs d'une instance arrêtée avant son vidage (au plus 30 s) sont perdus. Le chiffre officiel est dans
-        la console Upstash. Limite Redis réglable avec <code>REDIS_MONTHLY_LIMIT</code>.{" "}
+        la console Upstash. Limites réglables avec <code>REDIS_MONTHLY_LIMIT</code> et <code>GEMINI_DAILY_LIMIT</code>.{" "}
         <Link to="/">Retour au site</Link>
       </p>
     </>

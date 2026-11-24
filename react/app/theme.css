@@ -1238,3 +1238,115 @@ button.similar-score:hover {
   height: auto;
   padding: 10px 16px;
 }
+
+/* ===== /admin : limites maximales ===== */
+.limit-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.limit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-1, rgba(255, 255, 255, 0.03));
+}
+.limit-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.limit-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.limit-tag {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+.limit-tag.is-officielle {
+  border-color: rgba(120, 220, 160, 0.5);
+}
+.limit-tag.is-indicative {
+  border-color: rgba(255, 162, 60, 0.5);
+}
+.limit-figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.limit-figures strong {
+  font-size: 1.3rem;
+}
+.limit-figures span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.limit-figures b {
+  margin-left: auto;
+  color: var(--accent);
+}
+.limit-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.limit-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), var(--brand-text));
+}
+.limit-bar i[data-level="warn"] {
+  background: linear-gradient(90deg, #ffa23c, #ffcf70);
+}
+.limit-bar i[data-level="crit"] {
+  background: linear-gradient(90deg, #ff5c6c, #ff9a8b);
+}
+.limit-card .hint {
+  margin: 0;
+  line-height: 1.45;
+}
+.limit-app {
+  max-width: 900px;
+  margin: 0 0 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.limit-app > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 0.86rem;
+}
+.limit-app > div:first-child {
+  border-top: 0;
+}
+.limit-app dt {
+  color: var(--muted);
+}
+.limit-app dd {
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .limit-app > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

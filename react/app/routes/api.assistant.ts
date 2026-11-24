@@ -10,6 +10,7 @@ import { bump } from "~/lib/usage-buffer";
 import { getUser } from "~/lib/session.server";
 
 import type { Route } from "./+types/api.assistant";
+import { STACK_GLOBAL_LIMIT } from "~/lib/quotas";
 
 const headers = { "Cache-Control": "no-store" };
 const MAX_BODY_BYTES = 24_000;
@@ -18,7 +19,7 @@ const MAX_KNOWN_IDS = 120;
 
 /** Par utilisateur : selon son plan (voir plans.ts) par 10 min. Global : 200 / heure. Partagés entre instances si Upstash est configuré. */
 const USER_WINDOW_MS = 10 * 60_000;
-const GLOBAL_LIMIT = { limit: 200, windowMs: 60 * 60_000 };
+const GLOBAL_LIMIT = STACK_GLOBAL_LIMIT;
 
 const fail = (code: string, status: number, extra: HeadersInit = {}) =>
   data({ error: code }, { status, headers: { ...headers, ...extra } });

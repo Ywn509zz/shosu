@@ -7,8 +7,7 @@ import { flushUsageNow, hash } from "./store.server";
  * d'une instance arrêtée avant son vidage (≤ 30 s) sont perdus.
  */
 
-/** Plan gratuit d'Upstash : 500 000 commandes par mois (modifiable avec REDIS_MONTHLY_LIMIT). */
-export const redisMonthlyLimit = () => Number(process.env.REDIS_MONTHLY_LIMIT) || 500_000;
+import { appLimits, buildQuotaRows, redisMonthlyLimit, type AppLimitRow, type QuotaRow } from "./quotas";
 
 export type UsageDay = {
   date: string;
@@ -28,6 +27,10 @@ export type UsageSummary = {
   today: UsageDay;
   month: UsageDay;
   limits: { redisMonth: number };
+  /** Tableau « Limites maximales » : services externes (Redis, Gemini, osu!, Vercel). */
+  quotas: QuotaRow[];
+  /** Limites que shOsu! s'impose (Stack, écoute, listes). */
+  appLimits: AppLimitRow[];
   redisPercent: number;
   /** Projection de fin de mois (commandes Redis) d'après le rythme depuis le début du mois. */
   redisProjection: number;
@@ -96,6 +99,8 @@ export async function getUsageSummary(fresh = false): Promise<UsageSummary> {
       today: days[days.length - 1],
       month,
       limits: { redisMonth: limit },
+      quotas: buildQuotaRows(days[days.length - 1], month),
+      appLimits: appLimits(),
       redisPercent: percent,
       redisProjection: projection,
       level,
