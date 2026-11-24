@@ -60,6 +60,7 @@ function ListsToast() {
 const NAV: { to: string; label: string; signedIn?: boolean; extra?: boolean }[] = [
   { to: "/", label: "Découvrir" },
   { to: "/collections", label: "Collections" },
+  { to: "/players", label: "Joueurs" },
   { to: "/dna", label: "Music DNA", signedIn: true, extra: true },
   { to: "/compare", label: "Comparer", extra: true },
   { to: "/lists", label: "Listes", signedIn: true },
@@ -163,6 +164,7 @@ function Shell({ user, usageAlert }: { user: SessionUser | null; usageAlert: { l
         <footer id="version-info">
           <nav className="footer-links" aria-label="Liens du site">
             <Link to="/collections">Collections</Link>
+            <Link to="/players">Joueurs</Link>
             <Link to="/compare">Comparer</Link>
             <Link to="/premium">Plans</Link>
             <Link to="/history">Historique</Link>

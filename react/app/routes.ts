@@ -26,6 +26,7 @@ export default [
     index("routes/home.tsx"),
     route("beatmap/:id", "routes/beatmap.$id.tsx"),
     route("player/:id", "routes/player.$id.tsx"),
+    route("players", "routes/players.tsx"),
     route("lists", "routes/lists.tsx"),
     route("collection/:id", "routes/collection.$id.tsx"),
     route("history", "routes/history.tsx"),

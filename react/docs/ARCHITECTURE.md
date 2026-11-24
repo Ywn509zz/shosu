@@ -58,6 +58,8 @@ navigateur ──fetch──▶ routes/api.*.ts ──▶ lib/*.server.ts ──
 
 `osu.server.ts` (API) → `player-data.server.ts` (sources brutes partagées, cache 5 min) → `model.server.ts` (compétence + goûts, cache 15 min) → recommandations, Music DNA, analyse, Stack. Voir FEATURES § Modèle du joueur partagé. Les scores de compatibilité passent tous par `score.ts` (`line` + `finalizeScore`).
 
+`/players` lit `getRankings` (50 joueurs par page, cache 5 min) sans toucher à Redis.
+
 ## Stockage (Redis) — clés
 
 | Clé | Type | Contenu | Module |

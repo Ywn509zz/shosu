@@ -499,15 +499,20 @@ export function getPlayerPage(ref: string, mode: string, withTopPlays = true): P
   });
 }
 
-/** Page de 10 joueurs d'un classement mondial ou par pays (1 = rangs 1 à 10, 2 = rangs 11 à 20…). */
+/**
+ * Page de 10 joueurs (par défaut) ou de 50 (`size: 50` = une page osu! entière) d'un classement mondial ou par pays.
+ * Avec 10 : page 1 = rangs 1 à 10, page 2 = 11 à 20… Avec 50 : page 1 = rangs 1 à 50, page 2 = 51 à 100…
+ */
 export async function getRankings(params: {
   mode: string;
   country?: string;
   page?: number;
+  size?: 10 | 50;
 }): Promise<{ players: PlayerSummary[]; total: number | null }> {
   const country = params.country && /^[A-Za-z]{2}$/.test(params.country) ? params.country.toUpperCase() : "";
-  const page = Math.min(Math.max(Math.floor(params.page ?? 1), 1), 100);
-  const start = (page - 1) * 10;
+  const size = params.size === 50 ? 50 : 10;
+  const page = Math.min(Math.max(Math.floor(params.page ?? 1), 1), size === 50 ? 20 : 100);
+  const start = (page - 1) * size;
   const apiPage = Math.floor(start / 50) + 1; // osu! renvoie 50 joueurs par page
   const offset = start % 50;
 
@@ -532,7 +537,7 @@ export async function getRankings(params: {
     return { players, total: numOrNull(data.total) };
   });
 
-  return { players: players.slice(offset, offset + 10), total };
+  return { players: players.slice(offset, offset + size), total };
 }
 
 // ---------------------------------------------------------------------------

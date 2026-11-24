@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 3.7), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 3.8), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -19,7 +19,7 @@ et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour c
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 3.7 » ↔ `3.7.0`).
+temps que `version` dans `package.json` (« bêta 3.8 » ↔ `3.8.0`).
 
 ## Démarrage
 
@@ -184,6 +184,7 @@ pages) fonctionne déjà. Stripe héberge la page de paiement : le site ne voit 
   **Comparer deux joueurs** (`/compare/players`) : statistiques, style de jeu, modes préférés, beatmaps en commun. **États vides** avec une action utile partout.
 - **Score de compatibilité expliqué** : sur chaque recommandation, le pourcentage se déplie en « Pourquoi 77 % ? » (critère par critère, points obtenus ÷ possibles). **Données partagées** :
   Music DNA, statistiques et recommandations lisent le même modèle du joueur (mêmes artistes, tags, tempo, genres, sources).
+- **Joueurs** (`/players`) : classement osu! par mode et par pays, recherche d'un joueur, accès au profil et à la comparaison.
 - **Historique** (`/history`) : recherches, écoutes et beatmaps consultées récentes, gardées **uniquement dans le navigateur** (localStorage, un historique par compte
   osu!) : rien n'est envoyé au serveur. Les dernières recherches s'affichent aussi sous la barre de recherche.
 - **Page d'une beatmap** (`/beatmap/:id`) : cover, BPM, durée, favoris, tags, toutes les difficultés (étoiles, CS/AR/OD/HP,

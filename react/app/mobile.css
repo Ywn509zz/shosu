@@ -508,3 +508,27 @@
     transition: none;
   }
 }
+/* Page Joueurs : on garde rang, joueur, pp et l'action sur téléphone. */
+@media (max-width: 700px) {
+  .players-row {
+    grid-template-columns: 40px minmax(0, 1fr) 70px 44px;
+    padding: 8px 10px;
+  }
+  .players-extra {
+    display: none;
+  }
+  .players-action {
+    width: 44px;
+    height: 44px;
+  }
+  .players-pager {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .players-pager > span {
+    order: -1;
+    width: 100%;
+    text-align: center;
+  }
+}
+
