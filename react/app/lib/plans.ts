@@ -12,13 +12,15 @@ export type PlanDefinition = {
   label: string;
   /** Messages envoyés à Stack par fenêtre de 10 minutes. */
   stackMessagesPer10Min: number;
-  /** Nombre maximal de beatmaps dans chacune des listes (favoris, à jouer plus tard). */
+  /** Nombre maximal de beatmaps dans chaque liste (favoris, à jouer plus tard) et dans chaque collection. */
   listLimit: number;
+  /** Nombre maximal de collections personnalisées (listes nommées, partageables). */
+  collectionLimit: number;
 };
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
-  free: { label: "Gratuit", stackMessagesPer10Min: 20, listLimit: 200 },
-  premium: { label: "Premium", stackMessagesPer10Min: 100, listLimit: 1000 },
+  free: { label: "Gratuit", stackMessagesPer10Min: 20, listLimit: 200, collectionLimit: 5 },
+  premium: { label: "Premium", stackMessagesPer10Min: 100, listLimit: 1000, collectionLimit: 25 },
 };
 
 export const isPlanId = (value: unknown): value is PlanId =>

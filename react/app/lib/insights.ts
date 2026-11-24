@@ -39,3 +39,26 @@ export type DifficultyAnalysis = {
   /** Orientation de la map d'après aim et vitesse. */
   profile: "aim" | "speed" | "balanced" | null;
 };
+
+/** Ce que les meilleurs scores et les beatmaps favorites d'un joueur disent de ses habitudes. */
+export type PlayHabits = {
+  /** Nombre de meilleurs scores analysés. */
+  plays: number;
+  /** Zone de difficulté habituelle : médiane et bornes basse / haute (quartiles). */
+  stars: { median: number; low: number; high: number };
+  bpm: number | null;
+  lengthSeconds: number | null;
+  /** Mods les plus joués avec leur part des scores (0 à 1). */
+  mods: { mod: string; share: number }[];
+  artists: string[];
+  tags: string[];
+};
+
+export type Recommendation = SimilarMap;
+
+export type Recommendations = {
+  mode: string;
+  /** Null quand le joueur n'a pas encore de scores dans ce mode. */
+  habits: PlayHabits | null;
+  items: Recommendation[];
+};

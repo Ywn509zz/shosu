@@ -1,4 +1,5 @@
 import { Button } from "@heroui/react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 import { ListButtons } from "~/components/list-buttons";
@@ -16,7 +17,7 @@ export function toTrack(mapset: Beatmapset): Track | null {
  * boutons de listes, le lien vers la page détail et le lecteur global (`queue` = liste
  * jouée à la suite avec ⏮ / ⏭).
  */
-export function BeatmapCard({ mapset, queue }: { mapset: Beatmapset; queue?: Beatmapset[] }) {
+export function BeatmapCard({ mapset, queue, extra }: { mapset: Beatmapset; queue?: Beatmapset[]; extra?: ReactNode }) {
   const player = usePlayer();
   const playing = player.isPlaying(mapset.id);
   const track = toTrack(mapset);
@@ -50,6 +51,7 @@ export function BeatmapCard({ mapset, queue }: { mapset: Beatmapset; queue?: Bea
             <Link to={`/beatmap/${mapset.id}`}>Détails</Link>
           </div>
           <div className="card-actions">
+            {extra}
             <ListButtons id={mapset.id} />
             {track && (
               <Button

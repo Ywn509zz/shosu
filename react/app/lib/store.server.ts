@@ -121,6 +121,15 @@ export const hash = {
     return Object.fromEntries(hashes.get(key) ?? []);
   },
 
+  /** Supprime toute la table. */
+  async del(key: string): Promise<void> {
+    if (isPersistent()) {
+      await redisPipeline([["DEL", key]]);
+      return;
+    }
+    hashes.delete(key);
+  },
+
   async length(key: string): Promise<number> {
     if (isPersistent()) {
       const [n] = (await redisPipeline([["HLEN", key]])) as [number];

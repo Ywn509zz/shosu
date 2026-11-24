@@ -25,8 +25,8 @@ export default function Premium({ loaderData }: Route.ComponentProps) {
         <p className="eyebrow">PLANS</p>
         <h1>shOsu! est gratuit pour tout le monde.</h1>
         <p>
-          Recherche, suggestions, profils, listes et Stack sont inclus, sans paiement. Le plan Premium offre simplement plus de messages et de place : il est
-          attribué sur invitation, gratuitement.
+          Recherche, recommandations, profils, listes, collections et Stack sont inclus, sans paiement. Le plan Premium
+          offre simplement plus de messages et de place : il est attribué sur invitation, gratuitement.
         </p>
       </section>
 
@@ -42,7 +42,10 @@ export default function Premium({ loaderData }: Route.ComponentProps) {
             </li>
             <li>Recherche par le son (Shazam pour osu!)</li>
             <li>
-              Favoris et « à jouer plus tard » : <b>{nf(free.listLimit)} beatmaps</b> par liste
+              Favoris, « à jouer plus tard » et collections : <b>{nf(free.listLimit)} beatmaps</b> par liste
+            </li>
+            <li>
+              Collections partageables : <b>{nf(free.collectionLimit)}</b>
             </li>
           </ul>
           {plan === "free" && <p className="plan-state">✓ Ton plan actuel</p>}
@@ -56,10 +59,14 @@ export default function Premium({ loaderData }: Route.ComponentProps) {
           <ul>
             <li>Tout le plan {free.label}</li>
             <li>
-              Stack : <b>{premium.stackMessagesPer10Min} messages</b> par 10 min ({Math.round(premium.stackMessagesPer10Min / free.stackMessagesPer10Min)}× plus)
+              Stack : <b>{premium.stackMessagesPer10Min} messages</b> par 10 min (
+              {Math.round(premium.stackMessagesPer10Min / free.stackMessagesPer10Min)}× plus)
             </li>
             <li>
-              Favoris et « à jouer plus tard » : <b>{nf(premium.listLimit)} beatmaps</b> par liste
+              Favoris, « à jouer plus tard » et collections : <b>{nf(premium.listLimit)} beatmaps</b> par liste
+            </li>
+            <li>
+              Collections partageables : <b>{nf(premium.collectionLimit)}</b>
             </li>
           </ul>
           {plan === "premium" ? (
@@ -75,8 +82,8 @@ export default function Premium({ loaderData }: Route.ComponentProps) {
       </div>
 
       <p className="notice">
-        Ces limites servent à garder le site gratuit et rapide pour tous, et peuvent évoluer. Besoin de plus ? Parle-en au créateur du site.{" "}
-        <Link to="/">Retour à la recherche</Link>
+        Ces limites servent à garder le site gratuit et rapide pour tous, et peuvent évoluer. Besoin de plus ? Parle-en
+        au créateur du site. <Link to="/">Retour à la recherche</Link>
       </p>
     </>
   );

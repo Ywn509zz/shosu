@@ -1,5 +1,6 @@
 import { Button } from "@heroui/react";
 
+import { CollectionMenu } from "~/components/collection-menu";
 import { LIST_LABELS, type ListId } from "~/lib/lists";
 import { useLists } from "~/lib/lists-context";
 
@@ -8,7 +9,7 @@ const ICONS: Record<ListId, { off: string; on: string }> = {
   later: { off: "🕒", on: "✅" },
 };
 
-/** Boutons « Favoris » et « À jouer plus tard » d'une beatmap (visibles une fois connecté). */
+/** Boutons « Favoris », « À jouer plus tard » et « Collection » d'une beatmap (visibles une fois connecté). */
 export function ListButtons({ id }: { id: number }) {
   const lists = useLists();
   if (!lists.signedIn) return null;
@@ -31,6 +32,7 @@ export function ListButtons({ id }: { id: number }) {
           </Button>
         );
       })}
+      <CollectionMenu id={id} />
     </>
   );
 }

@@ -8,7 +8,7 @@ export class ListFullError extends Error {}
 const keyFor = (osuId: number, list: ListId) => `shosu:u:${osuId}:${list}`;
 
 /** Ne garde que les champs attendus d'une entrée relue depuis la base. */
-function parseItem(raw: string): ListItem | null {
+export function parseItem(raw: string): ListItem | null {
   try {
     const v = JSON.parse(raw) as Partial<ListItem>;
     if (typeof v.id !== "number" || typeof v.title !== "string") return null;
@@ -50,19 +50,10 @@ export async function getListIds(osuId: number): Promise<Record<ListId, number[]
   return Object.fromEntries(entries) as Record<ListId, number[]>;
 }
 
-/**
- * Ajoute une beatmap (`limit` : taille maximale de la liste, selon le plan du joueur). Les métadonnées
- * viennent d'osu!, jamais du navigateur : un client ne peut pas faire stocker du texte de son choix.
- */
-export async function addToList(osuId: number, list: ListId, beatmapsetId: number, limit: number): Promise<Beatmapset> {
-  const key = keyFor(osuId, list);
-  // Une beatmap déjà présente peut toujours être « réajoutée » ; sinon la liste ne doit pas être pleine.
-  if (!(await hash.has(key, String(beatmapsetId))) && (await hash.length(key)) >= limit) {
-    throw new ListFullError();
-  }
-
+/** Version allégée d'une beatmap, lue chez osu! (jamais fournie par le navigateur). */
+export async function fetchSlim(beatmapsetId: number): Promise<Beatmapset> {
   const detail = await getBeatmapset(beatmapsetId);
-  const slim: Beatmapset = {
+  return {
     id: detail.id,
     title: detail.title,
     artist: detail.artist,
@@ -74,6 +65,20 @@ export async function addToList(osuId: number, list: ListId, beatmapsetId: numbe
     maxStars: detail.maxStars,
     previewFile: detail.previewFile,
   };
+}
+
+/**
+ * Ajoute une beatmap (`limit' : taille maximale de la liste, selon le plan du joueur). Les métadonnées
+ * viennent d'osu!, jamais du navigateur : un client ne peut pas faire stocker du texte de son choix.
+ */
+export async function addToList(osuId: number, list: ListId, beatmapsetId: number, limit: number): Promise<Beatmapset> {
+  const key = keyFor(osuId, list);
+  // Une beatmap déjà présente peut toujours être « réajoutée » ; sinon la liste ne doit pas être pleine.
+  if (!(await hash.has(key, String(beatmapsetId))) && (await hash.length(key)) >= limit) {
+    throw new ListFullError();
+  }
+
+  const slim = await fetchSlim(beatmapsetId);
   await hash.set(key, String(beatmapsetId), JSON.stringify({ ...slim, addedAt: Date.now() }));
   return slim;
 }

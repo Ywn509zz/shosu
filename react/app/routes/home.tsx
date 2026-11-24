@@ -4,6 +4,7 @@ import { Link, useRouteLoaderData, useSearchParams } from "react-router";
 
 import { BeatmapCard } from "~/components/beatmap-card";
 import { Discovery } from "~/components/discovery";
+import { RecommendationsSection } from "~/components/recommendations";
 import { ListenPanel, type AudioClip } from "~/components/listen-panel";
 import { searchHref } from "~/lib/assistant";
 import { ThemeToggle } from "~/components/theme-toggle";
@@ -407,6 +408,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </Link>
         </nav>
       )}
+
+      {phase === "idle" && signedIn && <RecommendationsSection />}
 
       {phase === "idle" && loaderData.lenses.length > 0 && <Discovery lenses={loaderData.lenses} />}
     </>

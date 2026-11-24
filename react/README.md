@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 2.2), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 2.3), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -13,7 +13,7 @@ d'origine est reprise telle quelle et le balisage est le même.
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 2.2 » ↔ `2.2.0`).
+temps que `version` dans `package.json` (« bêta 2.3 » ↔ `2.3.0`).
 
 ## Démarrage
 
@@ -103,7 +103,8 @@ ajoutez une option `database` à `betterAuth()` dans [`app/lib/auth.server.ts`](
 |---|---|---|
 | Recherche, suggestions, profils, pages de beatmaps, lecteur | ✓ | ✓ |
 | Messages à Stack | 20 / 10 min | **100 / 10 min** |
-| Taille de chaque liste (favoris, à jouer plus tard) | 200 | **1 000** |
+| Taille de chaque liste (favoris, à jouer plus tard) et de chaque collection | 200 | **1 000** |
+| Collections personnalisées partageables | 5 | **25** |
 | Recherche par le son | 6 extraits / 10 min | 6 extraits / 10 min |
 
 Les limites sont définies **à un seul endroit** : [`app/lib/plans.ts`](app/lib/plans.ts). La page `/premium` les affiche, le menu du compte montre le plan
@@ -139,6 +140,24 @@ pages) fonctionne déjà. Stripe héberge la page de paiement : le site ne voit 
   (voir « Shazam pour osu! » plus bas).
 - **Favoris et « à jouer plus tard »** : boutons ♡ et 🕒 sur chaque carte et sur la page d'une beatmap, page **Mes listes**
   (`/lists`). 200 beatmaps par liste ; les métadonnées sont relues chez osu!, jamais prises du navigateur.
+- **Collections personnalisées** (`/lists?list=collections`, bouton 📁 sur chaque carte) : listes nommées, créées et remplies depuis les cartes.
+  Un bouton **Partager** rend une collection publique : toute personne qui a le lien (`/collection/<id>`, identifiant aléatoire de 10 caractères)
+  peut la voir, l'exporter ou la **copier** dans ses propres collections, sans pouvoir la modifier. Une collection privée est introuvable (404)
+  pour tout autre que son propriétaire. Limites par plan (voir plus haut) ; stockage Redis (`shosu:cols:<id osu!>`, `shosu:col:<id>`, `shosu:colidx`).
+- **Export d'une liste en un seul fichier** (favoris, à jouer plus tard, collections) : un **téléchargeur** `.html` autonome (télécharge toutes les
+  beatmaps en un clic depuis le miroir communautaire de ton choix : Beatconnect, Mino, Nerinyan, osu! officiel ou le jeu via `osu://`), un `.txt`,
+  un `.csv` (protégé contre l'injection de formules) ou un `.json`. Tout est fabriqué dans le navigateur : shOsu! n'héberge ni ne relaie aucune
+  beatmap, et les titres sont toujours échappés dans le fichier généré.
+- **Pour toi** (accueil, une fois connecté) : recommandations d'après tes habitudes de jeu. Le serveur lit tes 100 meilleurs scores, tes scores récents,
+  tes beatmaps les plus jouées et tes favoris chez osu!, en déduit ta zone de difficulté, ton BPM, tes mods et tes artistes/tags favoris, cherche
+  autour de ces goûts et classe les résultats (difficulté un peu au-dessus de ta médiane pour progresser, BPM, artistes, tags, popularité), en
+  excluant ce que tu as déjà joué. Chaque carte donne ses raisons. Calcul gardé 15 min, 12 par 10 min et par joueur.
+- **Beatmaps similaires** (page d'une beatmap, `/api/similar`) : candidats trouvés autour de l'artiste, de la source et des tags les plus distinctifs,
+  classés par artiste, tags communs, BPM, difficulté, mappeur, genre et langue ; les raisons s'affichent sur chaque carte.
+- **Analyse de difficulté par mod** (clic sur une difficulté, `/api/analysis`) : étoiles recalculées par osu! pour NM, EZ, HR, HT, DT, DT+HR et FL
+  (`POST /beatmaps/{id}/attributes`), AR/OD/CS/HP/BPM/durée avec les formules des mods, décomposition aim / vitesse et courbe de difficulté du set.
+- **Historique** (`/history`) : recherches et écoutes récentes, gardées **uniquement dans le navigateur** (localStorage, un historique par compte
+  osu!) : rien n'est envoyé au serveur. Les dernières recherches s'affichent aussi sous la barre de recherche.
 - **Page d'une beatmap** (`/beatmap/:id`) : cover, BPM, durée, favoris, tags, toutes les difficultés (étoiles, CS/AR/OD/HP,
   combo), « Ouvrir dans osu! » (`osu://`), et « ✨ Expliquer avec Stack ».
 - **Profil joueur** (`/player/:id`, identifiant ou pseudo) : rangs, pp, précision, niveau, temps de jeu, grades, 25 meilleurs scores,

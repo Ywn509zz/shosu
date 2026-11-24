@@ -12,6 +12,15 @@ import {
 } from "./gemini.server";
 import { isListId, LIST_IDS, type ListId } from "./lists";
 import { analyzeDifficulty } from "./analysis.server";
+import {
+  CollectionFullError,
+  CollectionLimitError,
+  CollectionNotFoundError,
+  addToCollection,
+  createCollection,
+  listCollections,
+} from "./collections.server";
+import { COLLECTION_ID_PATTERN } from "./collections";
 import { addToList, getListItems, ListFullError, removeFromList } from "./lists.server";
 import { API_STATUS, MODE_IDS, parsePlayerRef, type Beatmapset, type PlayerSummary } from "./osu";
 import { PLANS, type PlanId } from "./plans";
@@ -22,7 +31,9 @@ import {
   getRankings,
   searchBeatmapsets,
 } from "./osu.server";
+import { getRecommendations } from "./recommend.server";
 import { findSimilar } from "./similar.server";
+import { isPersistent } from "./store.server";
 
 const PLAYER_MODES = ["osu", "taiko", "fruits", "mania"];
 const MAX_MODEL_TURNS = 5;
@@ -43,6 +54,10 @@ Tes outils :
 - find_similar_maps : beatmaps qui ressemblent à une autre (artiste, tags, BPM, difficulté), avec la raison de la ressemblance.
 - analyze_difficulty : difficulté d'une beatmap avec chaque mod (EZ, HR, HT, DT…), AR/OD/BPM modifiés et décomposition aim/vitesse.
   Utilise-le pour « est-ce jouable en DT ? », « quelle est la difficulté avec HR ? », « aim ou vitesse ? ».
+- get_recommendations : beatmaps recommandées d'après les habitudes de jeu du joueur CONNECTÉ (difficulté habituelle, BPM, mods, artistes
+  et tags favoris), déjà jouées exclues. Utilise-le pour « que me conseilles-tu », « des maps pour moi », « selon mes habitudes ».
+- get_my_collections / create_collection / add_to_collection : les collections nommées du joueur (listes personnalisées partageables).
+  Tu peux en créer une et y ranger des beatmaps ; le partage par lien se règle sur la page de la collection, pas par toi.
 - find_player : retrouve un joueur par son pseudo (rang, pp, précision). get_rankings : classement mondial ou d'un pays.
 - get_my_lists / add_to_list / remove_from_list : les listes « favorites » et « later » (à jouer plus tard) du joueur.
 - show_in_search, open_beatmap, open_player : agissent sur la page du joueur (ouvrir la recherche déjà remplie, la page d'une beatmap,
@@ -127,6 +142,41 @@ const TOOLS: GeminiFunctionDeclaration[] = [
         version: { type: "STRING", description: "Nom de la difficulté (ex. « Insane »). Absent = la plus difficile du set." },
       },
       required: ["id"],
+    },
+  },
+  {
+    name: "get_recommendations",
+    description:
+      "Recommande des beatmaps d'après les habitudes de jeu du joueur connecté (zone de difficulté, BPM, mods, artistes et tags favoris). Renvoie ses habitudes et jusqu'à 6 beatmaps avec la raison du conseil.",
+    parameters: {
+      type: "OBJECT",
+      properties: { mode: { type: "STRING", enum: MODE_ENUM, description: "Mode de jeu (son mode principal si absent)." } },
+    },
+  },
+  {
+    name: "get_my_collections",
+    description: "Liste les collections personnalisées du joueur connecté (nom, identifiant, nombre de beatmaps, partagée ou non).",
+    parameters: { type: "OBJECT", properties: {} },
+  },
+  {
+    name: "create_collection",
+    description: "Crée une collection personnalisée vide. Uniquement sur demande explicite du joueur.",
+    parameters: {
+      type: "OBJECT",
+      properties: { name: { type: "STRING", description: "Nom de la collection (60 caractères maximum)." } },
+      required: ["name"],
+    },
+  },
+  {
+    name: "add_to_collection",
+    description: "Ajoute une beatmap déjà affichée au joueur dans une de ses collections. Uniquement sur demande explicite.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        collection_id: { type: "STRING", description: "Identifiant de la collection (voir get_my_collections ou create_collection)." },
+        id: { type: "INTEGER", description: "Identifiant du set de beatmaps." },
+      },
+      required: ["collection_id", "id"],
     },
   },
   {
@@ -222,6 +272,10 @@ const STATUS_TEXT: Record<string, (args: Record<string, unknown>) => string> = {
   get_beatmap: () => "J'examine la beatmap…",
   find_similar_maps: () => "Je cherche des maps qui lui ressemblent…",
   analyze_difficulty: () => "J'analyse la difficulté avec chaque mod…",
+  get_recommendations: () => "Je regarde tes habitudes de jeu…",
+  get_my_collections: () => "Je regarde tes collections…",
+  create_collection: () => "Je crée la collection…",
+  add_to_collection: () => "Je range la beatmap…",
   find_player: (a) => `Je cherche ${clean(a.username, 24)}…`,
   get_rankings: () => "Je consulte le classement…",
   get_my_lists: () => "Je regarde tes listes…",
@@ -252,6 +306,7 @@ const modeOf = (value: unknown, fallback: string) =>
 
 type Context = {
   osuId: number;
+  userName: string;
   /** Plan du joueur : fixe la taille maximale de ses listes. */
   plan: PlanId;
   emit: (event: StreamEvent) => void;
@@ -406,6 +461,73 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
       };
     }
 
+    case "get_recommendations": {
+      const result = await getRecommendations(ctx.osuId, typeof args.mode === "string" ? args.mode : undefined);
+      if (!result.habits) return { mode: result.mode, error: "Le joueur n'a pas encore de scores dans ce mode : impossible de cerner ses habitudes." };
+      const top = result.items.slice(0, RESULTS_PER_SEARCH);
+      showCards(ctx, top);
+      return {
+        mode: result.mode,
+        habits: result.habits,
+        recommendations: top.map((m) => ({
+          id: m.id,
+          title: m.title,
+          artist: m.artist,
+          creator: m.creator,
+          match: m.score,
+          reasons: m.reasons,
+          stars: [m.minStars, m.maxStars].map((s) => (s === null ? null : Math.round(s * 10) / 10)),
+        })),
+        ...(top.length === 0 ? { hint: "Aucune nouvelle beatmap à proposer pour le moment." } : {}),
+      };
+    }
+
+    case "get_my_collections": {
+      const collections = await listCollections(ctx.osuId);
+      return {
+        limit: PLANS[ctx.plan].collectionLimit,
+        collections: collections.map((c) => ({ id: c.id, name: c.name, beatmaps: c.count, shared: c.public })),
+      };
+    }
+
+    case "create_collection": {
+      if (!isPersistent()) return { error: "Le stockage n'est pas configuré : les collections ne sont pas disponibles." };
+      const name = clean(args.name, 60);
+      if (!name) return { error: "Donne un nom à la collection." };
+      if (ctx.listChanges >= MAX_LIST_CHANGES) return { error: "Limite de modifications de listes atteinte pour ce message." };
+      ctx.listChanges++;
+      try {
+        const collection = await createCollection({ osuId: ctx.osuId, name: ctx.userName }, name, PLANS[ctx.plan].collectionLimit);
+        return { ok: true, id: collection.id, name: collection.name };
+      } catch (error) {
+        if (error instanceof CollectionLimitError) {
+          const { label, collectionLimit } = PLANS[ctx.plan];
+          return { error: `Limite atteinte : ${collectionLimit} collections avec le plan ${label}.` };
+        }
+        throw error;
+      }
+    }
+
+    case "add_to_collection": {
+      if (!isPersistent()) return { error: "Le stockage n'est pas configuré : les collections ne sont pas disponibles." };
+      const collectionId = typeof args.collection_id === "string" ? args.collection_id : "";
+      const id = intId(args.id);
+      if (!COLLECTION_ID_PATTERN.test(collectionId) || !id) return { error: "Collection ou beatmap invalide." };
+      if (!ctx.known.has(id)) {
+        return { error: "Cette beatmap n'a pas été affichée à l'utilisateur dans cette conversation : cherche-la d'abord." };
+      }
+      if (ctx.listChanges >= MAX_LIST_CHANGES) return { error: "Limite de modifications de listes atteinte pour ce message." };
+      ctx.listChanges++;
+      try {
+        const collection = await addToCollection(ctx.osuId, collectionId, id, PLANS[ctx.plan].listLimit);
+        return { ok: true, collection: collection.name, beatmaps: collection.count };
+      } catch (error) {
+        if (error instanceof CollectionNotFoundError) return { error: "Cette collection n'existe pas." };
+        if (error instanceof CollectionFullError) return { error: "Cette collection est pleine." };
+        throw error;
+      }
+    }
+
     case "find_player": {
       const username = clean(args.username, 20);
       if (!parsePlayerRef(username)) return { error: "Pseudo invalide." };
@@ -503,11 +625,13 @@ export async function runAssistant(params: {
   history: ChatTurn[];
   knownIds: Set<number>;
   osuId: number;
+  userName: string;
   plan: PlanId;
   emit: (event: StreamEvent) => void;
 }): Promise<void> {
   const ctx: Context = {
     osuId: params.osuId,
+    userName: params.userName,
     plan: params.plan,
     emit: params.emit,
     known: params.knownIds,

@@ -95,6 +95,6 @@ export async function action({ request }: Route.ActionArgs) {
   if (!history) return fail("invalid_request", 400);
 
   return streamEvents((emit) =>
-    runAssistant({ history: history.turns, knownIds: history.knownIds, osuId: user.osuId!, plan: user.plan, emit }),
+    runAssistant({ history: history.turns, knownIds: history.knownIds, osuId: user.osuId!, userName: user.name, plan: user.plan, emit }),
   );
 }
