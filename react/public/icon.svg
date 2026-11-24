@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="shOsu!">
+  <defs>
+    <linearGradient id="band" x1="0.12" y1="0.1" x2="0.88" y2="0.92">
+      <stop offset="0" stop-color="#ffb3ee"/>
+      <stop offset="0.45" stop-color="#ff74d4"/>
+      <stop offset="0.8" stop-color="#c63fb8"/>
+      <stop offset="1" stop-color="#8a2ba6"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff63cf"/>
+      <stop offset="1" stop-color="#ff2eb4"/>
+    </linearGradient>
+    <radialGradient id="star" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#ffd6f4"/>
+      <stop offset="1" stop-color="#ff6fd0"/>
+    </radialGradient>
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="16" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#glow)" fill="none">
+    <circle cx="512" cy="512" r="283" stroke="#ff9be6" stroke-width="7"/>
+    <circle cx="512" cy="512" r="257" stroke="url(#band)" stroke-width="40"/>
+    <circle cx="512" cy="512" r="227" stroke="#ff86e0" stroke-width="5"/>
+    <circle cx="512" cy="512" r="145" stroke="url(#inner)" stroke-width="15"/>
+  </g>
+
+  <!-- reflets sur la bague épaisse -->
+  <path d="M338 330 A256 256 0 0 1 470 262" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="7" stroke-linecap="round" filter="url(#soft)"/>
+  <path d="M236 470 A256 256 0 0 1 262 372" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="5" stroke-linecap="round" filter="url(#soft)"/>
+  <circle cx="699" cy="688" r="5" fill="#fff" fill-opacity=".9" filter="url(#soft)"/>
+  <circle cx="338" cy="326" r="6" fill="#fff" fill-opacity=".95" filter="url(#soft)"/>
+
+  <!-- étincelle centrale -->
+  <path d="M512 468 Q519 505 556 512 Q519 519 512 556 Q505 519 468 512 Q505 505 512 468 Z" fill="url(#star)" filter="url(#glow)"/>
+  <path d="M543 466 Q546 478 558 481 Q546 484 543 496 Q540 484 528 481 Q540 478 543 466 Z" fill="#ff8fdc" filter="url(#soft)"/>
+  <circle cx="482" cy="543" r="5" fill="#ff8fdc" fill-opacity=".8"/>
+  <circle cx="543" cy="545" r="4" fill="#ff8fdc" fill-opacity=".7"/>
+</svg>

@@ -37,3 +37,6 @@
 
 /* Mouvement : entrées de page, cartes en cascade, réactions au toucher. */
 @import "./motion.css";
+
+/* Téléphone : navigation du bas, cartes compactes, lecteur, Stack en feuille (en dernier pour l'emporter). */
+@import "./mobile.css";

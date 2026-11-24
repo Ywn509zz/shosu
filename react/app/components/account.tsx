@@ -20,7 +20,7 @@ export function Account({
   return (
     <div id="account" className="account">
       {user && (
-        <Link className="account-btn" to="/lists">
+        <Link className="account-btn account-lists" to="/lists">
           <span aria-hidden>♥</span> Listes
         </Link>
       )}

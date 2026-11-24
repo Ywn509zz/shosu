@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 2.4), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 2.5), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -10,10 +10,16 @@ d'origine est reprise telle quelle et le balisage est le même.
 | Composants                | [HeroUI v3](https://www.heroui.com) (`Button`, `Input`) + Tailwind 4  |
 | Authentification          | [Better Auth](https://www.better-auth.com), connexion via osu! (OAuth) |
 
+## Documentation pour reprendre le projet
+
+Point d'entrée pour toute IA ou tout développeur : [`AGENTS.md`](AGENTS.md). Il renvoie vers [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (stack, flux, sécurité, clés Redis),
+[`docs/FEATURES.md`](docs/FEATURES.md) (**comment chaque fonctionnalité marche et doit marcher**), [`docs/DEV-GUIDE.md`](docs/DEV-GUIDE.md) (lancer en local avec de faux services, tester, versionner, publier)
+et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour ces fichiers dans le même commit.**
+
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 2.4 » ↔ `2.4.0`).
+temps que `version` dans `package.json` (« bêta 2.5 » ↔ `2.5.0`).
 
 ## Démarrage
 

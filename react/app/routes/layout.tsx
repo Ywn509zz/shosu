@@ -5,6 +5,7 @@ import { Account } from "~/components/account";
 import { Assistant } from "~/components/assistant";
 import { BackButton } from "~/components/back-button";
 import { LoginNotice } from "~/components/login-notice";
+import { MobileNav } from "~/components/mobile-nav";
 import { PlayerBar } from "~/components/player-bar";
 import { AssistantContext } from "~/lib/assistant-context";
 import { HistoryProvider } from "~/lib/history";
@@ -88,7 +89,7 @@ function Shell({ user }: { user: SessionUser | null }) {
       <div className="page-shell">
         <header className="site-header">
           <Link className="brand" to="/" aria-label="Retour à l'accueil">
-            <span className="brand-mark">s</span>
+            <img className="brand-mark" src="/icon.svg" alt="" width={40} height={40} />
             <span translate="no">shOsu!</span>
           </Link>
           <Account user={user} assistantOpen={assistantOpen} onToggleAssistant={toggleAssistant} />
@@ -104,6 +105,7 @@ function Shell({ user }: { user: SessionUser | null }) {
           shOsu! · {APP_VERSION}
         </footer>
 
+        <MobileNav user={user} assistantOpen={assistantOpen} onToggleAssistant={toggleAssistant} onSearch={focusSearch} />
         <LoginNotice />
         <ListsToast />
         <PlayerBar />

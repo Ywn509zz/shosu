@@ -20,6 +20,7 @@ import {
 import { getDiscovery } from "~/lib/discover.server";
 import { useHistory } from "~/lib/history";
 import { errorMessage, readEvents } from "~/lib/stream-client";
+import { useProgressive } from "~/lib/use-progressive";
 import { useRipple } from "~/lib/use-ripple";
 import { useSpeechRecognition } from "~/lib/use-speech-recognition";
 
@@ -37,7 +38,8 @@ export async function loader() {
   }
 }
 
-const RESULTS_PER_PAGE = 50;
+/** Nombre de cartes ajoutées à chaque défilement (chargement progressif). */
+const REVEAL_STEP = 18;
 /** Garde-fou : nombre max de pages osu! parcourues pour remplir une page filtrée. */
 const MAX_FILL_FETCHES = 5;
 
@@ -62,7 +64,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [allResults, setAllResults] = useState<Beatmapset[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
 
   // Recherche par le son (« Shazam pour osu! »).
@@ -114,7 +115,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       history.addSearch({ q, mode: searchMode, status: searchStatus });
       setAllResults(filtered);
       setCursor(data.cursor);
-      setPage(1);
       setPhase(filtered.length === 0 ? "empty" : "results");
     } catch (error) {
       console.error(error);
@@ -140,12 +140,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         next = data.cursor;
       }
       setCursor(next);
-      if (added.length > 0) {
-        // Les nouveaux résultats s'ajoutent à la suite ; on affiche la page
-        // locale (50 par page) où ils commencent.
-        setPage(Math.floor(allResults.length / RESULTS_PER_PAGE) + 1);
-        setAllResults((prev) => [...prev, ...added]);
-      }
+      // Les nouveaux résultats s'ajoutent à la suite de la grille (défilement continu).
+      if (added.length > 0) setAllResults((prev) => [...prev, ...added]);
     } catch (error) {
       console.error(error);
     } finally {
@@ -204,7 +200,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     history.addListen({ summary: text.trim(), items: cards.slice(0, 4).map((c) => ({ id: c.id, title: c.title, artist: c.artist })) });
     setAllResults(cards);
     setCursor(null);
-    setPage(1);
     setListenSummary(text.trim() || null);
     setPhase(cards.length > 0 ? "results" : "empty");
   }
@@ -243,10 +238,14 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlSearch]);
 
-  const totalPages = Math.ceil(allResults.length / RESULTS_PER_PAGE);
-  const pageResults = allResults.slice((page - 1) * RESULTS_PER_PAGE, page * RESULTS_PER_PAGE);
-  const hasNext = page < totalPages || cursor !== null;
-  const showPagination = phase === "results" && (page > 1 || hasNext);
+  // Chargement progressif : on montre REVEAL_STEP cartes, puis autant à chaque fois que le bas approche ; au bout de la
+  // liste on va chercher la page osu! suivante tant qu'il en reste (`cursor`).
+  const searchId = requestRef.current;
+  const progressive = useProgressive(allResults.length, REVEAL_STEP, `${searchId}:${phase}`, () => {
+    if (phase === "results" && cursor !== null) void loadMore();
+  });
+  const pageResults = allResults.slice(0, progressive.count);
+  const canLoadMore = phase === "results" && (!progressive.done || cursor !== null);
 
   return (
     <>
@@ -371,22 +370,16 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             {pageResults.map((mapset) => (
               <BeatmapCard key={mapset.id} mapset={mapset} queue={pageResults} />
             ))}
-            {showPagination && (
-              <div className="pagination">
-                {page > 1 && (
-                  <Button onPress={() => setPage((p) => p - 1)}>
-                    ← Previous
-                  </Button>
-                )}
-                {hasNext && (
-                  <Button
-                    isPending={loadingMore}
-                    onPress={() => {
-                      if (page < totalPages) setPage((p) => p + 1);
-                      else void loadMore();
-                    }}
-                  >
-                    Next →
+            {canLoadMore && (
+              <div className="load-more" ref={progressive.sentinel}>
+                {loadingMore ? (
+                  <>
+                    <div className="skeleton card-skeleton" />
+                    <div className="skeleton card-skeleton" />
+                  </>
+                ) : (
+                  <Button className="load-more-btn" onPress={progressive.more}>
+                    Charger plus
                   </Button>
                 )}
               </div>

@@ -11,12 +11,13 @@ import { isListId, LIST_IDS, LIST_LABELS, type ListId, type ListItem } from "~/l
 import { useLists } from "~/lib/lists-context";
 import { getListItems } from "~/lib/lists.server";
 import { PLANS, type PlanId } from "~/lib/plans";
+import { useProgressive } from "~/lib/use-progressive";
 import { getUser } from "~/lib/session.server";
 import { isPersistent } from "~/lib/store.server";
 
 import type { Route } from "./+types/lists";
 
-const PAGE_SIZE = 60;
+const PAGE_SIZE = 24;
 
 export const meta: Route.MetaFunction = () => [{ title: "Mes listes — shOsu!" }];
 
@@ -83,8 +84,8 @@ export default function Lists({ loaderData }: Route.ComponentProps) {
   const visible = items.filter((item) => !lists.loaded || lists.has(list, item.id));
 
   // Les listes Premium peuvent être longues : on affiche 60 cartes à la fois.
-  const [shown, setShown] = useState(PAGE_SIZE);
-  useEffect(() => setShown(PAGE_SIZE), [list, view]);
+  // Chargement progressif : 24 cartes, puis 24 de plus à chaque fois que le bas de la liste approche.
+  const progressive = useProgressive(visible.length, PAGE_SIZE, `${list}:${view}`);
 
   return (
     <>
@@ -209,13 +210,13 @@ export default function Lists({ loaderData }: Route.ComponentProps) {
                 <ExportMenu name={LIST_LABELS[list]} items={visible} />
               </div>
               <div className="results-grid">
-                {visible.slice(0, shown).map((item) => (
+                {visible.slice(0, progressive.count).map((item) => (
                   <BeatmapCard key={item.id} mapset={item} queue={visible} />
                 ))}
-                {visible.length > shown && (
-                  <div className="pagination">
-                    <Button onPress={() => setShown((n) => n + PAGE_SIZE)}>
-                      Afficher plus ({visible.length - shown})
+                {!progressive.done && (
+                  <div className="load-more" ref={progressive.sentinel}>
+                    <Button className="load-more-btn" onPress={progressive.more}>
+                      Charger plus ({visible.length - progressive.count})
                     </Button>
                   </div>
                 )}

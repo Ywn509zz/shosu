@@ -10,5 +10,7 @@ build/
 .vercel/
 
 .DS_Store
-.vercel
-.env*
+
+# Journal du faux Gemini (dev/)
+dev/tool-responses.log
+dev/.logs/

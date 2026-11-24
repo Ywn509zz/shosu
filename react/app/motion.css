@@ -53,11 +53,21 @@
 .site-header {
   animation: rise 0.6s var(--ease-out) both;
 }
+/* Logo : l'icône remplace l'ancien « s » dans son carré dégradé. */
 .brand-mark {
-  transition: transform 0.45s var(--ease-spring);
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 4px 14px rgba(255, 79, 207, 0.45));
+  transition: transform 0.45s var(--ease-spring), filter 0.3s;
 }
 .brand:hover .brand-mark {
   transform: rotate(-10deg) scale(1.12);
+  filter: drop-shadow(0 4px 18px rgba(255, 79, 207, 0.75));
 }
 
 /* ===== Cartes de résultats : apparition en cascade, puis relief au survol ===== */

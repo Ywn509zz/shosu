@@ -1,0 +1,473 @@
+/*
+ * Téléphone (≤ 700 px) : tout ce qui change pour que shOsu! soit agréable au pouce.
+ * Importé en dernier dans app.css : ces règles l'emportent sur legacy.css / pages.css à largeur équivalente.
+ *
+ *  - navigation du bas (MobileNav) et header allégé
+ *  - cartes compactes (cover à gauche, actions pleine largeur dessous)
+ *  - cibles tactiles ≥ 40 px, champs à 16 px (évite le zoom automatique d'iOS)
+ *  - lecteur sur deux rangées au-dessus de la barre du bas
+ *  - Stack en feuille qui monte du bas, avec voile
+ *  - chargement progressif (sentinelle .load-more, squelettes)
+ */
+
+/* Éléments propres au chargement progressif (visibles sur tous les écrans) */
+.load-more {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 6px 0 2px;
+}
+.load-more-btn {
+  width: auto;
+  height: auto;
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--panel-solid);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.card-skeleton {
+  width: 100%;
+  height: 120px;
+}
+
+.mobile-nav {
+  display: none;
+}
+.assistant-scrim {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  /* ===== Gabarit ===== */
+  .page-shell {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  main {
+    padding-top: 22px;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+  .hero-copy {
+    margin: 14px auto 20px;
+    font-size: 0.95rem;
+  }
+
+  /* ===== Header allégé : la barre du bas porte Listes, Stack et le profil ===== */
+  .account-lists,
+  .account .assistant-toggle {
+    display: none;
+  }
+  .account-trigger > span:not(.account-avatar) {
+    display: none;
+  }
+  .account-trigger {
+    padding: 4px;
+  }
+  .account-dropdown {
+    position: fixed;
+    top: 64px;
+    right: 12px;
+    width: min(260px, calc(100vw - 24px));
+  }
+  .brand {
+    font-size: 1.05rem;
+  }
+
+  /* ===== Barre du bas ===== */
+  .mobile-nav {
+    position: fixed;
+    z-index: 2800;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid var(--line);
+    background: color-mix(in srgb, var(--panel-solid) 92%, transparent);
+    backdrop-filter: blur(16px);
+  }
+  .mobile-nav a,
+  .mobile-nav button {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: auto;
+    height: 58px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: var(--muted);
+    background: none;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.2s, transform 0.25s var(--ease-spring);
+  }
+  .mobile-nav a span,
+  .mobile-nav button span:first-child {
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+  .mobile-nav img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .mobile-nav .is-active {
+    color: var(--accent-strong);
+  }
+  .mobile-nav a:active,
+  .mobile-nav button:active {
+    transform: scale(0.9);
+  }
+
+  /* ===== Recherche et filtres ===== */
+  .search-panel {
+    gap: 4px;
+  }
+  input[type="text"],
+  select,
+  textarea {
+    font-size: 16px; /* iOS zoome sur les champs plus petits */
+  }
+  .buttons {
+    justify-content: space-between;
+    gap: 2px;
+  }
+  .buttons button {
+    flex: 1;
+    width: auto;
+    height: 46px;
+  }
+  #filters {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px 10px;
+    padding: 12px;
+  }
+  #filters .filter-label {
+    grid-column: 1 / -1;
+  }
+  #filters label:not(.filter-label) {
+    margin: 0;
+  }
+  #filters select {
+    min-width: 0;
+    min-height: 42px;
+  }
+  .recent-searches {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-right: -12px;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .recent-searches .chip,
+  .recent-more {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* ===== Cartes de résultats compactes ===== */
+  .results-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .beatmap-card {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    border-radius: 14px;
+  }
+  .beatmap-card:hover {
+    transform: none;
+  }
+  .card-cover-wrap {
+    grid-row: 1;
+    height: 100%;
+    min-height: 96px;
+  }
+  .card-cover-wrap::after {
+    display: none;
+  }
+  .status-badge {
+    top: 6px;
+    right: auto;
+    left: 6px;
+    padding: 2px 6px;
+    font-size: 0.56rem;
+  }
+  .card-content {
+    display: contents;
+  }
+  .card-heading {
+    grid-column: 2;
+    grid-row: 1;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px 4px;
+  }
+  .card-kicker {
+    margin-bottom: 3px;
+  }
+  .card-heading h3 {
+    font-size: 0.95rem;
+  }
+  .star-rating {
+    margin: 0;
+    font-size: 0.8rem;
+  }
+  .card-footer {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 8px 12px 10px;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+  .card-actions {
+    margin-left: auto;
+    gap: 6px;
+  }
+  button.icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .play-btn {
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+  .card-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+  /* Le lien osu.ppy.sh est repris sur la page « Détails » : la carte garde « Détails » + les actions sur une seule rangée. */
+  .card-links a:first-child {
+    display: none;
+  }
+  .card-footer {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+  }
+  .card-actions {
+    margin-left: 0;
+  }
+  .play-btn {
+    width: 40px;
+    padding: 0;
+  }
+  .play-btn span {
+    display: none;
+  }
+
+  /* ===== Pages : détail, profil, listes ===== */
+  .stat-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .detail-actions .account-btn,
+  .detail-actions button.account-btn {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+    min-height: 44px;
+  }
+  .detail-actions button.icon-btn {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+  }
+  .tabs {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    margin-right: -12px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .tab {
+    flex: 0 0 auto;
+    padding: 10px 15px;
+    white-space: nowrap;
+  }
+  .back-btn {
+    min-height: 40px;
+  }
+  .collection-actions {
+    justify-content: stretch;
+  }
+  .collection-actions .account-btn,
+  .collection-actions .export-menu,
+  .collection-actions .export-menu .account-btn {
+    flex: 1 1 140px;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .pop-menu {
+    min-width: min(270px, calc(100vw - 24px));
+  }
+  .similar-grid {
+    grid-template-columns: 1fr;
+  }
+  .mod-table {
+    margin: 0 -8px;
+  }
+  .history-row {
+    padding: 10px 8px 10px 12px;
+  }
+
+  /* ===== Notifications au-dessus de la barre du bas ===== */
+  .login-notice {
+    top: 70px;
+    width: calc(100% - 24px);
+  }
+
+  /* ===== Lecteur : deux rangées, au-dessus de la barre du bas ===== */
+  body.has-player {
+    padding-bottom: calc(150px + env(safe-area-inset-bottom));
+  }
+  .player-bar {
+    bottom: calc(66px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "cover info controls close"
+      "progress progress progress progress";
+    gap: 6px 8px;
+    padding: 8px 8px 6px;
+    border-radius: 16px;
+  }
+  .player-bar > img {
+    grid-area: cover;
+  }
+  .player-info {
+    grid-area: info;
+  }
+  .player-controls {
+    grid-area: controls;
+  }
+  .player-bar > button:last-child {
+    grid-area: close;
+  }
+  .player-progress {
+    grid-area: progress;
+    display: flex;
+  }
+  .player-progress input {
+    height: 28px; /* zone de toucher confortable pour avancer dans l'aperçu */
+  }
+  button.player-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.05rem;
+  }
+  .player-volume {
+    display: none; /* le volume se règle avec les boutons du téléphone */
+  }
+
+  /* ===== Stack : feuille qui monte du bas, sans masquer toute la page ===== */
+  .assistant-scrim {
+    position: fixed;
+    z-index: 3400;
+    inset: 0;
+    display: block;
+    background: rgba(5, 7, 15, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s var(--ease-out);
+  }
+  .assistant-scrim[data-open="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .assistant-panel {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: min(84dvh, 720px);
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 22px 22px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.45);
+    transform: translateY(104%);
+  }
+  .assistant-panel[data-open="true"] {
+    transform: none;
+  }
+  .assistant-panel.is-dragging {
+    transition: none;
+  }
+  .assistant-head {
+    position: relative;
+    padding-top: 22px;
+    touch-action: none; /* le balayage de l'en-tête ferme la feuille */
+  }
+  .assistant-head::before {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 42px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--line);
+    content: "";
+    transform: translateX(-50%);
+  }
+  .assistant-log {
+    padding: 12px 12px 6px;
+  }
+  .assistant-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0 12px 8px;
+    scrollbar-width: none;
+  }
+  button.assistant-chip {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .assistant-form {
+    padding: 8px 12px 10px;
+  }
+  .assistant-note {
+    display: none;
+  }
+  .assistant-card {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+  }
+  .assistant-card img {
+    width: 46px;
+    height: 46px;
+  }
+  button.assistant-send,
+  button.assistant-mic {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+@media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+  .assistant-scrim,
+  .mobile-nav a,
+  .mobile-nav button {
+    transition: none;
+  }
+}

@@ -126,6 +126,8 @@ export function Assistant({
   const [sending, setSending] = useState(false);
   const [restored, setRestored] = useState(false);
 
+  const panelRef = useRef<HTMLElement>(null);
+  const dragRef = useRef<{ startY: number; dy: number } | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -375,10 +377,32 @@ export function Assistant({
     inputRef.current?.focus();
   }
 
+  // Téléphone : le panneau est une feuille qui monte du bas ; on la referme en la tirant vers le bas par son en-tête.
+  const onDragStart = (e: React.TouchEvent) => {
+    dragRef.current = { startY: e.touches[0].clientY, dy: 0 };
+    panelRef.current?.classList.add("is-dragging");
+  };
+  const onDragMove = (e: React.TouchEvent) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    drag.dy = Math.max(0, e.touches[0].clientY - drag.startY);
+    if (panelRef.current) panelRef.current.style.transform = `translateY(${drag.dy}px)`;
+  };
+  const onDragEnd = () => {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    panelRef.current?.classList.remove("is-dragging");
+    if (panelRef.current) panelRef.current.style.transform = "";
+    if (drag && drag.dy > 90) onClose();
+  };
+
   const playQueue = (cards: Beatmapset[]) => cards.map(toTrack).filter((t): t is Track => t !== null);
 
   return (
+    <>
+    <div className="assistant-scrim" data-open={open} onClick={onClose} aria-hidden />
     <aside
+      ref={panelRef}
       id="assistant-panel"
       className="assistant-panel"
       data-open={open}
@@ -389,7 +413,13 @@ export function Assistant({
         if (e.key === "Escape") onClose();
       }}
     >
-      <header className="assistant-head">
+      <header
+        className="assistant-head"
+        onTouchStart={onDragStart}
+        onTouchMove={onDragMove}
+        onTouchEnd={onDragEnd}
+        onTouchCancel={onDragEnd}
+      >
         <img className="assistant-avatar" src={ASSISTANT_LOGO} alt="" width={40} height={40} />
         <div className="assistant-title">
           <strong translate="no">{ASSISTANT_NAME}</strong>
@@ -582,5 +612,6 @@ export function Assistant({
         </>
       )}
     </aside>
+    </>
   );
 }

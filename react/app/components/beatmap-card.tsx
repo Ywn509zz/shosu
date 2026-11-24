@@ -57,6 +57,7 @@ export function BeatmapCard({ mapset, queue, extra }: { mapset: Beatmapset; queu
               <Button
                 type="button"
                 className="play-btn"
+                aria-label={`${playing ? "Pause" : "Écouter"} l'aperçu de ${mapset.title}`}
                 aria-pressed={playing}
                 onPress={() =>
                   player.toggle(
