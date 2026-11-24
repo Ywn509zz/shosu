@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { ASSISTANT_LOGO, ASSISTANT_NAME } from "~/lib/assistant";
 import { authClient } from "~/lib/auth-client";
 import { PLANS } from "~/lib/plans";
+import { Avatar } from "~/components/avatar";
 import { ThemeToggle } from "~/components/theme-toggle";
 import type { SessionUser } from "~/lib/session.server";
 
@@ -79,7 +80,7 @@ function AccountMenu({ user }: { user: SessionUser }) {
         aria-controls="account-dropdown"
         onPress={() => setOpen((value) => !value)}
       >
-        <span className="account-avatar">{user.name.slice(0, 1).toUpperCase()}</span>
+        <Avatar id={user.osuId} name={user.name} size={30} className="account-avatar" />
         <span>{user.name}</span>
         {user.plan === "premium" && (
           <span className="plan-badge" title="Plan Premium">

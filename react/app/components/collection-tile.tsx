@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 
+import { Avatar } from "~/components/avatar";
 import { collectionPath, type Collection } from "~/lib/collections";
 import { coverUrl } from "~/lib/osu";
 
@@ -19,7 +20,8 @@ export function CollectionTile({ collection, showOwner = true }: { collection: C
         <span>
           {showOwner && collection.ownerName ? (
             <>
-              par <b translate="no">{collection.ownerName}</b> ·{" "}
+              <Avatar id={collection.ownerId} name={collection.ownerName} size={16} className="tile-avatar" /> par{" "}
+              <b translate="no">{collection.ownerName}</b> ·{" "}
             </>
           ) : null}
           {collection.count} beatmap{collection.count > 1 ? "s" : ""}

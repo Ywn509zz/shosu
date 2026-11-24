@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
+import { Avatar } from "~/components/avatar";
 import { PerformanceAnalysisSection } from "~/components/performance-analysis";
 import { ProgressTracker } from "~/components/progress-tracker";
 import { useHistory } from "~/lib/history";
@@ -72,6 +73,7 @@ export default function Stats({ loaderData }: Route.ComponentProps) {
     <>
       <section className="page-head">
         <p className="eyebrow">MES STATISTIQUES</p>
+        <Avatar id={osuId} name={name ?? "?"} size={72} className="stats-avatar" />
         <h1 translate="no">{name}</h1>
         <p>
           Ta progression, tes points faibles et ton activité.{" "}

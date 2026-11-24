@@ -744,3 +744,39 @@ body::after {
     gap: 4px;
   }
 }
+
+/* ===== Photos de profil (composant Avatar) ===== */
+.avatar {
+  display: inline-block;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--surface-3);
+  object-fit: cover;
+  vertical-align: middle;
+}
+.avatar.is-letter {
+  display: inline-grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), #4d9dff);
+  font-weight: 800;
+}
+.account-avatar.avatar {
+  border-radius: 8px;
+}
+.tile-avatar,
+.owner-avatar {
+  margin-right: 4px;
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+.stats-avatar {
+  display: block;
+  margin: 0 auto 12px;
+  box-shadow: 0 0 0 2px var(--brand-ring), 0 12px 34px -10px var(--brand-ring);
+}
+.mobile-nav .avatar {
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+.mobile-nav .is-active .avatar {
+  box-shadow: 0 0 0 2px var(--brand-text);
+}

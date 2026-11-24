@@ -2,6 +2,7 @@ import { Button } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { Link, data, useNavigate } from "react-router";
 
+import { Avatar } from "~/components/avatar";
 import { BeatmapCard } from "~/components/beatmap-card";
 import { ExportMenu } from "~/components/export-menu";
 import { COLLECTION_ID_PATTERN, collectionPath, type Collection } from "~/lib/collections";
@@ -181,7 +182,7 @@ export default function CollectionPage({ loaderData }: Route.ComponentProps) {
         <p>
           {collection.ownerName ? (
             <>
-              par{" "}
+              <Avatar id={collection.ownerId} name={collection.ownerName} size={22} className="owner-avatar" /> par{" "}
               <Link to={`/player/${collection.ownerId}`} translate="no">
                 {collection.ownerName}
               </Link>{" "}

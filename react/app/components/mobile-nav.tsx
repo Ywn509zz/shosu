@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router";
 
+import { Avatar } from "~/components/avatar";
 import { ASSISTANT_LOGO, ASSISTANT_NAME } from "~/lib/assistant";
 import type { SessionUser } from "~/lib/session.server";
 
@@ -74,7 +75,7 @@ export function MobileNav({
       </button>
       {profile ? (
         <Link to={profile} className={pathname.startsWith("/player") ? "is-active" : undefined}>
-          <Icon d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21c0-4 3.6-7 8-7s8 3 8 7" />
+          <Avatar id={user?.osuId} name={user?.name ?? "?"} size={24} />
           Profil
         </Link>
       ) : (

@@ -25,7 +25,7 @@
 13. [Profil joueur](#profil-joueur) · 14. [Recommandations « Pour toi »](#recommandations-pour-toi) · 15. [Historique](#historique) · 16. [Lecteur audio](#lecteur-audio) · 17. [Raccourcis clavier](#raccourcis-clavier)
 18. [Navigation et mouvement](#navigation-et-mouvement) · 19. [Icône et identité](#icône-et-identité) · 20. [Caches et limites de débit](#caches-et-limites-de-débit)
 21. [Mobile](#mobile-téléphone) · 22. [Chargement progressif](#chargement-progressif-des-résultats)
-33. [Thème visuel iptron](#thème-visuel-iptron)
+33. [Thème visuel iptron](#thème-visuel-iptron) · 34. [Photos de profil](#photos-de-profil)
 30. [Collections publiques (découverte)](#collections-publiques-découverte) · 31. [Partager une liste](#partager-une-liste) · 32. [Profils personnalisables](#profils-personnalisables)
 26. [Music DNA](#music-dna) · 27. [Similar Sound](#similar-sound-musique-proche) · 28. [Comparer deux beatmaps](#comparer-deux-beatmaps) · 29. [Partager une beatmap](#partager-une-beatmap-aperçus-de-liens)
 23. [Suivi de progression (Progress Tracker)](#suivi-de-progression-progress-tracker) · 24. [Analyse des performances](#analyse-des-performances-et-points-faibles) · 25. [Mes statistiques](#mes-statistiques)
@@ -349,3 +349,11 @@ le héros reçoit `data-accent` / `data-banner` (styles dans `pages.css`) **seul
 - **Thème clair/sombre** : `components/theme-toggle.tsx` (icône lune/soleil dans l'en-tête), choix mémorisé dans `localStorage` (`shosu-theme`), sinon préférence du système.
 **Doit fonctionner ainsi** — ne pas écrire de couleurs en dur : utiliser les variables de `theme.css` ; garder les deux thèmes lisibles (contrôler en clair) ; ne pas réintroduire de police web ni de palette bleue sans demande du propriétaire ; ne pas modifier `mobile.css` pour des questions de thème ; tout composant doit rester correct à 375 px.
 **Fichiers** — `app/theme.css`, `app/app.css`, `routes/layout.tsx` (en-tête, navigation, pied de page), `components/account.tsx`, `components/theme-toggle.tsx`, `components/mobile-nav.tsx`, `routes/home.tsx` (`.accent-word`, `.hero-links`).
+
+## Photos de profil
+
+**But** — montrer la vraie photo osu! de chaque compte partout où un compte apparaît (et non une simple initiale).
+**Comment ça marche** — composant `components/avatar.tsx` (`<Avatar id name size className />`) : image `https://a.ppy.sh/<id osu!>` (hôte déjà autorisé par `img-src` de la CSP, via `avatarUrl` de `lib/osu.ts`), `loading="lazy"`, `referrerPolicy="no-referrer"`, **taille fixe** (pas de saut de mise en page). Si l'image ne charge pas (réseau, compte sans photo) ou si l'id est inconnu : **repli sur l'initiale du pseudo** (pastille dégradée).
+Utilisé dans : menu du compte (header), onglet « Profil » de la barre du bas (mobile), vignettes de collections publiques et page d'une collection (propriétaire), en-tête de `/stats`. Déjà présents avant : héros du profil joueur, cartes de joueurs de Stack, `/compare` (non concerné : ce sont des beatmaps).
+**Doit fonctionner ainsi** — l'URL est toujours construite côté code à partir de l'**id osu!** numérique (jamais d'une URL fournie par un utilisateur) ; tout nouvel affichage de compte utilise `Avatar` ; aucun appel à notre serveur ni à Redis (le navigateur charge directement l'image chez osu!). Styles : `.avatar`, `.account-avatar`, `.tile-avatar`, `.owner-avatar`, `.stats-avatar` dans `theme.css`.
+**Fichiers** — `components/avatar.tsx`, `components/account.tsx`, `components/mobile-nav.tsx`, `components/collection-tile.tsx`, `routes/collection.$id.tsx`, `routes/stats.tsx`.
