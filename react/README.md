@@ -1,6 +1,6 @@
 # shOsu! — version React
 
-Version React de shOsu! (bêta 2.7), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
+Version React de shOsu! (bêta 2.8), construite **à partir de la version HTML/CSS/JS de ce dépôt**,
 qui reste intacte à la racine. Le design est strictement le vôtre : la feuille de style
 d'origine est reprise telle quelle et le balisage est le même.
 
@@ -19,7 +19,7 @@ et [`dev/README.md`](dev/README.md). **Chaque modification du site met à jour c
 ## Versions
 
 La version affichée en bas de page vient de [`APP_VERSION`](app/lib/config.ts). **Elle se change à chaque modification du site**, en même
-temps que `version` dans `package.json` (« bêta 2.7 » ↔ `2.7.0`).
+temps que `version` dans `package.json` (« bêta 2.8 » ↔ `2.8.0`).
 
 ## Démarrage
 
@@ -150,6 +150,8 @@ pages) fonctionne déjà. Stripe héberge la page de paiement : le site ne voit 
   Un bouton **Partager** rend une collection publique : toute personne qui a le lien (`/collection/<id>`, identifiant aléatoire de 10 caractères)
   peut la voir, l'exporter ou la **copier** dans ses propres collections, sans pouvoir la modifier. Une collection privée est introuvable (404)
   pour tout autre que son propriétaire. Limites par plan (voir plus haut) ; stockage Redis (`shosu:cols:<id osu!>`, `shosu:col:<id>`, `shosu:colidx`).
+- **Découverte des collections publiques** (`/collections`) : recherche, tri, copie dans ses collections ; **partage d'une liste** (favoris, à jouer plus tard) en un clic ;
+  **profils personnalisables** (biographie, couleur, bannière, collections en vedette) sur le profil de chaque joueur.
 - **Export d'une liste en un seul fichier** (favoris, à jouer plus tard, collections) : un **téléchargeur** `.html` autonome (télécharge toutes les
   beatmaps en un clic depuis le miroir communautaire de ton choix : Beatconnect, Mino, Nerinyan, osu! officiel ou le jeu via `osu://`), un `.txt`,
   un `.csv` (protégé contre l'injection de formules) ou un `.json`. Tout est fabriqué dans le navigateur : shOsu! n'héberge ni ne relaie aucune

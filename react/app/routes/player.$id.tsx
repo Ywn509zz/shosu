@@ -1,10 +1,15 @@
 import { Link, data, useRouteLoaderData } from "react-router";
 
+import { CollectionTile } from "~/components/collection-tile";
 import { PerformanceAnalysisSection } from "~/components/performance-analysis";
+import { ProfileEditor } from "~/components/profile-editor";
 import { ProgressTracker } from "~/components/progress-tracker";
 
 import { avatarUrl, coverUrl, countryFlag, formatNumber, getStarColor, parsePlayerRef, playerUrl } from "~/lib/osu";
 import { OsuError, getPlayerPage } from "~/lib/osu.server";
+import { listPublicCollections } from "~/lib/collections.server";
+import { DEFAULT_CUSTOM } from "~/lib/profile-custom";
+import { getProfileCustom } from "~/lib/profile-custom.server";
 
 import type { loader as layoutLoader } from "./layout";
 import type { Route } from "./+types/player.$id";
@@ -24,7 +29,13 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const mode = MODES.find((m) => m.id === requested)?.id ?? "osu";
 
   try {
-    return { player: await getPlayerPage(params.id, mode) };
+    const player = await getPlayerPage(params.id, mode);
+    // Personnalisation et collections publiques du joueur : un échec de lecture ne doit jamais empêcher d'afficher le profil.
+    const [custom, publicCollections] = await Promise.all([
+      getProfileCustom(player.id).catch(() => DEFAULT_CUSTOM),
+      listPublicCollections({ ownerId: player.id }).catch(() => []),
+    ]);
+    return { player, custom, publicCollections };
   } catch (error) {
     if (error instanceof OsuError && error.status === 404) throw data(null, { status: 404 });
     console.error("Player page error:", error instanceof Error ? error.name : "Error");
@@ -51,14 +62,18 @@ export const meta: Route.MetaFunction = ({ loaderData }) =>
     : [{ title: "Joueur — shOsu!" }];
 
 export default function PlayerProfile({ loaderData }: Route.ComponentProps) {
-  const { player } = loaderData;
+  const { player, custom, publicCollections } = loaderData;
   const flag = countryFlag(player.country);
   const isMe = useRouteLoaderData<typeof layoutLoader>("routes/layout")?.user?.osuId === player.id;
+  // Le style personnalisé ne s'applique que si le joueur a réellement personnalisé son profil (sinon : le design d'origine).
+  const customized = Boolean(custom.bio) || custom.accent !== "violet" || custom.banner !== "midnight" || custom.featured.length > 0;
+  const featured = custom.featured.map((id) => publicCollections.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => Boolean(c));
+  const others = publicCollections.filter((c) => !custom.featured.includes(c.id));
   const modeLabel = MODES.find((m) => m.id === player.mode)?.label ?? player.mode;
 
   return (
     <>
-      <div className="player-hero">
+      <div className="player-hero" data-accent={customized ? custom.accent : undefined} data-banner={customized ? custom.banner : undefined}>
         <img src={avatarUrl(player.id)} alt={`Avatar de ${player.username}`} width={96} height={96} />
         <div>
           <p className="eyebrow">PROFIL JOUEUR</p>
@@ -72,11 +87,14 @@ export default function PlayerProfile({ loaderData }: Route.ComponentProps) {
                 : ""}
             {player.countryRank ? ` · ${player.country} #${formatNumber(player.countryRank)}` : ""}
           </p>
+          {custom.bio && <p className="player-bio">{custom.bio}</p>}
           <a href={playerUrl(player.id)} target="_blank" rel="noopener noreferrer">
             Voir sur osu.ppy.sh ↗
           </a>
         </div>
       </div>
+
+      {isMe && <ProfileEditor custom={custom} publicCollections={publicCollections} />}
 
       <nav className="tabs" aria-label="Mode de jeu">
         {MODES.map((m) => (
@@ -138,7 +156,20 @@ export default function PlayerProfile({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
 
-          <ProgressTracker playerId={player.id} mode={player.mode} isMe={isMe} />
+          {publicCollections.length > 0 && (
+        <section className="profile-collections" aria-labelledby="profile-collections-title">
+          <h2 className="section-title" id="profile-collections-title">
+            Collections de {player.username}
+          </h2>
+          <div className="tile-grid">
+            {[...featured, ...others].map((collection) => (
+              <CollectionTile key={collection.id} collection={collection} showOwner={false} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <ProgressTracker playerId={player.id} mode={player.mode} isMe={isMe} />
       <PerformanceAnalysisSection playerId={player.id} mode={player.mode} />
 
       <h2 className="section-title">Meilleurs scores</h2>

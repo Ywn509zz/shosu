@@ -6,6 +6,7 @@ export const COLLECTION_ERRORS: Record<string, string> = {
   list_full: "Cette collection est pleine.",
   beatmap_not_found: "Impossible de retrouver cette beatmap chez osu!.",
   not_found: "Cette collection n'existe plus.",
+  empty_list: "Cette liste est vide : ajoute des beatmaps avant de la partager.",
   invalid_name: "Donne un nom à ta collection (60 caractères maximum).",
   rate_limited: "Trop d'actions d'affilée. Patiente un instant.",
   unauthenticated: "Ta session a expiré. Reconnecte-toi avec osu!.",
@@ -14,6 +15,7 @@ export const COLLECTION_ERRORS: Record<string, string> = {
 
 export type CollectionCall =
   | { action: "create"; name: string }
+  | { action: "from_list"; list: "favorites" | "later" }
   | { action: "rename"; id: string; name: string }
   | { action: "share"; id: string; public: boolean }
   | { action: "delete"; id: string }

@@ -70,6 +70,19 @@ export default function Lists({ loaderData }: Route.ComponentProps) {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
+  const [sharing, setSharing] = useState(false);
+
+  /** Copie la liste dans une collection publique (instantané) et ouvre sa page, où se trouve le lien à partager. */
+  async function shareList() {
+    if (sharing) return;
+    setSharing(true);
+    setCreateError("");
+    const result = await callCollections({ action: "from_list", list });
+    setSharing(false);
+    if (result.ok && result.collection) void navigate(collectionPath(result.collection.id));
+    else if (!result.ok) setCreateError(result.message);
+  }
+
   async function createCollection() {
     if (creating || !newName.trim()) return;
     setCreating(true);
@@ -208,7 +221,11 @@ export default function Lists({ loaderData }: Route.ComponentProps) {
             <>
               <div className="collection-actions">
                 <ExportMenu name={LIST_LABELS[list]} items={visible} />
+                <Button className="account-btn" isDisabled={sharing} onPress={() => void shareList()}>
+                  🔗 Partager cette liste
+                </Button>
               </div>
+              {createError && <p className="notice">{createError}</p>}
               <div className="results-grid">
                 {visible.slice(0, progressive.count).map((item) => (
                   <BeatmapCard key={item.id} mapset={item} queue={visible} />

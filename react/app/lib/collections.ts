@@ -7,6 +7,8 @@ export type Collection = {
   /** Vrai : toute personne qui a le lien peut la voir. */
   public: boolean;
   count: number;
+  /** Id de la première beatmap (sert de couverture dans les vignettes et les aperçus de lien). */
+  coverId: number | null;
   createdAt: number;
   updatedAt: number;
   ownerId: number;

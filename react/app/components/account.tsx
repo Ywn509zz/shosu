@@ -19,6 +19,9 @@ export function Account({
 }) {
   return (
     <div id="account" className="account">
+      <Link className="account-btn account-lists" to="/collections">
+        <span aria-hidden>🌍</span> Collections
+      </Link>
       {user && (
         <Link className="account-btn account-lists" to="/lists">
           <span aria-hidden>♥</span> Listes
@@ -106,6 +109,10 @@ function AccountMenu({ user }: { user: SessionUser }) {
         <Link to="/stats" onClick={() => setOpen(false)}>
           <span>Mes statistiques</span>
           <small>Progression et points faibles</small>
+        </Link>
+        <Link to="/collections" onClick={() => setOpen(false)}>
+          <span>Collections publiques</span>
+          <small>Découvrir celles des autres joueurs</small>
         </Link>
         <Link to="/dna" onClick={() => setOpen(false)}>
           <span>Music DNA</span>

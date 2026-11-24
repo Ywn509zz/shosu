@@ -25,6 +25,7 @@
 13. [Profil joueur](#profil-joueur) · 14. [Recommandations « Pour toi »](#recommandations-pour-toi) · 15. [Historique](#historique) · 16. [Lecteur audio](#lecteur-audio) · 17. [Raccourcis clavier](#raccourcis-clavier)
 18. [Navigation et mouvement](#navigation-et-mouvement) · 19. [Icône et identité](#icône-et-identité) · 20. [Caches et limites de débit](#caches-et-limites-de-débit)
 21. [Mobile](#mobile-téléphone) · 22. [Chargement progressif](#chargement-progressif-des-résultats)
+30. [Collections publiques (découverte)](#collections-publiques-découverte) · 31. [Partager une liste](#partager-une-liste) · 32. [Profils personnalisables](#profils-personnalisables)
 26. [Music DNA](#music-dna) · 27. [Similar Sound](#similar-sound-musique-proche) · 28. [Comparer deux beatmaps](#comparer-deux-beatmaps) · 29. [Partager une beatmap](#partager-une-beatmap-aperçus-de-liens)
 23. [Suivi de progression (Progress Tracker)](#suivi-de-progression-progress-tracker) · 24. [Analyse des performances](#analyse-des-performances-et-points-faibles) · 25. [Mes statistiques](#mes-statistiques)
 
@@ -127,7 +128,7 @@ il n'a accès qu'à des données **publiques** (la connexion n'a que `identify` 
 propriétaire → renommer, supprimer, retirer une carte, bouton **Partager** (rend publique ; boîte avec lien, « Copier », `navigator.share`) ; visiteur → voir, exporter, **copier** dans ses collections (connexion requise). `lib/collections.server.ts` porte la logique ; `routes/api.collections.ts` l'API (`create|rename|share|delete|add|remove|clone`).
 **Doit fonctionner ainsi** — l'id de collection est aléatoire (10 caractères sans i/l/o/0/1) et **sert de lien de partage** ; une collection privée est **404 pour tout autre que son propriétaire** ; une collection publique est lisible mais jamais modifiable par un autre ; `ownedBy` contrôle la propriété avant toute écriture ;
 `clone` n'accepte que publique ou à soi ; les métadonnées des beatmaps viennent d'osu! ; les écritures exigent Redis persistant (`storage_not_persistent` sinon) ; page publique limitée à 60 requêtes/min/IP **par instance**.
-**Données** — `shosu:cols:<osuId>` (id → méta : nom ≤ 60, description ≤ 200, `public`, `count`, dates, propriétaire), `shosu:col:<id>` (items), `shosu:colidx` (id → osuId).
+**Données** — `shosu:cols:<osuId>` (id → méta : nom ≤ 60, description ≤ 200, `public`, `count`, `coverId` = première beatmap, dates, propriétaire), `shosu:col:<id>` (items), `shosu:colidx` (id → osuId), `shosu:colpublic` (index des **publiques**, voir « Collections publiques »).
 **Limites** — 5 / 25 collections ; 200 / 1000 beatmaps par collection ; 200 écritures / 10 min / joueur (Redis partagé).
 **Fichiers** — `lib/collections.ts` (types, `cleanName`, regex d'id), `lib/collections.server.ts`, `lib/collections-client.ts` (appels + messages d'erreur), `routes/api.collections.ts`, `routes/collection.$id.tsx`, `routes/lists.tsx`, `components/collection-menu.tsx`.
 **Tester** — local : créer, ajouter, partager, puis `curl localhost:5173/collection/<id>` sans cookie (200 si publique, 404 sinon).
@@ -310,3 +311,26 @@ Avec seulement `a`, la page propose 6 beatmaps proches à comparer ; les champs 
 **But** — envoyer un lien shOsu! vers une beatmap (ou une collection, un profil) qui s'affiche bien dans Discord, messageries, réseaux.
 **Comment ça marche** — `components/share-button.tsx` (« 🔗 Partager » sur `/beatmap/:id`) : sur appareil tactile ouvre la feuille de partage du système (`navigator.share`), sinon copie `<origine>/beatmap/<id>` ; message de confirmation « ✓ Lien copié ». Les `meta` de `beatmap.$id.tsx`, `collection.$id.tsx` et `player.$id.tsx` fournissent `og:title`, `og:description`, `og:image` (cover de la beatmap, première cover d'une collection, avatar du joueur) et `twitter:card`.
 **Doit fonctionner ainsi** — le lien est toujours `window.location.origin + chemin du site` (jamais une URL fournie par un tiers) ; les collections privées n'ont aucune méta (404).
+
+## Collections publiques (découverte)
+
+**But** — découvrir les collections que d'autres joueurs ont rendues publiques, les ouvrir, les exporter et les copier.
+**Comment ça marche** — `/collections` (`routes/collections.tsx`, lien « 🌍 Collections » dans le header, le menu du compte et les onglets de `/lists`) liste les collections publiques non vides : recherche par mot (nom, propriétaire, description), tri « Récentes » / « Les plus fournies », vignettes (`components/collection-tile.tsx` : couverture = `coverId`, nom, propriétaire, nombre) et **chargement progressif** (24 par 24).
+**Index public** — `shosu:colpublic` (hash id → métadonnées JSON) est tenu à jour par `save()` dans `lib/collections.server.ts` à chaque changement : ajout si `public`, **retrait dès qu'elle redevient privée** ou est supprimée. `listPublicCollections({ownerId, query})` lit l'index (cache 60 s par instance, invalidé par `forget("collections:public")` après chaque modification sur l'instance). Rattrapage : `listCollections` inscrit une fois par instance les collections déjà partagées avant l'existence de l'index.
+**Doit fonctionner ainsi** — **une collection privée ne doit JAMAIS apparaître** dans l'index ni dans une page publique (vérifier `public` à chaque lecture) ; les collections vides n'y figurent pas ; la page est limitée à 60 requêtes/min/IP **par instance** (0 commande Redis pour la limite) ; une lecture = 1 `HGETALL` (cachée 60 s) — si l'index devient très grand (> quelques milliers), passer à un index paginé.
+**Fichiers** — `lib/collections.server.ts` (`save`, `listPublicCollections`), `routes/collections.tsx`, `components/collection-tile.tsx`.
+
+## Partager une liste
+
+**But** — partager ses favoris ou sa liste « à jouer plus tard » avec un lien.
+**Comment ça marche** — sur `/lists`, bouton « 🔗 Partager cette liste » → `POST /api/collections {action: "from_list", list}` → `createFromList` copie la liste (≤ 1000 beatmaps) dans une **nouvelle collection publique** (instantané nommé « Favoris » ou « À jouer plus tard », dans la limite de collections du plan) et ouvre sa page, où se trouve le lien à partager. La liste d'origine n'est pas modifiée.
+**Doit fonctionner ainsi** — liste vide → erreur `empty_list` (message clair, aucune collection créée) ; le propriétaire peut ensuite la rendre privée ou la supprimer comme toute collection ; la copie compte dans la limite de collections.
+
+## Profils personnalisables
+
+**But** — un profil shOsu! à son image : biographie, couleur d'accent, bannière, collections en vedette.
+**Comment ça marche** — sur **son propre** profil `/player/:id`, « ✎ Personnaliser mon profil » (`components/profile-editor.tsx`) → `POST /api/profile {bio, accent, banner, featured[]}` → `lib/profile-custom.server.ts#saveProfileCustom` (enregistré dans `shosu:profiles`, osuId → JSON) puis revalidation de la page. Le loader du profil de **n'importe quel joueur** lit `getProfileCustom(player.id)` (cache 60 s) et ses collections publiques (`listPublicCollections({ownerId})`) :
+le héros reçoit `data-accent` / `data-banner` (styles dans `pages.css`) **seulement si le joueur a personnalisé** (sinon le design d'origine est inchangé), la bio s'affiche sous le pseudo, et une section « Collections de <pseudo> » montre d'abord les collections en vedette puis les autres publiques.
+**Choix possibles** — accents : violet, rose, cyan, vert, orange, rouge ; bannières : aurore, coucher de soleil, océan, forêt, minuit, cerisier (listes dans `lib/profile-custom.ts` : `ACCENTS`, `BANNERS`). Bio ≤ 200 caractères, ≤ 3 collections en vedette.
+**Doit fonctionner ainsi** — modification **réservée au propriétaire** (l'id vient de la session, jamais du corps) ; entrées **revalidées côté serveur** (accent/bannière hors liste → défaut, bio nettoyée et tronquée, caractères de contrôle retirés) ; une collection en vedette doit **appartenir au joueur et être publique** (une privée est silencieusement écartée, les doublons aussi) ; écritures exigent Redis persistant ; POST vérifié (origine, auth, 30 / 10 min / joueur, corps ≤ 1,5 ko) ; une lecture qui échoue ne casse jamais la page de profil.
+**Fichiers** — `lib/profile-custom.ts`, `lib/profile-custom.server.ts`, `routes/api.profile.ts`, `components/profile-editor.tsx`, `routes/player.$id.tsx`.

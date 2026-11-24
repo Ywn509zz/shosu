@@ -1,6 +1,7 @@
 import { data } from "react-router";
 
 import { COLLECTION_ID_PATTERN } from "~/lib/collections";
+import { isListId } from "~/lib/lists";
 import {
   CollectionFullError,
   CollectionLimitError,
@@ -8,6 +9,7 @@ import {
   addToCollection,
   cloneCollection,
   createCollection,
+  createFromList,
   deleteCollection,
   listCollections,
   membership,
@@ -62,6 +64,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 /**
  * POST /api/collections
+
+ *   { action: "from_list", list: "favorites" | "later" }   (copie la liste dans une collection publique)
  *   { action: "create", name }            { action: "rename", id, name }      { action: "share", id, public }
  *   { action: "delete", id }              { action: "add" | "remove", id, setId }      { action: "clone", id }
  */
@@ -90,13 +94,18 @@ export async function action({ request }: Route.ActionArgs) {
   const plan = PLANS[user.plan];
   const owner = { osuId: user.osuId, name: user.name };
   const id = typeof body.id === "string" ? body.id : "";
-  const needsId = body.action !== "create";
+  const needsId = body.action !== "create" && body.action !== "from_list";
   if (needsId && !COLLECTION_ID_PATTERN.test(id)) return fail("invalid_request", 400);
 
   try {
     switch (body.action) {
       case "create": {
         const collection = await createCollection(owner, String(body.name ?? ""), plan.collectionLimit);
+        return data({ ok: true, collection }, { headers });
+      }
+      case "from_list": {
+        if (!isListId(body.list)) return fail("invalid_request", 400);
+        const collection = await createFromList(owner, body.list, plan.collectionLimit);
         return data({ ok: true, collection }, { headers });
       }
       case "rename": {
@@ -134,6 +143,7 @@ export async function action({ request }: Route.ActionArgs) {
     if (error instanceof CollectionNotFoundError) return fail("not_found", 404);
     if (error instanceof OsuError && error.status === 404) return fail("beatmap_not_found", 404);
     if (error instanceof Error && error.message === "invalid_name") return fail("invalid_name", 400);
+    if (error instanceof Error && error.message === "empty_list") return fail("empty_list", 400);
     console.error("Collections error:", error instanceof Error ? error.name : "Error");
     return fail("storage_unavailable", 503);
   }
