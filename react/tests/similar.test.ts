@@ -38,6 +38,22 @@ describe("scoreSimilarity", () => {
     expect(sound.reasons.join()).not.toContain("Difficulté");
   });
 
+  it("le score s'explique : il égale points ÷ maximum des critères applicables, et la source absente ne compte pas", () => {
+    const result = scoreSimilarity(base, { ...base, id: 7, bpm: 185, tags: ["speed"] })!;
+    const applicable = result.breakdown.filter((l) => l.applicable);
+    const total = applicable.reduce((sum, l) => sum + l.points, 0);
+    const possible = applicable.reduce((sum, l) => sum + l.max, 0);
+    expect(result.score).toBe(Math.round((100 * total) / possible));
+    const source = result.breakdown.find((l) => l.key === "source")!;
+    expect(source.applicable).toBe(false); // la référence n'a pas de source
+    expect(source.points).toBe(0);
+    expect(result.breakdown.find((l) => l.key === "bpm")!.detail).toContain("185");
+  });
+
+  it("une beatmap identique sur tous les critères applicables fait 100 %", () => {
+    expect(scoreSimilarity(base, { ...base, id: 8 })!.score).toBe(100);
+  });
+
   it("ne dépasse jamais 100", () => {
     expect(scoreSimilarity(base, { ...base, id: 6 })!.score).toBeLessThanOrEqual(100);
   });

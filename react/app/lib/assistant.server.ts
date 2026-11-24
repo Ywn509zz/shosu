@@ -71,6 +71,8 @@ Tes outils :
 - similar_sound : beatmaps dont la MUSIQUE est proche d'une autre (même artiste, BPM proche, genre, langue, ambiance), sans tenir compte de la difficulté.
 - compare_players : compare deux joueurs (pp, rang, précision, temps de jeu, style de jeu, modes préférés, beatmaps en commun). Pour « moi contre untel » utilise le pseudo de l'utilisateur connecté si tu le connais (get_my_account) ou son identifiant.
 - compare_beatmaps : compare deux beatmaps (difficulté, BPM, durée, popularité, ressemblance musicale) avec un résumé en phrases.
+- Pour expliquer un pourcentage de compatibilité (« pourquoi 77 % ? »), appuie-toi UNIQUEMENT sur le champ « breakdown » renvoyé avec la beatmap :
+  le score est le total des points ÷ le total possible des critères qui comptent (« countsInScore ») ; 100 % = maximum partout.
 - find_similar_maps : beatmaps qui ressemblent à une autre (artiste, tags, BPM, difficulté), avec la raison de la ressemblance.
 - analyze_difficulty : difficulté d'une beatmap avec chaque mod (EZ, HR, HT, DT…), AR/OD/BPM modifiés et décomposition aim/vitesse.
   Utilise-le pour « est-ce jouable en DT ? », « quelle est la difficulté avec HR ? », « aim ou vitesse ? ».
@@ -443,6 +445,10 @@ function intId(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 1_000_000_000 ? value : null;
 }
 
+/** Détail d'un score de compatibilité, compact, pour que Stack puisse expliquer « pourquoi 77 % ? » sans rien inventer. */
+const compactBreakdown = (lines: { label: string; points: number; max: number; applicable: boolean; detail: string }[]) =>
+  lines.map((l) => ({ criterion: l.label, points: l.points, max: l.max, countsInScore: l.applicable, detail: l.detail }));
+
 /** Entier borné (pagination et tailles de page des outils du compte). */
 const boundedInt = (value: unknown, min: number, max: number, fallback: number) =>
   typeof value === "number" && Number.isFinite(value) ? Math.min(Math.max(Math.floor(value), min), max) : fallback;
@@ -568,7 +574,7 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
         artists: dna.artists,
         tags: dna.tags,
         basedOn: dna.sample,
-        matches: top.map((m) => ({ id: m.id, title: m.title, artist: m.artist, match: m.score, reasons: m.reasons })),
+        matches: top.map((m) => ({ id: m.id, title: m.title, artist: m.artist, match: m.score, reasons: m.reasons, breakdown: compactBreakdown(m.breakdown) })),
       };
     }
 
@@ -639,6 +645,7 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
           creator: m.creator,
           similarity: m.score,
           reasons: m.reasons,
+          breakdown: compactBreakdown(m.breakdown),
           stars: [m.minStars, m.maxStars].map((s) => (s === null ? null : Math.round(s * 10) / 10)),
         })),
         ...(similar.length === 0 ? { hint: "Aucune beatmap vraiment proche trouvée." } : {}),
@@ -692,6 +699,7 @@ async function execute(name: string, args: Record<string, unknown>, ctx: Context
           creator: m.creator,
           match: m.score,
           reasons: m.reasons,
+          breakdown: compactBreakdown(m.breakdown),
           stars: [m.minStars, m.maxStars].map((s) => (s === null ? null : Math.round(s * 10) / 10)),
         })),
         ...(top.length === 0 ? { hint: "Aucune nouvelle beatmap à proposer pour le moment." } : {}),

@@ -25,7 +25,7 @@
 13. [Profil joueur](#profil-joueur) · 14. [Recommandations « Pour toi »](#recommandations-pour-toi) · 15. [Historique](#historique) · 16. [Lecteur audio](#lecteur-audio) · 17. [Raccourcis clavier](#raccourcis-clavier)
 18. [Navigation et mouvement](#navigation-et-mouvement) · 19. [Icône et identité](#icône-et-identité) · 20. [Caches et limites de débit](#caches-et-limites-de-débit)
 21. [Mobile](#mobile-téléphone) · 22. [Chargement progressif](#chargement-progressif-des-résultats)
-33. [Thème visuel iptron](#thème-visuel-iptron) · 34. [Photos de profil](#photos-de-profil) · 35. [Confidentialité et Mes données](#confidentialité-et-mes-données) · 36. [Quotas (administrateurs)](#quotas-administrateurs) · 37. [Tests et CI](#tests-et-ci) · 38. [Fichiers du site (SEO, favicon)](#fichiers-du-site-seo-favicon) · 39. [Filtres de recherche avancés](#filtres-de-recherche-avancés) · 40. [Importer ses favoris osu!](#importer-ses-favoris-osu) · 41. [Comparer deux joueurs](#comparer-deux-joueurs) · 42. [États vides](#états-vides)
+33. [Thème visuel iptron](#thème-visuel-iptron) · 34. [Photos de profil](#photos-de-profil) · 35. [Confidentialité et Mes données](#confidentialité-et-mes-données) · 36. [Quotas (administrateurs)](#quotas-administrateurs) · 37. [Tests et CI](#tests-et-ci) · 38. [Fichiers du site (SEO, favicon)](#fichiers-du-site-seo-favicon) · 39. [Filtres de recherche avancés](#filtres-de-recherche-avancés) · 40. [Importer ses favoris osu!](#importer-ses-favoris-osu) · 41. [Comparer deux joueurs](#comparer-deux-joueurs) · 42. [États vides](#états-vides) · 43. [Score de compatibilité expliqué](#score-de-compatibilité-expliqué) · 44. [Modèle du joueur partagé](#modèle-du-joueur-partagé-cohérence-des-données)
 30. [Collections publiques (découverte)](#collections-publiques-découverte) · 31. [Partager une liste](#partager-une-liste) · 32. [Profils personnalisables](#profils-personnalisables)
 26. [Music DNA](#music-dna) · 27. [Similar Sound](#similar-sound-musique-proche) · 28. [Comparer deux beatmaps](#comparer-deux-beatmaps) · 29. [Partager une beatmap](#partager-une-beatmap-aperçus-de-liens)
 23. [Suivi de progression (Progress Tracker)](#suivi-de-progression-progress-tracker) · 24. [Analyse des performances](#analyse-des-performances-et-points-faibles) · 25. [Mes statistiques](#mes-statistiques)
@@ -161,7 +161,7 @@ AR/OD/CS/HP/BPM/durée sont **calculés** par `lib/mods.ts#applyMods` (formules 
 
 **But** — trouver des maps proches d'une beatmap.
 **Comment ça marche** — `components/similar-maps.tsx` appelle `GET /api/similar?id=<set>` → `lib/similar.server.ts#findSimilar` : recherches osu! autour de l'artiste, de la source et de 2 tags distinctifs (`usefulTags`), candidats classés par `lib/similar.ts#scoreSimilarity`
-(même artiste 34, source 12, tags communs ≤ 26, BPM ≤ 14, difficulté ≤ 14, mappeur 5, genre 4, langue 3 ; modes en commun obligatoires ; seuil 22/100) avec raisons lisibles. Carte commune : `components/map-match-card.tsx`.
+(artiste 34, source 12, tags ≤ 26, BPM ≤ 14, difficulté ≤ 14, mappeur 5, genre 4, langue 3 ; modes en commun obligatoires ; seuil 22 %) avec raisons lisibles ; le score est **expliqué critère par critère** (voir « Score de compatibilité expliqué »). Carte commune : `components/map-match-card.tsx`.
 **Deux modes** (`focus`, onglets « Globale » / « 🎵 Musique proche » sur la page) : voir la fiche *Similar Sound*.
 **Doit fonctionner ainsi** — résultats publics (CDN 5 min), ≤ 12, jamais la beatmap elle-même ; échec de certaines recherches tolérée.
 **Limites** — 40/min/IP par instance. **Outil Stack** — `find_similar_maps`.
@@ -179,7 +179,7 @@ AR/OD/CS/HP/BPM/durée sont **calculés** par `lib/mods.ts#applyMods` (formules 
 **But** — proposer des beatmaps d'après les habitudes de jeu du joueur.
 **Comment ça marche** — accueil, une fois connecté, sans recherche affichée : `components/recommendations.tsx` appelle `GET /api/recommendations[?mode]` → `lib/recommend.server.ts#getRecommendations(osuId, mode)` (cache 15 min par joueur+mode) :
 lit ses 100 meilleurs scores, 50 scores récents, beatmaps les plus jouées et favoris (osu!), en déduit une zone de difficulté (quartiles), BPM et durée médians, mods, artistes (pondérés) et tags (favoris) ; cherche autour des artistes/tags + un pool de populaires ; garde les maps dont une difficulté tombe dans la zone (un peu au-dessus de la médiane) ;
-score = difficulté (≤ 40) + artiste (≤ 28) + tags (≤ 18) + BPM (≤ 12) + durée (≤ 6) + popularité (≤ 8) ; exclut tout ce qui est déjà joué/favori ; ≤ 2 par artiste, 12 résultats ; chaque carte donne ses raisons.
+critères : difficulté 40, artiste 28, tags 18, BPM 12, genre 10, durée 6, popularité 8 (points expliqués un par un) ; exclut tout ce qui est déjà joué/favori/consulté ; ≤ 2 par artiste, 12 résultats. **Toutes les données viennent du modèle partagé du joueur** (voir « Modèle du joueur partagé »).
 **Doit fonctionner ainsi** — réponse propre au joueur : `Cache-Control: private, no-store` ; sans score dans le mode → `habits: null` + message ; mode principal lu via `/users/{id}` si non précisé.
 **Limites** — 12/10 min/joueur par instance. **Outil Stack** — `get_recommendations`. **Fichiers** — `lib/recommend.server.ts`, `routes/api.recommendations.ts`, `components/recommendations.tsx`, `lib/insights.ts`.
 
@@ -285,7 +285,7 @@ précision en baisse dans une tranche (≥ 1,2 pt sous la moyenne, ≥ 4 scores)
 ## Music DNA
 
 **But** — créer l'**empreinte musicale** du joueur à partir des beatmaps qu'il aime, joue et consulte, puis trouver des morceaux qui lui correspondent (page `/dna`, menu du compte, outil Stack `music_dna`).
-**Comment ça marche** — `routes/dna.tsx` envoie `POST /api/dna {viewed: [≤ 20 ids]}` (les consultations viennent de l'historique **local**, donc c'est le navigateur qui les fournit) → `lib/dna.server.ts#getMusicDna(osuId, viewed)` :
+**Comment ça marche** — (les étapes 1 à 3 ci-dessous sont désormais faites par le **modèle partagé** `lib/model.server.ts` : le Music DNA ne recalcule plus rien lui-même, il lit le modèle puis cherche des beatmaps qui collent à l'empreinte.) `routes/dna.tsx` envoie `POST /api/dna {viewed: [≤ 20 ids]}` (les consultations viennent de l'historique **local**, donc c'est le navigateur qui les fournit) → `lib/dna.server.ts#getMusicDna(osuId, viewed)` :
 1. rassemble des beatmaps avec un **poids** : favoris osu! (3), favoris shOsu! (3), « à jouer plus tard » shOsu! (1,5), consultées (2), les plus jouées osu! (1 à 3 selon le nombre de parties) ;
 2. garde les 40 plus pesantes, lit leurs détails (`getBeatmapset`, 8 à la fois) : genre, langue, BPM, tags, artiste, durée ;
 3. agrège (pondéré) en **signature** : genres et langues (parts), histogramme de BPM (classes de 20), BPM moyen et mot de tempo (lent < 120 · médium · rapide ≥ 160 · très rapide ≥ 200), artistes et tags dominants, phrase de résumé en français ;
@@ -409,3 +409,28 @@ Utilisé dans : menu du compte (header), onglet « Profil » de la barre du bas 
 **But** — qu'aucune page ne se retrouve avec un simple « Aucun… » : toujours une explication et **une action**.
 **Comment ça marche** — composant `components/empty-state.tsx` (`<EmptyState icon title actions tone>` ; `tone="error"` pour un problème temporaire, avec `role="alert"`). Utilisé pour : aucun résultat de recherche (retirer les filtres, tous les modes, effacer) et erreur de recherche (Réessayer), listes vides (importer ses favoris, lancer une recherche), collections vides, collections publiques vides ou sans résultat, historique (3 onglets), beatmaps similaires, recommandations, Music DNA.
 **Doit fonctionner ainsi** — tout nouvel écran qui peut être vide utilise `EmptyState` avec au moins une action utile ; les erreurs temporaires proposent de réessayer. Styles `.empty-state*` dans `theme.css`.
+
+## Score de compatibilité expliqué
+
+**But** — qu'on puisse comprendre **pourquoi une beatmap obtient 100 % plutôt que 77 %** : un score crédible est un score que l'on peut vérifier.
+**Principe (unique pour tout le site)** — `lib/score.ts` : un score est une liste de **critères** (`ScoreLine` : libellé, points, maximum, applicable, phrase d'explication). `finalizeScore(lines)` = **Σ points ÷ Σ maximum des critères applicables × 100**. Donc :
+- **100 % = au maximum sur tous les critères qui s'appliquent à cette beatmap** (ce n'est plus une somme plafonnée à 100) ;
+- un critère **non applicable** (ex. la beatmap de référence n'a pas de source, le joueur n'a pas de tags favoris, le BPM est inconnu) est affiché mais **ne compte ni dans les points ni dans le maximum** ;
+- chaque critère a sa phrase : « 2 tags en commun sur 4 : speed, tech », « BPM 90 contre 180 : trop éloigné (écart de 50 %, tolérance 20 %) », « Artiste n°2 de tes goûts »…
+**Où** — `scoreSimilarity` (`lib/similar.ts`, deux modes : mix et sound), recommandations (`recommend.server.ts`), correspondances du Music DNA (`dna.server.ts`). Chaque `SimilarMap` porte `breakdown: ScoreLine[]`.
+**Affichage** — sur chaque carte (`components/map-match-card.tsx`), le pourcentage est un **bouton** « 61 % ⓘ » qui déplie « Pourquoi 61 % ? » : phrase d'intro, un bloc par critère (points / maximum, barre, explication), et « Total : 35,5 / 58 points → 61 % ». Stack reçoit le même détail (`breakdown` compact dans `get_recommendations`, `music_dna`, `find_similar_maps`) et doit s'en servir pour expliquer un pourcentage (consigne dans `SYSTEM`).
+**Doit fonctionner ainsi** — **toute nouvelle règle de score passe par `line()` + `finalizeScore()`** (jamais un nombre magique) et fournit sa phrase d'explication ; les maxima de critères sont la seule pondération ; les seuils (22 % similarité, 26 % « musique proche », 25 % Music DNA) s'appliquent au pourcentage normalisé ; tests dans `tests/score.test.ts` et `tests/similar.test.ts` (le score égale points ÷ maximum, une beatmap identique fait 100 %).
+
+## Modèle du joueur partagé (cohérence des données)
+
+**But** — que le **Music DNA**, les **statistiques/analyse** et les **recommandations** partagent les mêmes données au lieu de recalculer chacun les leurs : mêmes artistes, mêmes tags, même tempo, mêmes genres, même échantillon partout.
+**Architecture** (3 couches) :
+1. **Sources brutes** — `lib/player-data.server.ts` : `getUserRaw(id, mode)`, `getMainMode`, `getBestScores` (100), `getRecentScores` (24 h, échecs compris), `getFavourites` (50), `getMostPlayed` (50). Chacune lue **une fois** chez osu! (cache 5 min), partagée par tous. **Aucun module n'appelle `/users/{id}/…` pour ces données lui-même.** Les lecteurs lèvent en cas d'échec (jamais d'erreur mise en cache).
+2. **Modèle** — `lib/model.server.ts#getPlayerModel(osuId, mode, viewed)` (cache 15 min) construit `{ skill, taste, sample, known }` :
+   - `skill` (`deriveSkill`, pure) = **compétence** tirée des 100 meilleurs scores : zone de difficulté (médiane, quartiles, moyenne), BPM médian, durée, mods ;
+   - `taste` (`buildTaste`, pure) = **goûts** tirés de tout ce qu'il aime, joue et consulte, pondérés : favoris osu! 3, favoris shOsu! 3, « plus tard » 1,5, consultées 2 (fournies par le navigateur, ≤ 20), plus jouées 1–3, meilleurs scores 1 → genres, langues, histogramme de BPM, tempo moyen, artistes (comptés sur **toutes** les sources), tags, durée, phrase de signature ; les 40 beatmaps les plus lourdes sont lues en détail ;
+   - `sample` (combien de sources) et `known` (tout ce qu'il connaît déjà : jamais recommandé).
+3. **Consommateurs** — `recommend.server.ts` (zone de difficulté = `skill`, artistes/tags/tempo/genres = `taste`), `dna.server.ts` (affiche `taste` et cherche des correspondances), `performance.server.ts` (profil = `deriveSkill`), `progress.server.ts` et `account.server.ts` (profils via `getUserRaw`), outils Stack.
+**Cohérence vérifiable** — avec les mêmes `viewed`, `GET /api/recommendations?viewed=…` et `POST /api/dna` renvoient **exactement** les mêmes `artists`, `tags`, `bpm`, `genres` et `sample` (testé en local). L'accueil et la page Music DNA envoient les mêmes consultations (historique local) ; les deux affichent la même note « Basé sur N meilleurs scores, N favoris… » et se renvoient l'un à l'autre. La carte de profil de l'analyse indique « Tes meilleurs scores (médianes) ».
+**Doit fonctionner ainsi** — **toute nouvelle fonctionnalité qui a besoin des favoris, scores ou goûts d'un joueur lit le modèle ou `player-data`**, jamais osu! directement ; tout nouveau champ de goût s'ajoute à `Taste` (donc visible partout) ; deux chiffres de même nom doivent venir de la même fonction (le tempo « habituel » = `taste.bpm.average` ; la zone de difficulté = `skill.stars` ; « BPM médian des meilleurs scores » = `skill.bpmMedian`, nommé comme tel).
+**Fichiers** — `lib/player-data.server.ts`, `lib/model.server.ts`, `lib/insights.ts` (`PlayHabits`, `TasteSample`), `tests/model.test.ts`.

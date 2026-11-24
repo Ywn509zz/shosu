@@ -1,3 +1,6 @@
+import type { ScoreLine } from "./insights";
+import { finalizeScore, line } from "./score";
+
 /**
  * Ressemblance entre deux beatmaps : fonction pure (testable), utilisée par le serveur
  * pour classer des candidats trouvés dans la recherche osu!.
@@ -52,68 +55,106 @@ export const LANGUAGES: Record<number, string> = {
  * genre, langue) : ni difficulté ni mappeur, pour trouver des morceaux qui sonnent pareil. Renvoie null si les deux beatmaps n'ont aucun mode en commun
  * (comparer du taiko à du mania n'aurait pas de sens).
  */
+export type SimilarityResult = { score: number; reasons: string[]; breakdown: ScoreLine[] };
+
 export function scoreSimilarity(
   base: SimilarityInput,
   other: SimilarityInput,
   focus: SimilarityFocus = "mix",
-): { score: number; reasons: string[] } | null {
+): SimilarityResult | null {
   if (base.id === other.id) return null;
   if (!base.modes.some((m) => other.modes.includes(m))) return null;
 
   const sound = focus === "sound";
+  const lines: ScoreLine[] = [];
   const reasons: string[] = [];
-  let score = 0;
+  const same = (x: string | null | undefined, y: string | null | undefined) => Boolean(x && y && norm(x) === norm(y));
 
-  if (base.artist && norm(base.artist) === norm(other.artist)) {
-    score += sound ? 38 : 34;
-    reasons.push("Même artiste");
+  // Artiste
+  {
+    const max = sound ? 38 : 34;
+    const ok = same(base.artist, other.artist);
+    lines.push(line("artist", "Artiste", max, ok ? max : 0, ok ? `Même artiste : ${other.artist}` : `Artiste différent (${other.artist || "inconnu"})`, { applicable: Boolean(base.artist) }));
+    if (ok) reasons.push("Même artiste");
   }
-  if (base.source && norm(base.source) === norm(other.source)) {
-    score += sound ? 14 : 12;
-    reasons.push(`Même source (${other.source})`);
+  // Source (jeu, anime…)
+  {
+    const max = sound ? 14 : 12;
+    const ok = same(base.source, other.source);
+    lines.push(line("source", "Source", max, ok ? max : 0, ok ? `Même source : ${other.source}` : base.source ? `Source différente (${other.source || "aucune"})` : "La beatmap de référence n'a pas de source", { applicable: Boolean(base.source) }));
+    if (ok) reasons.push(`Même source (${other.source})`);
   }
-
-  const a = usefulTags(base.tags, base.artist);
-  const b = new Set(usefulTags(other.tags, other.artist));
-  const shared = a.filter((tag) => b.has(tag));
-  if (a.length > 0 && b.size > 0 && shared.length > 0) {
-    const jaccard = shared.length / (a.length + b.size - shared.length);
-    score += Math.min(sound ? 30 : 26, Math.round(jaccard * (sound ? 70 : 60)));
-    reasons.push(`Tags communs : ${shared.slice(0, 3).join(", ")}`);
+  // Tags en commun
+  {
+    const max = sound ? 30 : 26;
+    const a = usefulTags(base.tags, base.artist);
+    const b = new Set(usefulTags(other.tags, other.artist));
+    const shared = a.filter((tag) => b.has(tag));
+    const jaccard = shared.length > 0 ? shared.length / (a.length + b.size - shared.length) : 0;
+    lines.push(
+      line("tags", "Tags", max, Math.min(max, Math.round(jaccard * (sound ? 70 : 60))), shared.length > 0 ? `${shared.length} tag${shared.length > 1 ? "s" : ""} en commun sur ${a.length} : ${shared.slice(0, 4).join(", ")}` : `Aucun tag en commun (${a.length} tag${a.length > 1 ? "s" : ""} de référence)`, { applicable: a.length > 0 }),
+    );
+    if (shared.length > 0) reasons.push(`Tags communs : ${shared.slice(0, 3).join(", ")}`);
   }
-
-  if (base.bpm !== null && other.bpm !== null && base.bpm > 0) {
-    const gap = Math.abs(base.bpm - other.bpm);
-    const ratio = gap / base.bpm;
+  // BPM
+  {
+    const max = sound ? 22 : 14;
     const tolerance = sound ? 0.12 : 0.2;
-    if (ratio <= tolerance) {
-      score += Math.round((sound ? 22 : 14) * (1 - ratio / tolerance));
-      if (ratio <= 0.08) reasons.push(`BPM ${sound ? "très " : ""}proche (${Math.round(other.bpm)} contre ${Math.round(base.bpm)})`);
+    let points = 0;
+    let detail = "BPM inconnu";
+    if (base.bpm !== null && base.bpm > 0 && other.bpm !== null) {
+      const ratio = Math.abs(base.bpm - other.bpm) / base.bpm;
+      const pct = Math.round(ratio * 100);
+      if (ratio <= tolerance) {
+        points = max * (1 - ratio / tolerance);
+        detail = `BPM ${Math.round(other.bpm)} contre ${Math.round(base.bpm)} (écart de ${pct} %)`;
+        if (ratio <= 0.08) reasons.push(`BPM ${sound ? "très " : ""}proche (${Math.round(other.bpm)} contre ${Math.round(base.bpm)})`);
+      } else {
+        detail = `BPM ${Math.round(other.bpm)} contre ${Math.round(base.bpm)} : trop éloigné (écart de ${pct} %, tolérance ${Math.round(tolerance * 100)} %)`;
+      }
     }
+    lines.push(line("bpm", "BPM", max, points, detail, { applicable: base.bpm !== null && base.bpm > 0 }));
   }
-
-  const baseMid = mid(base);
-  const otherMid = mid(other);
-  if (!sound && baseMid !== null && otherMid !== null) {
-    const gap = Math.abs(baseMid - otherMid);
-    if (gap <= 1.5) {
-      score += Math.round(14 * (1 - gap / 1.5));
-      if (gap <= 0.6) reasons.push(`Difficulté proche (≈ ${otherMid.toFixed(1)}★)`);
+  // Difficulté (mode « mix » seulement)
+  if (!sound) {
+    const max = 14;
+    const baseMid = mid(base);
+    const otherMid = mid(other);
+    let points = 0;
+    let detail = "Difficulté inconnue";
+    if (baseMid !== null && otherMid !== null) {
+      const gap = Math.abs(baseMid - otherMid);
+      if (gap <= 1.5) {
+        points = max * (1 - gap / 1.5);
+        detail = `Difficulté ≈ ${otherMid.toFixed(1)}★ contre ≈ ${baseMid.toFixed(1)}★ (écart de ${gap.toFixed(1)}★)`;
+        if (gap <= 0.6) reasons.push(`Difficulté proche (≈ ${otherMid.toFixed(1)}★)`);
+      } else {
+        detail = `Difficulté ≈ ${otherMid.toFixed(1)}★ contre ≈ ${baseMid.toFixed(1)}★ : trop éloignée (écart de ${gap.toFixed(1)}★, tolérance 1,5★)`;
+      }
     }
+    lines.push(line("stars", "Difficulté", max, points, detail, { applicable: baseMid !== null }));
+  }
+  // Mappeur (mode « mix » seulement)
+  if (!sound) {
+    const ok = same(base.creator, other.creator);
+    lines.push(line("creator", "Mappeur", 5, ok ? 5 : 0, ok ? `Même mappeur : ${other.creator}` : `Mappeur différent (${other.creator || "inconnu"})`, { applicable: Boolean(base.creator) }));
+    if (ok) reasons.push("Même mappeur");
+  }
+  // Genre
+  {
+    const max = sound ? 12 : 4;
+    const ok = Boolean(base.genre && other.genre && base.genre === other.genre);
+    lines.push(line("genre", "Genre", max, ok ? max : 0, ok ? `Même genre : ${other.genre}` : `Genre ${other.genre ?? "inconnu"} (référence : ${base.genre ?? "inconnu"})`, { applicable: Boolean(base.genre) }));
+    if (ok && sound) reasons.push(`Même genre : ${other.genre}`);
+  }
+  // Langue
+  {
+    const max = sound ? 8 : 3;
+    const ok = Boolean(base.language && other.language && base.language === other.language);
+    lines.push(line("language", "Langue", max, ok ? max : 0, ok ? `Même langue : ${other.language}` : `Langue ${other.language ?? "inconnue"} (référence : ${base.language ?? "inconnue"})`, { applicable: Boolean(base.language) }));
+    if (ok && sound && base.language !== "Instrumental") reasons.push(`Même langue : ${other.language}`);
   }
 
-  if (!sound && base.creator && norm(base.creator) === norm(other.creator)) {
-    score += 5;
-    reasons.push("Même mappeur");
-  }
-  if (base.genre && other.genre && base.genre === other.genre) {
-    score += sound ? 12 : 4;
-    if (sound) reasons.push(`Même genre : ${other.genre}`);
-  }
-  if (base.language && other.language && base.language === other.language) {
-    score += sound ? 8 : 3;
-    if (sound && base.language !== "Instrumental") reasons.push(`Même langue : ${other.language}`);
-  }
-
-  return { score: Math.min(100, score), reasons: reasons.slice(0, 4) };
+  const { score } = finalizeScore(lines);
+  return { score, reasons: reasons.slice(0, 4), breakdown: lines };
 }

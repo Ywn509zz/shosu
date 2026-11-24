@@ -1,6 +1,7 @@
 import { cached } from "./cache.server";
 import { API_MODE, type Beatmapset } from "./osu";
 import { osuGet, toBeatmapset, type RawBeatmapset } from "./osu.server";
+import { getUserRaw } from "./player-data.server";
 
 /**
  * Données publiques du compte osu! du joueur connecté, pour Stack : tout ce que montre son profil sur osu.ppy.sh

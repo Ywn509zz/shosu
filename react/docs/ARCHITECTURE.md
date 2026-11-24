@@ -54,6 +54,10 @@ navigateur ──fetch──▶ routes/api.*.ts ──▶ lib/*.server.ts ──
   Toute route qui agit pour un joueur commence par `getUser`.
 - **Stack** : `api.assistant.ts` → `assistant.server.ts#runAssistant` (boucle modèle ⇄ outils, événements NDJSON) → `gemini.server.ts#streamContent`.
 
+## Données d'un joueur : un seul chemin
+
+`osu.server.ts` (API) → `player-data.server.ts` (sources brutes partagées, cache 5 min) → `model.server.ts` (compétence + goûts, cache 15 min) → recommandations, Music DNA, analyse, Stack. Voir FEATURES § Modèle du joueur partagé. Les scores de compatibilité passent tous par `score.ts` (`line` + `finalizeScore`).
+
 ## Stockage (Redis) — clés
 
 | Clé | Type | Contenu | Module |

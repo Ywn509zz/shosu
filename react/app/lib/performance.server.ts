@@ -1,6 +1,7 @@
 import { cached } from "./cache.server";
 import type { PerformanceAnalysis, PerformanceBand, PerformanceFinding } from "./insights";
-import { osuGet } from "./osu.server";
+import { deriveSkill } from "./model.server";
+import { getBestScores, getRecentScores } from "./player-data.server";
 
 /**
  * Analyse des performances d'un joueur et de ses points faibles — calculée ici, pas par un modèle :
@@ -102,12 +103,8 @@ function modGroup(mods: string[]): string {
 
 export function analyzePerformance(playerId: number, mode: string): Promise<PerformanceAnalysis> {
   return cached(`performance:${playerId}:${mode}`, 10 * 60_000, async () => {
-    const [bestRaw, recentRaw] = await Promise.all([
-      osuGet<RawScore[]>(`/users/${playerId}/scores/best`, { mode, limit: "100" }),
-      osuGet<RawScore[]>(`/users/${playerId}/scores/recent`, { mode, limit: "100", include_fails: "1" }).catch(
-        () => [] as RawScore[],
-      ),
-    ]);
+    // Mêmes sources (et même cache) que les recommandations et le Music DNA ; sans parties récentes l'analyse reste possible.
+    const [bestRaw, recentRaw] = await Promise.all([getBestScores(playerId, mode), getRecentScores(playerId, mode).catch(() => [])]);
     const best = bestRaw.map(toPlay).filter((p): p is Play => p !== null);
     const recent = recentRaw.map(toPlay).filter((p): p is Play => p !== null);
 
@@ -129,12 +126,14 @@ export function analyzePerformance(playerId: number, mode: string): Promise<Perf
     const medianStars = best.length
       ? [...best.map((p) => p.stars)].sort((a, b) => a - b)[Math.floor(best.length / 2)]
       : null;
+    // Profil de compétence : calculé par le MÊME code que la zone de difficulté des recommandations (médianes).
+    const skill = deriveSkill(bestRaw);
     const profile = {
-      stars: r2(mean(best.map((p) => p.stars))),
-      bpm: r1(mean(best.map((p) => p.bpm).filter((v): v is number => v !== null))),
+      stars: skill?.stars.median ?? null,
+      bpm: skill?.bpmMedian ?? null,
       ar: r1(mean(best.map((p) => p.ar).filter((v): v is number => v !== null))),
       cs: r1(mean(best.map((p) => p.cs).filter((v): v is number => v !== null))),
-      lengthSeconds: Math.round(mean(best.map((p) => p.length).filter((v): v is number => v !== null)) ?? 0) || null,
+      lengthSeconds: skill?.lengthSeconds ?? null,
     };
 
     const findings: PerformanceFinding[] = [];

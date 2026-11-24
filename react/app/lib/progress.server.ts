@@ -1,6 +1,5 @@
-import { cached } from "./cache.server";
 import type { ModeSummary, ProgressData, ProgressPoint } from "./insights";
-import { osuGet } from "./osu.server";
+import { getUserRaw, type RawUser } from "./player-data.server";
 import { hash } from "./store.server";
 
 /**
@@ -19,22 +18,6 @@ export const MODES = ["osu", "taiko", "fruits", "mania"] as const;
 const MAX_SNAPSHOT_DAYS = 120;
 const snapKey = (osuId: number) => `shosu:snap:${osuId}`;
 
-type RawUser = {
-  id: number;
-  username: string;
-  rank_history?: { data?: number[] };
-  monthly_playcounts?: { start_date?: string; count?: number }[];
-  statistics?: {
-    pp?: number;
-    global_rank?: number | null;
-    country_rank?: number | null;
-    hit_accuracy?: number;
-    play_count?: number;
-    play_time?: number;
-    level?: { current?: number };
-  };
-};
-
 const num = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null);
 const round = (value: unknown, digits = 2): number | null => {
   const n = num(value);
@@ -43,15 +26,7 @@ const round = (value: unknown, digits = 2): number | null => {
 const today = () => new Date().toISOString().slice(0, 10);
 const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
-function fetchMode(playerId: number, mode: string): Promise<RawUser | null> {
-  return cached(`progress-user:${playerId}:${mode}`, 5 * 60_000, async () => {
-    try {
-      return await osuGet<RawUser>(`/users/${playerId}/${mode}`, { key: "id" });
-    } catch {
-      return null;
-    }
-  });
-}
+const fetchMode = getUserRaw; // lecture partagée (player-data.server.ts) : mêmes chiffres que partout ailleurs
 
 const played = (user: RawUser | null) =>
   Boolean(user && ((num(user.statistics?.play_count) ?? 0) > 0 || (num(user.statistics?.pp) ?? 0) > 0));

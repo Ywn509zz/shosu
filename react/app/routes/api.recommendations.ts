@@ -20,9 +20,16 @@ export async function loader({ request }: Route.LoaderArgs) {
   const hit = await rateLimit(`reco:${user.id}`, LIMIT.limit, LIMIT.windowMs, false);
   if (!hit.ok) return data({ error: "rate_limited" }, { status: 429, headers: { ...headers, "Retry-After": String(hit.retryAfterSeconds) } });
 
-  const mode = new URL(request.url).searchParams.get("mode") ?? undefined;
+  const params = new URL(request.url).searchParams;
+  const mode = params.get("mode") ?? undefined;
+  // Beatmaps consultées récemment (historique local) : les mêmes que celles envoyées au Music DNA, pour des chiffres identiques.
+  const viewed = (params.get("viewed") ?? "")
+    .split(",")
+    .map(Number)
+    .filter((id) => Number.isInteger(id) && id > 0 && id <= 1_000_000_000)
+    .slice(0, 20);
   try {
-    return data(await getRecommendations(user.osuId, mode && MODES.includes(mode) ? mode : undefined), { headers });
+    return data(await getRecommendations(user.osuId, mode && MODES.includes(mode) ? mode : undefined, viewed), { headers });
   } catch (error) {
     console.error("Recommendations error:", error instanceof Error ? error.name : "Error");
     return data({ error: "temporarily unavailable" }, { status: 502, headers });

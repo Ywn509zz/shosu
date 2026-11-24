@@ -78,7 +78,7 @@ export function findSimilar(setId: number, focus: SimilarityFocus = "mix"): Prom
     for (const raw of candidates.values()) {
       const result = scoreSimilarity(base, toInput(raw), focus);
       if (!result || result.score < (focus === "sound" ? MIN_SCORE_SOUND : MIN_SCORE)) continue;
-      ranked.push({ ...toBeatmapset(raw), score: result.score, reasons: result.reasons });
+      ranked.push({ ...toBeatmapset(raw), score: result.score, reasons: result.reasons, breakdown: result.breakdown });
     }
     return ranked.sort((a, b) => b.score - a.score).slice(0, MAX_RESULTS);
   });

@@ -186,7 +186,7 @@ export default function Dna({ loaderData }: Route.ComponentProps) {
 
           <p className="hint dna-sample">
             Basé sur {dna.sample.sets} beatmaps : {dna.sample.osuFavourites} favoris osu!, {dna.sample.shosuLists} dans
-            tes listes shOsu!, {dna.sample.viewed} consultées récemment, {dna.sample.mostPlayed} parmi les plus jouées.
+            tes listes shOsu!, {dna.sample.viewed} consultées récemment, {dna.sample.mostPlayed} parmi les plus jouées et {dna.sample.bestScores} meilleurs scores — la même base que tes recommandations « Pour toi ». Clique sur un pourcentage pour voir comment il est calculé.
           </p>
 
           <h2 className="section-title">Des morceaux pour ton ADN</h2>

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 import { toTrack } from "~/components/beatmap-card";
 import { EmptyState } from "~/components/empty-state";
 import { MapMatchCard } from "~/components/map-match-card";
+import { useHistory } from "~/lib/history";
 import type { Recommendations } from "~/lib/insights";
 import type { Track } from "~/lib/player";
 
@@ -17,13 +19,20 @@ type State = { phase: "loading" } | { phase: "error"; limited: boolean } | { pha
 
 /** « Pour toi » : beatmaps recommandées d'après les habitudes de jeu du joueur connecté (accueil, avant la recherche). */
 export function RecommendationsSection() {
+  const history = useHistory();
   const [mode, setMode] = useState<string | null>(null);
   const [state, setState] = useState<State>({ phase: "loading" });
 
   useEffect(() => {
+    // L'historique local doit être lu : ses consultations alimentent le modèle partagé (comme sur la page Music DNA).
+    if (!history.loaded) return;
     const controller = new AbortController();
     setState({ phase: "loading" });
-    fetch(`/api/recommendations${mode ? `?mode=${mode}` : ""}`, {
+    const params = new URLSearchParams();
+    if (mode) params.set("mode", mode);
+    const viewed = history.views.slice(0, 20).map((v) => v.id);
+    if (viewed.length) params.set("viewed", viewed.join(","));
+    fetch(`/api/recommendations${params.size ? `?${params}` : ""}`, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
     })
@@ -39,7 +48,9 @@ export function RecommendationsSection() {
         if (error.name !== "AbortError") setState({ phase: "error", limited: false });
       });
     return () => controller.abort();
-  }, [mode]);
+    // Recalculé quand le mode change ou quand l'historique vient d'être lu (pas à chaque beatmap consultée).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, history.loaded]);
 
   const current = state.phase === "ready" ? state.data.mode : mode;
   const queue =
@@ -94,7 +105,12 @@ export function RecommendationsSection() {
               ⭐ {state.data.habits.stars.low.toFixed(1)}–{state.data.habits.stars.high.toFixed(1)}★{" "}
               <small>(médiane {state.data.habits.stars.median.toFixed(1)})</small>
             </li>
-            {state.data.habits.bpm && <li>♪ {state.data.habits.bpm} BPM</li>}
+            {state.data.habits.bpm && <li>♪ tempo ≈ {state.data.habits.bpm} BPM</li>}
+            {state.data.habits.genres[0] && (
+              <li>
+                {state.data.habits.genres[0].name} {Math.round(state.data.habits.genres[0].share * 100)} %
+              </li>
+            )}
             {state.data.habits.mods.length > 0 && (
               <li>Mods : {state.data.habits.mods.map((m) => `${m.mod} ${Math.round(m.share * 100)} %`).join(" · ")}</li>
             )}
@@ -102,6 +118,13 @@ export function RecommendationsSection() {
               <li key={artist}>♥ {artist}</li>
             ))}
           </ul>
+          <p className="hint reco-sources">
+            Basé sur {state.data.habits.sample.bestScores} meilleurs scores, {state.data.habits.sample.osuFavourites}{" "}
+            favoris osu!, {state.data.habits.sample.shosuLists} beatmaps de tes listes,{" "}
+            {state.data.habits.sample.viewed} consultées et {state.data.habits.sample.mostPlayed} parmi les plus jouées
+            — la même base que ton <Link to="/dna">Music DNA</Link>. Clique sur un pourcentage pour voir comment il est
+            calculé.
+          </p>
           {state.data.items.length === 0 ? (
             <EmptyState icon="✨" title="Rien de nouveau à te proposer">
               Tu as déjà joué ou gardé tout ce qui correspond à tes habitudes. Lance une recherche pour sortir des

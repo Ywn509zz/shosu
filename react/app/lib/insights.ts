@@ -1,11 +1,27 @@
 /** Types partagés des analyses (beatmaps similaires, difficulté par mod) : serveur et navigateur. */
 import type { Beatmapset } from "./osu";
 
+/**
+ * Un critère du score de compatibilité. Le score d'une beatmap = Σ points / Σ max des critères **applicables** (× 100) : 100 % veut dire
+ * « parfait sur tous les critères qui s'appliquent ». Un critère non applicable (ex. pas de source connue) est montré mais ne compte pas.
+ */
+export type ScoreLine = {
+  key: string;
+  label: string;
+  points: number;
+  max: number;
+  applicable: boolean;
+  /** Explication en une phrase (« 2 tags en commun : speed, tech », « BPM 90 contre 180 : trop éloigné »…). */
+  detail: string;
+};
+
 export type SimilarMap = Beatmapset & {
-  /** Ressemblance de 0 à 100. */
+  /** Compatibilité de 0 à 100 (points obtenus ÷ points possibles). */
   score: number;
   /** Raisons lisibles : « Même artiste », « BPM proche »… */
   reasons: string[];
+  /** Détail critère par critère : pourquoi 100 % plutôt que 77 %. */
+  breakdown: ScoreLine[];
 };
 
 export type DifficultyRow = {
@@ -40,18 +56,36 @@ export type DifficultyAnalysis = {
   profile: "aim" | "speed" | "balanced" | null;
 };
 
-/** Ce que les meilleurs scores et les beatmaps favorites d'un joueur disent de ses habitudes. */
+/**
+ * Habitudes d'un joueur, issues du **modèle partagé** (`lib/model.server.ts`) : la compétence (difficulté, mods) vient de ses meilleurs
+ * scores ; les goûts (BPM, artistes, tags, genres, langues) viennent de tout ce qu'il aime, joue et consulte — exactement les mêmes
+ * valeurs que sur la page Music DNA.
+ */
 export type PlayHabits = {
   /** Nombre de meilleurs scores analysés. */
   plays: number;
-  /** Zone de difficulté habituelle : médiane et bornes basse / haute (quartiles). */
+  /** Zone de difficulté habituelle : médiane et quartiles des meilleurs scores. */
   stars: { median: number; low: number; high: number };
+  /** Tempo habituel (moyenne pondérée de ses goûts, comme dans le Music DNA). */
   bpm: number | null;
   lengthSeconds: number | null;
-  /** Mods les plus joués avec leur part des scores (0 à 1). */
+  /** Mods les plus joués avec leur part des meilleurs scores (0 à 1). */
   mods: { mod: string; share: number }[];
   artists: string[];
   tags: string[];
+  genres: { name: string; share: number }[];
+  /** D'où viennent ces chiffres (identique à la page Music DNA). */
+  sample: TasteSample;
+};
+
+export type TasteSample = {
+  /** Beatmaps analysées en détail. */
+  sets: number;
+  osuFavourites: number;
+  mostPlayed: number;
+  shosuLists: number;
+  viewed: number;
+  bestScores: number;
 };
 
 export type Recommendation = SimilarMap;
@@ -148,7 +182,7 @@ export type PerformanceAnalysis = {
 
 /** Empreinte musicale d'un joueur, tirée des beatmaps qu'il aime, joue souvent et consulte. */
 export type MusicDna = {
-  sample: { sets: number; osuFavourites: number; mostPlayed: number; shosuLists: number; viewed: number };
+  sample: TasteSample;
   /** Résumé en une phrase (« électro rapide, surtout japonais… »). */
   signature: string;
   genres: { name: string; share: number }[];
