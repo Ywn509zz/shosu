@@ -54,6 +54,11 @@ Si une demande recoupe quelque chose d'existant : ne pas le refaire, le signaler
 3. `git push origin main` → Vercel déploie en production (≈ 1 min). Vérifier https://shosure.vercel.app/premium (version affichée) puis les pages concernées.
 4. CLI Vercel : `npx vercel@latest …` (la machine du propriétaire est connectée). Variables d'environnement : `npx vercel@latest env ls`. Les installations Marketplace demandent d'accepter des conditions : c'est au propriétaire de le faire.
 
+## Diagnostiquer la production
+
+- Les échecs de l'API osu! (hors 404) sont journalisés par `osu.server.ts#logOsuFailure` : méthode, chemin **sans identifiants** et code HTTP (« osu! API failure: GET /users/:n/scores/recent 4xx »). Lire les journaux : `npx vercel@latest logs https://shosure.vercel.app` (ou le tableau de bord Vercel > Logs).
+- Une fonctionnalité qui « marche mais renvoie vide » en production vient souvent d'un point d'accès osu! qui répond autrement qu'en local (le faux osu! de `dev/` est généreux) : chercher d'abord ce journal.
+
 ## Pièges connus
 
 - Un module `*.server.ts` importé côté navigateur casse le build : déplacer les types partagés dans un module neutre.

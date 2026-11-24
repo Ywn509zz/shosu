@@ -175,9 +175,19 @@ export async function osuGet<T>(path: string, params: Record<string, string> = {
   });
   if (response.status === 401) cachedToken = null;
   if (!response.ok) {
+    logOsuFailure("GET", path, response.status);
     throw new OsuError(`osu! API ${path} HTTP ${response.status}`, response.status === 404 ? 404 : 502);
   }
   return (await response.json()) as T;
+}
+
+/**
+ * Journal des échecs de l'API osu! (hors 404, banals : joueur ou beatmap inconnus). Les identifiants numériques du chemin
+ * sont masqués ; seul le type de requête et le code HTTP sont écrits, pour diagnostiquer un point d'accès qui répond mal.
+ */
+function logOsuFailure(method: string, path: string, status: number) {
+  if (status === 404) return;
+  console.error("osu! API failure:", method, path.replace(/\/\d+/g, "/:n").replace(/\?.*$/, ""), status);
 }
 
 /** Appel POST authentifié (ex. attributs de difficulté avec des mods). */
@@ -190,6 +200,7 @@ export async function osuPost<T>(path: string, body: unknown): Promise<T> {
   });
   if (response.status === 401) cachedToken = null;
   if (!response.ok) {
+    logOsuFailure("POST", path, response.status);
     throw new OsuError(`osu! API ${path} HTTP ${response.status}`, response.status === 404 ? 404 : 502);
   }
   return (await response.json()) as T;
