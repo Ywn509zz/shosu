@@ -42,14 +42,18 @@ button.assistant-toggle[aria-expanded="true"] {
   text-align: left;
   transform: translateX(104%);
   visibility: hidden;
+  will-change: transform;
   transition:
-    transform 0.3s ease,
-    visibility 0s linear 0.3s;
+    transform 0.5s var(--ease-out),
+    box-shadow 0.5s var(--ease-out),
+    visibility 0s linear 0.5s;
 }
 .assistant-panel[data-open="true"] {
   transform: none;
   visibility: visible;
-  transition: transform 0.3s ease;
+  transition:
+    transform 0.55s var(--ease-out),
+    box-shadow 0.55s var(--ease-out);
 }
 
 .assistant-head {
@@ -454,5 +458,305 @@ body.light-mode .assistant-listen .assistant-listen-error {
 @media (prefers-reduced-motion: reduce) {
   .rec-dot {
     animation: none;
+  }
+}
+
+/* ===== Stack, version « premium » : mouvement fluide, tout coupé si l'utilisateur le demande ===== */
+
+/* À l'ouverture, les zones du panneau arrivent l'une après l'autre. */
+.assistant-panel[data-open="true"] .assistant-head {
+  animation: rise 0.6s 0.1s var(--ease-out) both;
+}
+.assistant-panel[data-open="true"] .assistant-log,
+.assistant-panel[data-open="true"] .assistant-login {
+  animation: rise 0.6s 0.18s var(--ease-out) both;
+}
+.assistant-panel[data-open="true"] .assistant-chips {
+  animation: rise 0.6s 0.26s var(--ease-out) both;
+}
+.assistant-panel[data-open="true"] .assistant-form {
+  animation: rise 0.6s 0.32s var(--ease-out) both;
+}
+
+/* Avatar : un halo respire pendant que Stack répond. */
+.assistant-avatar {
+  transition: box-shadow 0.5s var(--ease-out), transform 0.5s var(--ease-spring);
+}
+.assistant-panel[data-busy="true"] .assistant-avatar {
+  animation: avatar-glow 2s ease-in-out infinite;
+}
+@keyframes avatar-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 0 0 0 rgba(156, 124, 255, 0.5), 0 8px 22px rgba(121, 93, 255, 0.35);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3), 0 0 0 9px rgba(156, 124, 255, 0), 0 8px 30px rgba(121, 93, 255, 0.6);
+    transform: scale(1.06);
+  }
+}
+
+/* Messages : entrée en douceur, depuis le côté de celui qui parle. */
+.assistant-block > .assistant-msg,
+.assistant-block > .assistant-typing {
+  animation: msg-in 0.55s var(--ease-out) both;
+}
+.assistant-block > .assistant-msg.is-user {
+  transform-origin: 100% 100%;
+  animation-name: msg-in-user;
+}
+.assistant-block > .assistant-msg.is-assistant,
+.assistant-block > .assistant-typing {
+  transform-origin: 0 100%;
+}
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+@keyframes msg-in-user {
+  from {
+    opacity: 0;
+    transform: translate(14px, 8px) scale(0.92);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+/* Texte en direct : chaque mot apparaît en fondu, l'un derrière l'autre. */
+.assistant-msg.is-streaming .sw {
+  display: inline-block;
+  animation: word-in 0.45s var(--ease-out) both;
+}
+@keyframes word-in {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+/* Curseur : une barre lumineuse qui bat doucement, à la place du bloc clignotant. */
+.assistant-msg.is-streaming::after {
+  width: 3px;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent-strong), var(--cyan));
+  box-shadow: 0 0 10px rgba(156, 124, 255, 0.8);
+  content: "";
+  animation: caret-glow 1.1s ease-in-out infinite;
+}
+@keyframes caret-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleY(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* « Stack réfléchit » : trois points en vague, et un texte d'état qui brille. */
+.assistant-typing {
+  align-items: center;
+  border-color: rgba(195, 173, 255, 0.28);
+  box-shadow: 0 0 24px rgba(121, 93, 255, 0.12);
+}
+.assistant-typing i {
+  width: 7px;
+  height: 7px;
+  background: linear-gradient(135deg, var(--accent-strong), var(--cyan));
+  animation: assistant-wave 1.3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes assistant-wave {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0) scale(0.85);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.15);
+  }
+}
+.assistant-typing span {
+  color: transparent;
+  background: linear-gradient(90deg, var(--muted) 20%, var(--text) 50%, var(--muted) 80%) 0 0 / 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation:
+    status-in 0.4s var(--ease-out) both,
+    status-shimmer 2.2s linear infinite;
+}
+@keyframes status-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes status-shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+/* Cartes : elles arrivent en cascade et réagissent au survol. */
+.assistant-card {
+  animation: pop-in 0.55s var(--ease-spring) both;
+  animation-delay: calc(var(--ci, 0) * 80ms);
+  transition: transform 0.3s var(--ease-out), border-color 0.25s, box-shadow 0.3s var(--ease-out);
+}
+.assistant-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(195, 173, 255, 0.5);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+}
+.assistant-card img {
+  transition: transform 0.5s var(--ease-out);
+}
+.assistant-card:hover img {
+  transform: scale(1.08);
+}
+button.assistant-play {
+  transition: transform 0.3s var(--ease-spring), background 0.2s, border-color 0.2s;
+}
+button.assistant-play:hover {
+  transform: scale(1.12);
+}
+button.assistant-play[aria-pressed="true"] {
+  border-color: rgba(195, 173, 255, 0.6);
+  background: rgba(156, 124, 255, 0.25);
+  animation: breathe 2s ease-in-out infinite;
+}
+.assistant-open-link {
+  animation: rise 0.5s 0.15s var(--ease-out) both;
+}
+
+/* Suggestions : elles entrent en cascade. */
+button.assistant-chip {
+  animation: pop-in 0.5s var(--ease-spring) both;
+  animation-delay: calc(0.35s + var(--ci, 0) * 60ms);
+  transition: transform 0.3s var(--ease-spring), border-color 0.2s, background 0.2s;
+}
+button.assistant-chip:hover {
+  transform: translateY(-3px);
+  border-color: rgba(195, 173, 255, 0.55);
+  background: rgba(156, 124, 255, 0.14);
+}
+button.assistant-chip:active {
+  transform: scale(0.96);
+}
+.assistant-welcome {
+  animation: rise 0.7s 0.2s var(--ease-out) both;
+}
+
+/* Saisie : halo au focus, bouton d'envoi qui s'allume et réagit. */
+.assistant-form textarea {
+  transition: border-color 0.25s, box-shadow 0.3s var(--ease-out), background 0.25s;
+}
+.assistant-form textarea:focus {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 4px rgba(156, 124, 255, 0.16);
+}
+button.assistant-send {
+  transition: transform 0.3s var(--ease-spring), opacity 0.3s, background 0.2s, box-shadow 0.3s var(--ease-out);
+  box-shadow: 0 8px 22px rgba(121, 93, 255, 0.45);
+}
+button.assistant-send:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+button.assistant-send:active {
+  transform: scale(0.9);
+  transition-duration: 0.08s;
+}
+button.assistant-send[data-disabled],
+button.assistant-send:disabled {
+  box-shadow: none;
+  transform: none;
+}
+.assistant-panel[data-busy="true"] button.assistant-send {
+  background-image: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  background-size: 220% 100%;
+  animation: send-sheen 1.4s linear infinite;
+}
+@keyframes send-sheen {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+button.assistant-mic {
+  transition: transform 0.3s var(--ease-spring), border-color 0.2s, background 0.2s;
+}
+button.assistant-mic:hover {
+  transform: translateY(-2px);
+}
+button.assistant-mic.is-listening {
+  animation: breathe 1.6s ease-in-out infinite;
+}
+.assistant-listen {
+  animation: pop-in 0.5s var(--ease-spring) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-panel[data-open="true"] .assistant-head,
+  .assistant-panel[data-open="true"] .assistant-log,
+  .assistant-panel[data-open="true"] .assistant-login,
+  .assistant-panel[data-open="true"] .assistant-chips,
+  .assistant-panel[data-open="true"] .assistant-form,
+  .assistant-panel[data-busy="true"] .assistant-avatar,
+  .assistant-panel[data-busy="true"] button.assistant-send,
+  .assistant-block > .assistant-msg,
+  .assistant-block > .assistant-typing,
+  .assistant-msg.is-streaming .sw,
+  .assistant-msg.is-streaming::after,
+  .assistant-typing span,
+  .assistant-card,
+  .assistant-open-link,
+  button.assistant-chip,
+  button.assistant-play[aria-pressed="true"],
+  button.assistant-mic.is-listening,
+  .assistant-welcome,
+  .assistant-listen {
+    animation: none;
+  }
+  .assistant-typing span {
+    color: var(--muted);
+    background: none;
+  }
+  .assistant-card:hover,
+  button.assistant-chip:hover,
+  button.assistant-send:hover,
+  button.assistant-mic:hover,
+  button.assistant-play:hover {
+    transform: none;
   }
 }

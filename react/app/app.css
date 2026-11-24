@@ -34,3 +34,6 @@
 
 /* Lecteur, listes, détail d'une beatmap et profil joueur. */
 @import "./pages.css";
+
+/* Mouvement : entrées de page, cartes en cascade, réactions au toucher. */
+@import "./motion.css";

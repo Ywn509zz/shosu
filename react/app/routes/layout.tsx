@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 
 import { Account } from "~/components/account";
 import { Assistant } from "~/components/assistant";
+import { BackButton } from "~/components/back-button";
 import { LoginNotice } from "~/components/login-notice";
 import { PlayerBar } from "~/components/player-bar";
 import { AssistantContext } from "~/lib/assistant-context";
@@ -49,6 +50,7 @@ function ListsToast() {
 
 function Shell({ user }: { user: SessionUser | null }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const player = usePlayer();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [pendingAsk, setPendingAsk] = useState<string | null>(null);
@@ -89,7 +91,9 @@ function Shell({ user }: { user: SessionUser | null }) {
           <Account user={user} assistantOpen={assistantOpen} onToggleAssistant={toggleAssistant} />
         </header>
 
-        <main>
+        {/* Le changement de page rejoue l'animation d'entrée (voir .page-enter dans motion.css). */}
+        <main key={pathname} className="page-enter">
+          {pathname !== "/" && <BackButton />}
           <Outlet />
         </main>
 

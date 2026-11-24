@@ -1,0 +1,270 @@
+/*
+ * Mouvement du site : entrées de page, cartes, boutons, lecteur.
+ * Tout s'appuie sur deux courbes (--ease-out, --ease-spring) pour un ton unique,
+ * et tout est coupé si l'utilisateur demande moins d'animations.
+ */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(156, 124, 255, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(156, 124, 255, 0);
+  }
+}
+
+/* ===== Entrée d'une page : chaque bloc monte l'un après l'autre ===== */
+.page-enter > * {
+  animation: rise 0.6s var(--ease-out) both;
+}
+.page-enter > :nth-child(2) { animation-delay: 0.05s; }
+.page-enter > :nth-child(3) { animation-delay: 0.1s; }
+.page-enter > :nth-child(4) { animation-delay: 0.15s; }
+.page-enter > :nth-child(5) { animation-delay: 0.2s; }
+.page-enter > :nth-child(6) { animation-delay: 0.25s; }
+.page-enter > :nth-child(n + 7) { animation-delay: 0.3s; }
+
+/* ===== En-tête ===== */
+.site-header {
+  animation: rise 0.6s var(--ease-out) both;
+}
+.brand-mark {
+  transition: transform 0.45s var(--ease-spring);
+}
+.brand:hover .brand-mark {
+  transform: rotate(-10deg) scale(1.12);
+}
+
+/* ===== Cartes de résultats : apparition en cascade, puis relief au survol ===== */
+.beatmap-card {
+  animation-name: pop-in;
+  animation-duration: 0.55s;
+  animation-timing-function: var(--ease-out);
+  animation-fill-mode: both;
+}
+.beatmap-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.26);
+}
+.beatmap-card:hover .card-cover {
+  transform: scale(1.06);
+}
+.results-grid > .beatmap-card:nth-child(10n+1) { animation-delay: 0.0s; }
+.results-grid > .beatmap-card:nth-child(10n+2) { animation-delay: 0.045s; }
+.results-grid > .beatmap-card:nth-child(10n+3) { animation-delay: 0.09s; }
+.results-grid > .beatmap-card:nth-child(10n+4) { animation-delay: 0.135s; }
+.results-grid > .beatmap-card:nth-child(10n+5) { animation-delay: 0.18s; }
+.results-grid > .beatmap-card:nth-child(10n+6) { animation-delay: 0.225s; }
+.results-grid > .beatmap-card:nth-child(10n+7) { animation-delay: 0.27s; }
+.results-grid > .beatmap-card:nth-child(10n+8) { animation-delay: 0.315s; }
+.results-grid > .beatmap-card:nth-child(10n+9) { animation-delay: 0.36s; }
+.results-grid > .beatmap-card:nth-child(10n+10) { animation-delay: 0.405s; }
+
+/* ===== Profil, détail d'une beatmap : tuiles et lignes en cascade ===== */
+.stat-tile,
+.diff-row,
+.play-row,
+.chip {
+  animation: rise 0.5s var(--ease-out) both;
+}
+.stat-tile {
+  transition: transform 0.3s var(--ease-out), border-color 0.25s;
+}
+.stat-tile:hover {
+  transform: translateY(-3px);
+  border-color: rgba(195, 173, 255, 0.45);
+}
+.stat-tiles > .stat-tile:nth-child(8n+1) { animation-delay: 0.0s; }
+.stat-tiles > .stat-tile:nth-child(8n+2) { animation-delay: 0.04s; }
+.stat-tiles > .stat-tile:nth-child(8n+3) { animation-delay: 0.08s; }
+.stat-tiles > .stat-tile:nth-child(8n+4) { animation-delay: 0.12s; }
+.stat-tiles > .stat-tile:nth-child(8n+5) { animation-delay: 0.16s; }
+.stat-tiles > .stat-tile:nth-child(8n+6) { animation-delay: 0.2s; }
+.stat-tiles > .stat-tile:nth-child(8n+7) { animation-delay: 0.24s; }
+.stat-tiles > .stat-tile:nth-child(8n+8) { animation-delay: 0.28s; }
+.diff-list > .diff-row:nth-child(10n+1) { animation-delay: 0.0s; }
+.diff-list > .diff-row:nth-child(10n+2) { animation-delay: 0.05s; }
+.diff-list > .diff-row:nth-child(10n+3) { animation-delay: 0.1s; }
+.diff-list > .diff-row:nth-child(10n+4) { animation-delay: 0.15s; }
+.diff-list > .diff-row:nth-child(10n+5) { animation-delay: 0.2s; }
+.diff-list > .diff-row:nth-child(10n+6) { animation-delay: 0.25s; }
+.diff-list > .diff-row:nth-child(10n+7) { animation-delay: 0.3s; }
+.diff-list > .diff-row:nth-child(10n+8) { animation-delay: 0.35s; }
+.diff-list > .diff-row:nth-child(10n+9) { animation-delay: 0.4s; }
+.diff-list > .diff-row:nth-child(10n+10) { animation-delay: 0.45s; }
+.plays > .play-row:nth-child(12n+1) { animation-delay: 0.0s; }
+.plays > .play-row:nth-child(12n+2) { animation-delay: 0.03s; }
+.plays > .play-row:nth-child(12n+3) { animation-delay: 0.06s; }
+.plays > .play-row:nth-child(12n+4) { animation-delay: 0.09s; }
+.plays > .play-row:nth-child(12n+5) { animation-delay: 0.12s; }
+.plays > .play-row:nth-child(12n+6) { animation-delay: 0.15s; }
+.plays > .play-row:nth-child(12n+7) { animation-delay: 0.18s; }
+.plays > .play-row:nth-child(12n+8) { animation-delay: 0.21s; }
+.plays > .play-row:nth-child(12n+9) { animation-delay: 0.24s; }
+.plays > .play-row:nth-child(12n+10) { animation-delay: 0.27s; }
+.plays > .play-row:nth-child(12n+11) { animation-delay: 0.3s; }
+.plays > .play-row:nth-child(12n+12) { animation-delay: 0.33s; }
+.play-row,
+.diff-row {
+  transition: background 0.25s, transform 0.3s var(--ease-out);
+}
+.play-row:hover {
+  transform: translateX(4px);
+}
+
+/* ===== Boutons et onglets : réaction au toucher ===== */
+.account-btn,
+.account button,
+.tab,
+.back-btn,
+button.icon-btn,
+.play-btn {
+  transition: color 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.25s, transform 0.3s var(--ease-spring);
+}
+.account-btn:hover,
+.tab:hover,
+.back-btn:hover {
+  transform: translateY(-2px);
+}
+.account-btn:active,
+.account button:active,
+.tab:active,
+.back-btn:active,
+button.icon-btn:active,
+.play-btn:active {
+  transform: scale(0.94);
+  transition-duration: 0.08s;
+}
+button.icon-btn.is-on {
+  animation: pop-in 0.45s var(--ease-spring);
+}
+.play-btn[aria-pressed="true"] {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+/* ===== Bouton Retour ===== */
+.back-nav {
+  margin: 0 0 18px;
+  text-align: left;
+}
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.back-btn span {
+  display: inline-block;
+  transition: transform 0.35s var(--ease-spring);
+}
+.back-btn:hover {
+  border-color: rgba(195, 173, 255, 0.45);
+  color: var(--text);
+}
+.back-btn:hover span {
+  transform: translateX(-4px);
+}
+
+/* ===== Mode sans statistiques (profil) ===== */
+.mode-empty {
+  max-width: 520px;
+  margin: 34px auto;
+  padding: 34px 26px;
+  border: 1px dashed rgba(195, 173, 255, 0.4);
+  border-radius: 20px;
+  color: var(--muted);
+  background: var(--panel);
+  text-align: center;
+}
+.mode-empty h2 {
+  margin: 14px 0 6px;
+  color: var(--text);
+  font-size: 1.15rem;
+}
+.mode-empty p {
+  margin: 0;
+  line-height: 1.6;
+}
+.mode-empty-icon {
+  display: inline-grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--accent-strong);
+  font-size: 1.7rem;
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* ===== Lecteur : glisse depuis le bas ===== */
+.player-bar {
+  animation: player-in 0.6s var(--ease-spring) both;
+}
+@keyframes player-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+/* ===== Mouvement réduit : tout est instantané ===== */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter > *,
+  .site-header,
+  .beatmap-card,
+  .stat-tile,
+  .diff-row,
+  .play-row,
+  .chip,
+  .player-bar,
+  .mode-empty-icon,
+  .play-btn[aria-pressed="true"],
+  button.icon-btn.is-on {
+    animation: none;
+  }
+  .beatmap-card:hover,
+  .stat-tile:hover,
+  .play-row:hover,
+  .account-btn:hover,
+  .tab:hover,
+  .back-btn:hover {
+    transform: none;
+  }
+}

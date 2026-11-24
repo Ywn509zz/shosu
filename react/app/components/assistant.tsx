@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { toTrack } from "~/components/beatmap-card";
@@ -41,6 +41,23 @@ type Msg = {
   streaming?: boolean;
   status?: string;
 };
+
+/** Découpe un texte en mots pour que chacun puisse apparaître en fondu pendant la réponse en direct. */
+function StreamedText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\s+)/).map((part, index) =>
+        /^\s+$/.test(part) || part === "" ? (
+          part
+        ) : (
+          <span className="sw" key={index}>
+            {part}
+          </span>
+        ),
+      )}
+    </>
+  );
+}
 
 const STORAGE_KEY = "stack-chat-v2";
 const MAX_STORED = 30;
@@ -354,6 +371,7 @@ export function Assistant({
       id="assistant-panel"
       className="assistant-panel"
       data-open={open}
+      data-busy={sending}
       role="complementary"
       aria-label={`${ASSISTANT_NAME}, ${ASSISTANT_TAGLINE.toLowerCase()}`}
       onKeyDown={(e) => {
@@ -404,18 +422,18 @@ export function Assistant({
                     <i />
                     <i />
                     <i />
-                    {m.status && <span>{m.status}</span>}
+                    {m.status && <span key={m.status}>{m.status}</span>}
                   </div>
                 ) : (
                   <div
                     className={`assistant-msg is-${m.role}${m.error ? " is-error" : ""}${m.streaming ? " is-streaming" : ""}`}
                   >
-                    {m.text}
+                    {m.streaming ? <StreamedText text={m.text} /> : m.text}
                   </div>
                 )}
 
-                {m.cards?.map((card) => (
-                  <article className="assistant-card" key={`b${card.id}`}>
+                {m.cards?.map((card, ci) => (
+                  <article className="assistant-card" key={`b${card.id}`} style={{ "--ci": ci } as CSSProperties}>
                     <img src={coverUrl(card.id)} alt="" loading="lazy" width={52} height={52} />
                     <div className="assistant-card-body">
                       <Link to={`/beatmap/${card.id}`} onClick={closeIfSmall}>
@@ -447,8 +465,8 @@ export function Assistant({
                   </article>
                 ))}
 
-                {m.players?.map((p) => (
-                  <article className="assistant-card is-player" key={`p${p.id}`}>
+                {m.players?.map((p, ci) => (
+                  <article className="assistant-card is-player" key={`p${p.id}`} style={{ "--ci": ci } as CSSProperties}>
                     <img src={avatarUrl(p.id)} alt="" loading="lazy" width={52} height={52} />
                     <div className="assistant-card-body">
                       <Link to={`/player/${p.id}`} onClick={closeIfSmall} translate="no">
@@ -477,8 +495,13 @@ export function Assistant({
 
           {messages.length === 0 && (
             <div className="assistant-chips">
-              {SUGGESTIONS.map((suggestion) => (
-                <Button key={suggestion} className="assistant-chip" onPress={() => void send(suggestion)}>
+              {SUGGESTIONS.map((suggestion, ci) => (
+                <Button
+                  key={suggestion}
+                  className="assistant-chip"
+                  style={{ "--ci": ci } as CSSProperties}
+                  onPress={() => void send(suggestion)}
+                >
                   {suggestion}
                 </Button>
               ))}

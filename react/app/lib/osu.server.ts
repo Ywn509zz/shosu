@@ -413,13 +413,27 @@ export function getPlayerPage(ref: string, mode: string, withTopPlays = true): P
   if (!parsed) throw new OsuError("Invalid player reference", 404);
 
   return cached(`player:${parsed.key}:${parsed.value.toLowerCase()}:${mode}:${withTopPlays}`, 5 * 60_000, async () => {
-    const user = await osuGet<RawUser>(`/users/${encodeURIComponent(parsed.value)}/${mode}`, { key: parsed.key });
+    // Un joueur qui n'a jamais joué dans ce mode n'est pas une erreur : on affiche son identité
+    // avec « aucune statistique ». Si osu! refuse la variante par mode (404), on lit le profil général.
+    let user: RawUser;
+    try {
+      user = await osuGet<RawUser>(`/users/${encodeURIComponent(parsed.value)}/${mode}`, { key: parsed.key });
+    } catch (error) {
+      if (!(error instanceof OsuError) || error.status !== 404) throw error;
+      user = await osuGet<RawUser>(`/users/${encodeURIComponent(parsed.value)}`, { key: parsed.key });
+    }
     const summary = toSummary(user);
     const st = user.statistics ?? {};
+    const hasStats = (numOrNull(st.play_count) ?? 0) > 0 || (numOrNull(st.pp) ?? 0) > 0 || numOrNull(st.global_rank) !== null;
 
     let topPlays: TopPlay[] = [];
-    if (withTopPlays) {
-      const scores = await osuGet<RawBestScore[]>(`/users/${user.id}/scores/best`, { mode, limit: "25" });
+    if (withTopPlays && hasStats) {
+      let scores: RawBestScore[] = [];
+      try {
+        scores = await osuGet<RawBestScore[]>(`/users/${user.id}/scores/best`, { mode, limit: "25" });
+      } catch {
+        /* pas de scores lisibles : le profil s'affiche quand même, sans la liste */
+      }
       topPlays = scores
         .filter((score) => score.beatmap && score.beatmapset?.id)
         .map((score) => ({
@@ -440,6 +454,7 @@ export function getPlayerPage(ref: string, mode: string, withTopPlays = true): P
     return {
       ...summary,
       mode,
+      hasStats,
       level: round(st.level?.current, 0),
       playTimeHours: st.play_time !== undefined ? Math.round(st.play_time / 3600) : null,
       rankedScore: numOrNull(st.ranked_score),

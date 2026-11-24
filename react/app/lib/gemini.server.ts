@@ -10,7 +10,8 @@
  * - On ne journalise ni la clé, ni le prompt, ni la réponse : seulement un code.
  */
 
-const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
+/** URL de l'API (surchargeable pour les tests locaux, comme OSU_BASE_URL). */
+const ENDPOINT = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_MODEL = "gemini-3.1-flash-lite";
 const FALLBACK_MODELS = ["gemini-3-flash-preview", "gemini-3.8-flash"];
 

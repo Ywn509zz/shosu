@@ -142,6 +142,8 @@ export type TopPlay = {
 
 export type PlayerPage = PlayerSummary & {
   mode: string;
+  /** Faux quand le joueur n'a jamais joué dans ce mode (aucune statistique à afficher). */
+  hasStats: boolean;
   level: number | null;
   playTimeHours: number | null;
   rankedScore: number | null;
